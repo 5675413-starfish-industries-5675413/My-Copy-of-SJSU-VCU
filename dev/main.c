@@ -212,9 +212,8 @@ void main(void)
     ReadyToDriveSound *rtds = RTDS_new();
     BatteryManagementSystem *bms = BMS_new(serialMan, BMS_BASE_ADDRESS);
     // 240 Nm
-    //MotorController *mcm0 = MotorController_new(serialMan, 0xA0, FORWARD, 2400, 5, 10); //CAN addr, direction, torque limit x10 (100 = 10Nm)
+    MotorController *mcm0 = MotorController_new(serialMan, 0xA0, FORWARD, 2400, 5, 10); //CAN addr, direction, torque limit x10 (100 = 10Nm)
     // 75 Nm
-    MotorController *mcm0 = MotorController_new(serialMan, 0xA0, FORWARD, 2310, 5, 10); //CAN addr, direction, torque limit x10 (100 = 10Nm)
     InstrumentCluster *ic0 = InstrumentCluster_new(serialMan, 0x702);
     TorqueEncoder *tps = TorqueEncoder_new(bench);
     BrakePressureSensor *bps = BrakePressureSensor_new();
@@ -329,7 +328,7 @@ void main(void)
         sbyte4 groundSpeedKPH = MCM_getGroundSpeedKPH(mcm0);
         if (groundSpeedKPH < 15)
         {
-            MCM_setRegenMode(mcm0, REGENMODE_OFF);
+            MCM_setRegenMode(mcm0, REGENMODE_FIXED);
         } else {
             // Regen mode is now set based on battery voltage to preserve overvoltage fault 
             // if(BMS_getPackVoltage(bms) >= 38500 * 10){ 
@@ -433,7 +432,7 @@ void main(void)
         // PLMETHOD 1:TQequation+TQPID
          // PLMETHOD 2:TQequation+PWRPID
           // PLMETHOD 3: LUT+TQPID
-        PowerLimit_calculateCommand(pl, mcm0, tps);
+        //PowerLimit_calculateCommand(pl, mcm0, tps);
         MCM_calculateCommands(mcm0, tps, bps);
 
         SafetyChecker_update(sc, mcm0, bms, tps, bps, &Sensor_HVILTerminationSense, &Sensor_LVBattery);

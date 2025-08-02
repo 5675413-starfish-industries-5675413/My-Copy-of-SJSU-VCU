@@ -298,15 +298,15 @@ void MCM_calculateCommands(MotorController *me, TorqueEncoder *tps, BrakePressur
 
     TorqueEncoder_getOutputPercent(tps, &appsOutputPercent);
     
-    me->appsTorque = me->torqueMaximumDNm * appsOutputPercent;
-    //me->appsTorque = me->torqueMaximumDNm * getPercent(appsOutputPercent, me->regen_percentAPPSForCoasting, 1, TRUE) - me->regen_torqueAtZeroPedalDNm * getPercent(appsOutputPercent, me->regen_percentAPPSForCoasting, 0, TRUE);
-    //bpsTorque = 0 - (me->regen_torqueLimitDNm - me->regen_torqueAtZeroPedalDNm) * getPercent(bps->percent, 0, me->regen_percentBPSForMaxRegen, TRUE);
+   // me->appsTorque = me->torqueMaximumDNm * appsOutputPercent;
+    me->appsTorque = me->torqueMaximumDNm * getPercent(appsOutputPercent, me->regen_percentAPPSForCoasting, 1, TRUE) - me->regen_torqueAtZeroPedalDNm * getPercent(appsOutputPercent, me->regen_percentAPPSForCoasting, 0, TRUE);
+    bpsTorque = 0 - (me->regen_torqueLimitDNm - me->regen_torqueAtZeroPedalDNm) * getPercent(bps->percent, 0, me->regen_percentBPSForMaxRegen, TRUE);
 
     /** MOTOR TORQUE COMMAND LOGIC **/
     // abstraction might be warranted for the below logic
 
     torqueOutput = me->appsTorque + bpsTorque;
-
+ /*
     if(me->launchControlState == TRUE && me->lcTorqueCommand < me->appsTorque)
     {
         torqueOutput = me->lcTorqueCommand;
@@ -316,10 +316,17 @@ void MCM_calculateCommands(MotorController *me, TorqueEncoder *tps, BrakePressur
         me->launchControlState == FALSE;
         torqueOutput = me->plTorqueCommand + bpsTorque;
     }
+  
     //Safety Check. torqueOutput Should never rise above 231
     if(torqueOutput > 2310 || torqueOutput < 0) //attempt to fix issue of -3000
     {
         torqueOutput = me->appsTorque+bpsTorque;
+    }
+      */
+
+    if(torqueOutput > 2310)
+    {
+        torqueOutput=2310;
     }
     MCM_commands_setTorqueDNm(me, torqueOutput);
 
