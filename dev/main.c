@@ -328,7 +328,7 @@ void main(void)
         sbyte4 groundSpeedKPH = MCM_getGroundSpeedKPH(mcm0);
         if (groundSpeedKPH < 15)
         {
-            MCM_setRegenMode(mcm0, REGENMODE_FIXED);
+            MCM_setRegenMode(mcm0, REGENMODE_TESLA);
         } else {
             // Regen mode is now set based on battery voltage to preserve overvoltage fault 
             // if(BMS_getPackVoltage(bms) >= 38500 * 10){ 
