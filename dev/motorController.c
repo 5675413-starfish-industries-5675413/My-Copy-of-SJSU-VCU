@@ -215,7 +215,7 @@ void MCM_setRegenMode(MotorController *me, RegenMode regenMode)
 
     case REGENMODE_HYBRID: //Position 2 = light "engine braking" (Hybrid mode)
         me->regen_mode = 2;
-        me->regen_torqueLimitDNm = me->torqueMaximumDNm * 0.5;
+        me->regen_torqueLimitDNm = 500;//me->torqueMaximumDNm * 0.5;
         me->regen_torqueAtZeroPedalDNm = me->regen_torqueLimitDNm * 0.3;
         me->regen_percentAPPSForCoasting = .2;
         me->regen_percentBPSForMaxRegen = .3; //zero to one.. 1 = 100%
