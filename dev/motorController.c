@@ -207,7 +207,7 @@ void MCM_setRegenMode(MotorController *me, RegenMode regenMode)
     {
     case REGENMODE_FORMULAE: //Position 1 = Coasting mode (Formula E mode)
         me->regen_mode = 1;
-        me->regen_torqueLimitDNm = me->torqueMaximumDNm * 0.5;
+        me->regen_torqueLimitDNm = 50;//me->torqueMaximumDNm * 0.5;
         me->regen_torqueAtZeroPedalDNm = 0;
         me->regen_percentAPPSForCoasting = 0;
         me->regen_percentBPSForMaxRegen = .3; //zero to one.. 1 = 100%
