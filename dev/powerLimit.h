@@ -73,7 +73,7 @@ void PowerLimit_setPLInitializationThreshold(PowerLimit* me);
 void PowerLimit_calculateCommand(PowerLimit *me, MotorController *mcm, TorqueEncoder *tps);
 void POWERLIMIT_calculateTorqueCommandTorqueEquation(PowerLimit *me, MotorController *mcm);
 void POWERLIMIT_calculateTorqueCommandPowerPID(PowerLimit *me, MotorController *mcm);
-void POWERLIMIT_updatePIDController(PowerLimit* me, sbyte2 pidSetpoint, sbyte2 commandedTorque, ubyte1 clampingMethod);
+void POWERLIMIT_updatePIDController(PowerLimit* me, float pidSetpoint, float sensorValue, ubyte1 clampingMethod);
 /** GETTER FUNCTIONS **/
 
 ubyte1 POWERLIMIT_getClampingMethod(PowerLimit* me);

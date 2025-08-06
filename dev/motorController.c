@@ -336,6 +336,8 @@ void MCM_calculateCommands(MotorController *me, TorqueEncoder *tps, BrakePressur
         me->InverterOverride = ENABLED;
     else
         me->InverterOverride = UNKNOWN;
+
+        
 }
 
 void MCM_relayControl(MotorController *me, Sensor *HVILTermSense)
@@ -937,4 +939,26 @@ float4 MCM_getRegen_PercentBPSForMaxRegen(MotorController* me)
 float4 MCM_getRegen_PercentAPPSForCoasting(MotorController* me)
 {
     return me->regen_percentAPPSForCoasting;
+}
+
+// Testing functions for closed-loop testing
+void MCM_incrementVoltageForTesting(MotorController* me, sbyte4 increment) {
+    me->DC_Voltage += increment;
+    if (me->DC_Voltage > 1000) {  // Cap at 1000V
+        me->DC_Voltage = 1000;
+    }
+}
+
+void MCM_incrementCurrentForTesting(MotorController* me, sbyte4 increment) {
+    me->DC_Current += increment;
+    if (me->DC_Current > 500) {   // Cap at 500A
+        me->DC_Current = 500;
+    }
+}
+
+void MCM_incrementRPMForTesting(MotorController* me, sbyte4 increment) {
+    me->motorRPM += increment;
+    if (me->motorRPM > 10000) {   // Cap at 10000 RPM
+        me->motorRPM = 10000;
+    }
 }

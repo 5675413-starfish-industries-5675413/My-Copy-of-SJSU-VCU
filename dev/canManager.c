@@ -834,8 +834,8 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     canMessages[canMessageCount - 1].data[byteNum++] = POWERLIMIT_getInitialisationThreshold(pl);
     canMessages[canMessageCount - 1].data[byteNum++] = POWERLIMIT_getTorqueCommand(pl);
     canMessages[canMessageCount - 1].data[byteNum++] = (POWERLIMIT_getTorqueCommand(pl) >> 8);
-    canMessages[canMessageCount - 1].data[byteNum++] = PID_getSetpoint(pl->pid);
-    canMessages[canMessageCount - 1].data[byteNum++] = (PID_getSetpoint(pl->pid) >> 8);
+    canMessages[canMessageCount - 1].data[byteNum++] = PID_getOutput(pl->pid);
+    canMessages[canMessageCount - 1].data[byteNum++] = (PID_getOutput(pl->pid) >> 8);
     canMessages[canMessageCount - 1].length = byteNum;
 
 //512: Power Limit PID Output Details

@@ -60,6 +60,11 @@ void MCM_setRegen_torqueAtZeroPedalDNm(MotorController* mcm, ubyte2 torqueZero);
 void MCM_setRegen_percentBPSForMaxRegen(MotorController* mcm, float4 percentBPS);
 void MCM_set_Regen_percentAPPSForCoasting(MotorController* mcm, float4 percentAPPS);
 
+// Testing functions for closed-loop testing
+void MCM_incrementVoltageForTesting(MotorController* me, sbyte4 increment);
+void MCM_incrementCurrentForTesting(MotorController* me, sbyte4 increment);
+void MCM_incrementRPMForTesting(MotorController* me, sbyte4 increment);
+
 ubyte2 MCM_getMaxTorqueDNm(MotorController* mcm);
 ubyte2 MCM_get_Regen_torqueLimitDNm(MotorController* mcm);
 ubyte2 MCM_get_Regen_torqueAtZeroPedalDNm(MotorController* mcm);

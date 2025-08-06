@@ -17,14 +17,14 @@ typedef struct _PID {
     sbyte1 Ki;               // Integral     gain
     sbyte1 Kd;               // Derivative   gain
     sbyte2 scalefactor; // tells us what to divide the gain values by
-    sbyte2 setpoint;         // Target       value
-    sbyte2 previousError;
-    sbyte4 totalError;
+    float setpoint;         // Target       value
+    float previousError;
+    float totalError;
     sbyte2 dH;               // Time interval between PID updates in seconds (VCU tick speed)
-    sbyte2 output;
-    sbyte2 proportional;
-    sbyte2 integral;
-    sbyte2 derivative;
+    float output;
+    float proportional;
+    float integral;
+    float derivative;
     sbyte2 saturationValue;
     bool antiWindupFlag;
 }PID;
@@ -41,12 +41,12 @@ PID* PID_new(sbyte1 Kp, sbyte1 Ki, sbyte1 Kd, sbyte2 saturationValue, sbyte2 sca
 
 void PID_setTotalError(PID* pid, sbyte2 totalError);
 void PID_setSaturationPoint(PID *pid, sbyte2 saturationValue);
-void PID_updateSetpoint(PID *pid, sbyte2 setpoint);
+void PID_updateSetpoint(PID *pid, float setpoint);
 void PID_updateGainValues(PID* pid, sbyte1 Kp, sbyte1 Ki, sbyte1 Kd);
 
 /** COMPUTATIONS **/
 
-void PID_computeOutput(PID *pid, sbyte2 sensorValue);
+void PID_computeOutput(PID *pid, float sensorValue);
 
 /** GETTER FUNCTIONS **/
 

@@ -28,7 +28,7 @@
 // #define ELIMINATE_CAN_MESSAGES
 PowerLimit* POWERLIMIT_new(){
     PowerLimit* me = (PowerLimit*)malloc(sizeof(PowerLimit));
-    me->pid = PID_new(10, 0, 0, 231,10); // last value tells you gain value factor
+    me->pid = PID_new(5, 0, 0, 231,10); // last value tells you gain value factor
     me->plMode = 1;    // each number corresponds to a different method
     //1.TQ equation only
     //2.PowerPID only 
@@ -69,10 +69,6 @@ void POWERLIMIT_setLimpModeOverride(PowerLimit* me){
 /** COMPUTATIONS **/
 
 void PowerLimit_calculateCommand(PowerLimit *me, MotorController *mcm, TorqueEncoder *tps){
-    sbyte4 DC_Current = MCM_getDCCurrent(mcm);
-    if (DC_Current < 0){
-        DC_Current = 0;
-    }
    
     PowerLimit_setPLInitializationThreshold(me);
 
@@ -80,7 +76,8 @@ void PowerLimit_calculateCommand(PowerLimit *me, MotorController *mcm, TorqueEnc
         me->plStatus = FALSE;
     }
     else {
-        sbyte4 current_power_kw = (sbyte4) ((MCM_getDCVoltage(mcm) * DC_Current) / 1000);
+        sbyte4 current_power_kw = (sbyte4) ((MCM_getDCVoltage(mcm) * MCM_getDCCurrent(mcm)) / 1000);
+        
         if (!me->plAlwaysOn) { // if PL is not always on, only turn on if power is above threshold and off if below
             if (current_power_kw > me->plInitializationThreshold) {
                 me->plStatus = TRUE;
@@ -124,26 +121,33 @@ void POWERLIMIT_calculateTorqueCommandTorqueEquation(PowerLimit *me, MotorContro
     me->plMode = 1;
     PID_setSaturationPoint(me->pid, 231);
 
-    /* Sensor inputs */
     sbyte4 motorRPM   = MCM_getMotorRPM(mcm);
-
-    // maybe recalculate pidsetpoint
-
-    float setpoint = (me->plTargetPower - (2.0))* (9549.0/motorRPM);
-    sbyte2 pidSetpoint= (sbyte2)(setpoint);
-  //  sbyte2 pidSetpoint = (me->plTargetPower - (sbyte1)(2)) * (9549.0/motorRPM); //DONT FUCKING TOUCH THIS LINE, please
-
-    sbyte2 commandedTorque = (sbyte2)MCM_getCommandedTorque(mcm);
-
-   POWERLIMIT_updatePIDController(me, pidSetpoint, commandedTorque, me->clampingMethod);
-   if (pidSetpoint>231){
-        pidSetpoint = 231; //saturation point
+    if (motorRPM == 0){
+        motorRPM = 1; //avoid division by 0
     }
-    me->plTorqueCommand = pidSetpoint * 10; //deciNewton-meters
+    sbyte2 commandedTorque = (sbyte2)MCM_getCommandedTorque(mcm);
+    sbyte4 torqueSetpoint = (me->plTargetPower - (2.0))* (9549.0/motorRPM);
+    float torqueSetpointFloat = (float)(torqueSetpoint);
 
-   // me->plTorqueCommand = (commandedTorque + PID_getOutput(me->pid) ) * 10; //deciNewton-meters
-    MCM_update_PL_setTorqueCommand(mcm, me->plTorqueCommand);
-    MCM_set_PL_updateStatus(mcm, me->plStatus);
+    //calculate current power
+    sbyte4 dcVoltage = MCM_getDCVoltage(mcm);
+    sbyte4 dcCurrent = MCM_getDCCurrent(mcm);
+    if (dcCurrent < 0){
+        dcCurrent = 0;
+    }
+
+    POWERLIMIT_updatePIDController(me, torqueSetpointFloat, commandedTorque, me->clampingMethod);
+   
+    float pidOutput = PID_getOutput(me->pid);
+    me->plTorqueCommand = (sbyte2)((commandedTorque + pidOutput) * 10);
+   
+   
+    if (me->plTorqueCommand > 2310) {
+         me->plTorqueCommand = 2310; //saturation point in deciNewton-meters
+     }
+     
+     MCM_update_PL_setTorqueCommand(mcm, me->plTorqueCommand);
+     MCM_set_PL_updateStatus(mcm, me->plStatus);
 }
 
 void POWERLIMIT_calculateTorqueCommandPowerPID(PowerLimit *me, MotorController *mcm){
@@ -186,25 +190,29 @@ void POWERLIMIT_calculateTorqueCommandPowerPID(PowerLimit *me, MotorController *
 
 
 
-void POWERLIMIT_updatePIDController(PowerLimit* me, sbyte2 pidSetpoint, sbyte2 sensorValue, ubyte1 clampingMethod) {
-        sbyte2 currentError = PID_getSetpoint(me->pid) - sensorValue;
+void POWERLIMIT_updatePIDController(PowerLimit* me, float pidSetpoint, float sensorValue, ubyte1 clampingMethod) {
+        float currentError = pidSetpoint - sensorValue;
         switch (me->clampingMethod) {
             case 1: 
                 if (currentError > 0) {
                     PID_setSaturationPoint(me->pid, 231); 
                 }
+                break;
             case 2: 
                 if (currentError > 0) {
                     PID_setSaturationPoint(me->pid, sensorValue); 
                 }
+                break;
             case 3: 
                 if (currentError > 0) {
                     me->pid->totalError -= PID_getPreviousError(me->pid); 
                 }
+                break;
             case 4: 
                 if (currentError > 0) {
                     pidSetpoint = sensorValue; 
                 }
+                break;
         } 
 
         PID_updateSetpoint(me->pid, pidSetpoint);

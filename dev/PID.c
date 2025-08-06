@@ -52,7 +52,7 @@ void PID_setSaturationPoint(PID *pid, sbyte2 saturationValue){
     pid->saturationValue = saturationValue;
 }
 
-void PID_updateSetpoint(PID *pid, sbyte2 setpoint) {
+void PID_updateSetpoint(PID *pid, float setpoint) {
     if(pid->saturationValue > setpoint)
         pid->setpoint = setpoint;
     else
@@ -65,19 +65,19 @@ void PID_updateSetpoint(PID *pid, sbyte2 setpoint) {
 
 /** COMPUTATIONS **/
 
-void PID_computeOutput(PID *pid, sbyte2 sensorValue) {
+void PID_computeOutput(PID *pid, float sensorValue) {
      
 
     float currentError = pid->setpoint - sensorValue;
     float proportional = (float)((pid->Kp * currentError) / pid->scalefactor);
-    float integral = (float)((pid->Ki * (float)(pid->totalError + currentError)) / pid->dH / pid->scalefactor);
-    pid->proportional   = (sbyte2) proportional;
-    pid->integral       = (sbyte2) integral;    
+    float integral = (float)((pid->Ki * (pid->totalError + currentError)) / pid->dH / pid->scalefactor);
+    pid->proportional   = proportional;
+    pid->integral       = integral;    
     //pid->integral       = (sbyte2) ( (sbyte4) pid->Ki * (pid->totalError + currentError) / pid->dH  /pid->scalefactor);
-    pid->derivative     = (sbyte2) pid->Kd * (currentError - pid->previousError) * pid->dH  / pid->scalefactor;
+    pid->derivative     = pid->Kd * (currentError - pid->previousError) * pid->dH  / pid->scalefactor;
     
-    pid->previousError  = (sbyte2)currentError;
-    pid->totalError    += (sbyte4)currentError;
+    pid->previousError  = currentError;
+    pid->totalError    += currentError;
 
     // At minimum, a P(ID) Controller will always use Proportional Control
     pid->output = pid->proportional+pid->integral;
