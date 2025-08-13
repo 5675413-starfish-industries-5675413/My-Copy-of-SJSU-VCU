@@ -128,6 +128,7 @@ void POWERLIMIT_calculateTorqueCommandTorqueEquation(PowerLimit *me, MotorContro
     sbyte4 motorRPM   = MCM_getMotorRPM(mcm);
 
     // maybe recalculate pidsetpoint
+    //test
 
     float setpoint = (me->plTargetPower - (2.0))* (9549.0/motorRPM);
     sbyte2 pidSetpoint= (sbyte2)(setpoint);
