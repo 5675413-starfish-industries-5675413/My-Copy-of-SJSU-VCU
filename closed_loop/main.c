@@ -19,7 +19,7 @@ typedef float float4;
 #define FALSE 0
 #endif
 
-// Global mock sensors
+// Global mock sensor
 Sensor Sensor_RTDButton = {TRUE, true, "RTDButton"};
 Sensor Sensor_HVILTerminationSense = {TRUE, true, "HVILTermSense"};
 void* Light_dashRTD = NULL;
