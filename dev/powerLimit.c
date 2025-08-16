@@ -39,7 +39,7 @@ PowerLimit* POWERLIMIT_new(){
     me->plTargetPower = 40;// HERE IS WHERE YOU CHANGE POWERLIMIT
     me->plThresholdDiscrepancy = 15;
     me->plInitializationThreshold = 0;
-    me->clampingMethod = 1;
+    me->clampingMethod = 3;
 
     me->plAlwaysOn = TRUE;
     //LUT Corners
@@ -125,8 +125,8 @@ void POWERLIMIT_calculateTorqueCommandTorqueEquation(PowerLimit *me, MotorContro
     if (motorRPM == 0){
         motorRPM = 1; //avoid division by 0
     }
-    sbyte2 commandedTorque = (sbyte2)MCM_getCommandedTorque(mcm);
-    //sbyte2 commandedTorque = (sbyte2)MCM_getFeedbackTorque(mcm);
+    //sbyte2 commandedTorque = (sbyte2)MCM_getCommandedTorque(mcm);
+    sbyte2 commandedTorque = (sbyte2)MCM_getFeedbackTorque(mcm);
     sbyte4 torqueSetpoint = (me->plTargetPower - (2.0))* (9549.0/motorRPM);
     float torqueSetpointFloat = (float)(torqueSetpoint);
 

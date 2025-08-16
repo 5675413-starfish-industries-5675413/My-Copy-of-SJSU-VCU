@@ -83,6 +83,14 @@ void PID_computeOutput(PID *pid, float sensorValue) {
     pid->output = pid->proportional;
 
     //Check to see if motor is saturated at max torque request already
+    if(pid->saturationValue >= sensorValue)
+    {
+        pid->antiWindupFlag = FALSE;
+        pid->output += pid->integral;
+        pid->output += pid->derivative;
+    }
+    else
+        pid->antiWindupFlag = TRUE;
 
     //return pid->output;
 }
