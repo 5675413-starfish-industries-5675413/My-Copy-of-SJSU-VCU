@@ -41,6 +41,7 @@ PowerLimit* POWERLIMIT_new(){
     me->plInitializationThreshold = 0;
     me->clampingMethod = 1;
 
+
     me->plAlwaysOn = TRUE;
     //LUT Corners
     me->vFloorRFloor = 0;
