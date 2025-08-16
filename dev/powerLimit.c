@@ -125,8 +125,8 @@ void POWERLIMIT_calculateTorqueCommandTorqueEquation(PowerLimit *me, MotorContro
     if (motorRPM == 0){
         motorRPM = 1; //avoid division by 0
     }
-    //sbyte2 commandedTorque = (sbyte2)MCM_getCommandedTorque(mcm);
-    sbyte2 commandedTorque = (sbyte2)MCM_getFeedbackTorque(mcm);
+    sbyte2 commandedTorque = (sbyte2)MCM_getCommandedTorque(mcm);
+    //sbyte2 commandedTorque = (sbyte2)MCM_getFeedbackTorque(mcm);
     sbyte4 torqueSetpoint = (me->plTargetPower - (2.0))* (9549.0/motorRPM);
     float torqueSetpointFloat = (float)(torqueSetpoint);
 
