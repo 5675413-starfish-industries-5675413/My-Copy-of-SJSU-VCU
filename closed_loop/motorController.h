@@ -14,6 +14,9 @@ typedef int16_t sbyte2;
 typedef int32_t sbyte4;
 typedef float float4;
 
+// Regen mode
+typedef enum { REGENMODE_OFF = 0, REGENMODE_FORMULAE, REGENMODE_HYBRID, REGENMODE_TESLA, REGENMODE_FIXED } RegenMode;
+
 // Mock structures (simplified versions)
 typedef struct {
     float4 travelPercent;
@@ -57,7 +60,7 @@ typedef enum { CLOCKWISE, COUNTERCLOCKWISE, FORWARD, REVERSE, _0, _1 } Direction
 typedef struct _MotorController MotorController;
 
 // Constructor
-MotorController* MotorController_new(SerialManager* sm, ubyte2 canMessageBaseID, Direction initialDirection, sbyte2 torqueMaxInDNm);
+MotorController* MotorController_new(SerialManager* sm, ubyte2 canMessageBaseID, Direction initialDirection, sbyte2 torqueMaxInDNm, sbyte1 minRegenSpeedKPH, sbyte1 regenRampdownStartSpeed);
 
 //----------------------------------------------------------------------------
 // Command Functions
@@ -92,6 +95,8 @@ Status MCM_getInverterStatus(MotorController* me);
 
 sbyte4 MCM_getPower(MotorController* me);
 ubyte2 MCM_getCommandedTorque(MotorController* me);
+sbyte2 MCM_getAppsTorque(MotorController* me);
+sbyte2 MCM_getBpsTorque(MotorController* me);
 
 bool MCM_getHvilOverrideStatus(MotorController* me);
 Status MCM_getInverterOverrideStatus(MotorController* me);
@@ -102,7 +107,7 @@ bool MCM_getRTDSFlag(MotorController* me);
 sbyte2 MCM_getTemp(MotorController* me);
 sbyte2 MCM_getMotorTemp(MotorController* me);
 
-sbyte4 MCM_getGroundSpeedKPH(MotorController* me);
+sbyte4 MCM_getGroundSpeedKPH(MotorController *me, sbyte4 motorRPM, sbyte4 FD_Ratio, sbyte4 Revolutions, sbyte4 tireCirc, sbyte4 KPH_Unit_Conversion);
 
 //----------------------------------------------------------------------------
 // Mutator Functions
@@ -114,6 +119,7 @@ ubyte2 MCM_getTorqueMax(MotorController* me);
 //----------------------------------------------------------------------------
 // Inter-object functions
 //----------------------------------------------------------------------------
+void MCM_setRegenMode(MotorController *me, RegenMode regenMode);
 void MCM_calculateCommands(MotorController *mcm, TorqueEncoder *tps, BrakePressureSensor *bps);
 void MCM_relayControl(MotorController* mcm, Sensor* HVILTermSense);
 void MCM_inverterControl(MotorController* mcm, TorqueEncoder* tps, BrakePressureSensor* bps, ReadyToDriveSound* rtds);
@@ -121,5 +127,10 @@ void MCM_parseCanMessage(MotorController* mcm, IO_CAN_DATA_FRAME* mcmCanMessage)
 
 ubyte1 MCM_getStartupStage(MotorController* me);
 void MCM_setStartupStage(MotorController* me, ubyte1 stage);
+
+//----------------------------------------------------------------------------
+// Helper Functions
+//----------------------------------------------------------------------------
+float4 getPercent(float4 input, float4 min, float4 max, bool increasing);
 
 #endif // _MOTORCONTROLLER_H

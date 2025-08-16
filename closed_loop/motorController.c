@@ -36,6 +36,15 @@ struct _MotorController
 
     ubyte2 torqueMaximumDNm; // Max torque that can be commanded in deciNewton*meters
 
+    //Regen torque calculations in whole Nm..?
+    RegenMode regen_mode;                //Software reading of regen knob position.  Each mode has different regen behavior (variables below).
+    ubyte2 regen_torqueLimitDNm;         //Tuneable value.  Regen torque (in Nm) at full regen.  Positive value.
+    ubyte2 regen_torqueAtZeroPedalDNm;   //Tuneable value.  Amount of regen torque (in Nm) to apply when both pedals at 0% travel.  Positive value.
+    float4 regen_percentBPSForMaxRegen;  //Tuneable value.  Amount of brake pedal required for full regen. Value between zero and one.
+    float4 regen_percentAPPSForCoasting; //Tuneable value.  Amount of accel pedal required to exit regen.  Value between zero and one.
+    sbyte1 regen_minimumSpeedKPH;        //Assigned by main
+    sbyte1 regen_SpeedRampStart;
+
     bool relayState;
     bool previousHVILState;
     ubyte4 timeStamp_HVILLost;
@@ -62,19 +71,22 @@ struct _MotorController
     ubyte4 currentPower;
 
     sbyte4 motorRPM;
+
     
     // Control parameters
     ubyte4 timeStamp_lastCommandSent;
     ubyte2 updateCount;
 
     sbyte2 commands_torque;
+    sbyte2 appsTorque;
+    sbyte2 bpsTorque;
     sbyte2 commands_torqueLimit;
     ubyte1 commands_direction;
     Status commands_discharge;
     Status commands_inverter;
 };
 
-MotorController *MotorController_new(SerialManager *sm, ubyte2 canMessageBaseID, Direction initialDirection, sbyte2 torqueMaxInDNm)
+MotorController *MotorController_new(SerialManager *sm, ubyte2 canMessageBaseID, Direction initialDirection, sbyte2 torqueMaxInDNm, sbyte1 minRegenSpeedKPH, sbyte1 regenRampdownStartSpeed)
 {
     MotorController *me = (MotorController *)malloc(sizeof(struct _MotorController));
     if (!me) return NULL;
@@ -88,12 +100,20 @@ MotorController *MotorController_new(SerialManager *sm, ubyte2 canMessageBaseID,
     me->lockoutStatus = UNKNOWN;
     me->inverterStatus = UNKNOWN;
 
-    me->motorRPM = 0;
+    me->motorRPM = 100;
     me->DC_Voltage = 13;
     me->DC_Current = 13;
 
     me->commands_direction = initialDirection;
     me->commands_torqueLimit = me->torqueMaximumDNm = torqueMaxInDNm;
+
+    me->regen_mode = REGENMODE_OFF;
+    me->regen_torqueLimitDNm = 0;
+    me->regen_torqueAtZeroPedalDNm = 0;
+    me->regen_percentBPSForMaxRegen = 1; //zero to one.. 1 = 100%
+    me->regen_percentAPPSForCoasting = 0;
+    me->regen_minimumSpeedKPH = minRegenSpeedKPH;       //Assigned by main
+    me->regen_SpeedRampStart = regenRampdownStartSpeed; //Assigned by main
 
     me->startupStage = 0; // Off
     me->relayState = FALSE;
@@ -103,18 +123,108 @@ MotorController *MotorController_new(SerialManager *sm, ubyte2 canMessageBaseID,
     return me;
 }
 
+void MCM_setRegenMode(MotorController *me, RegenMode regenMode)
+{
+    switch (regenMode)
+    {
+    case REGENMODE_FORMULAE: //Position 1 = Coasting mode (Formula E mode)
+        me->regen_mode = 1;
+        me->regen_torqueLimitDNm = me->torqueMaximumDNm * 0.5;
+        me->regen_torqueAtZeroPedalDNm = 0;
+        me->regen_percentAPPSForCoasting = 0;
+        me->regen_percentBPSForMaxRegen = .3; //zero to one.. 1 = 100%
+        break;
+
+    case REGENMODE_HYBRID: //Position 2 = light "engine braking" (Hybrid mode)
+        me->regen_mode = 2;
+        me->regen_torqueLimitDNm = me->torqueMaximumDNm * 0.5;
+        me->regen_torqueAtZeroPedalDNm = me->regen_torqueLimitDNm * 0.3;
+        me->regen_percentAPPSForCoasting = .2;
+        me->regen_percentBPSForMaxRegen = .3; //zero to one.. 1 = 100%
+        break;
+
+    case REGENMODE_TESLA: //Position 3 = One pedal driving (Tesla mode)
+        me->regen_mode = 3;
+        me->regen_torqueLimitDNm = me->torqueMaximumDNm * .5;
+        me->regen_torqueAtZeroPedalDNm = me->regen_torqueLimitDNm;
+        me->regen_percentAPPSForCoasting = .1;
+        me->regen_percentBPSForMaxRegen = 0;
+        break;
+
+    case REGENMODE_FIXED: //Position 4 = Fixed Regen
+        me->regen_mode = 4;
+        me->regen_torqueLimitDNm = 250; //1000 = 100Nm
+        me->regen_torqueAtZeroPedalDNm = me->regen_torqueLimitDNm;
+        me->regen_percentAPPSForCoasting = .05;
+        me->regen_percentBPSForMaxRegen = 0;
+        break;
+
+        // TODO:  User customizable regen settings - Issue #97
+        // case REGENMONDE_CUSTOM:
+        //     me->regen_mode = 4;
+        //     me->regen_torqueLimitDNm = 0;
+        //     me->regen_torqueAtZeroPedalDNm = 0;
+        //     me->regen_percentBPSForMaxRegen = 0; //zero to one.. 1 = 100%
+        //     me->regen_percentAPPSForCoasting = 0;
+        //     break;
+
+    case REGENMODE_OFF:
+    default:
+        me->regen_mode = REGENMODE_OFF;
+        me->regen_torqueLimitDNm = 0;
+        me->regen_torqueAtZeroPedalDNm = 0;
+        me->regen_percentAPPSForCoasting = 0;
+        me->regen_percentBPSForMaxRegen = 0; //zero to one.. 1 = 100%
+        break;
+    }
+}
+
 void MCM_calculateCommands(MotorController *me, TorqueEncoder *tps, BrakePressureSensor *bps)
 {
     MCM_commands_setDischarge(me, DISABLED);
     MCM_commands_setDirection(me, FORWARD);
+    me->appsTorque = 0;
+    me->bpsTorque = 0;
+
+    sbyte2 torqueOutput = 0;
 
     float4 appsOutputPercent;
     TorqueEncoder_getOutputPercent(tps, &appsOutputPercent);
-    
-    // Simple torque calculation: throttle percentage * max torque
-    sbyte2 torqueOutput = me->torqueMaximumDNm * appsOutputPercent;
-    
+
+    me->appsTorque = me->torqueMaximumDNm * appsOutputPercent;
+    me->appsTorque = me->torqueMaximumDNm * getPercent(appsOutputPercent, me->regen_percentAPPSForCoasting, 1, TRUE) - me->regen_torqueAtZeroPedalDNm * getPercent(appsOutputPercent, me->regen_percentAPPSForCoasting, 0, TRUE);
+    me->bpsTorque = 0 - (me->regen_torqueLimitDNm - me->regen_torqueAtZeroPedalDNm) * getPercent(bps->percent, 0, me->regen_percentBPSForMaxRegen, TRUE);
+
+    /** MOTOR TORQUE COMMAND LOGIC **/
+    // abstraction might be warranted for the below logic
+
+    torqueOutput = me->appsTorque + me->bpsTorque;
+
+    /////////////////////////////////////////////
+    // LAUNCH CONTROL & POWER LIMITING         //
+    /////////////////////////////////////////////
+
+    // if(me->launchControlState == TRUE && me->lcTorqueCommand < me->appsTorque)
+    // {
+    //     torqueOutput = me->lcTorqueCommand;
+    // } 
+    // if(me->plActive == TRUE && me->plTorqueCommand < me->appsTorque)
+    // {
+    //     me->launchControlState == FALSE;
+    //     torqueOutput = me->plTorqueCommand + bpsTorque;
+    // }
+    // //Safety Check. torqueOutput Should never rise above 231
+    // if(torqueOutput > 2310 || torqueOutput < 0) //attempt to fix issue of -3000
+    // {
+    //     torqueOutput = me->appsTorque+bpsTorque;
+    // }
     MCM_commands_setTorqueDNm(me, torqueOutput);
+
+    //Causes MCM relay to be driven after 30 seconds with TTC60?
+    // me->HVILOverride = (IO_RTC_GetTimeUS(me->timeStamp_HVILOverrideCommandReceived) < 1000000);
+
+    //Temporarily disable MCM relay control via HVILOverride
+    //me->HVILOverride = FALSE;
 
     // Inverter override logic
     if (IO_RTC_GetTimeUS(me->timeStamp_InverterDisableOverrideCommandReceived) < 1000000)
@@ -416,6 +526,14 @@ ubyte2 MCM_getTorqueMax(MotorController *me)
     return me->torqueMaximumDNm;
 }
 
+sbyte2 MCM_getAppsTorque(MotorController *me){
+    return me->appsTorque;
+}
+
+sbyte2 MCM_getBpsTorque(MotorController *me){
+    return me->bpsTorque;
+}
+
 sbyte4 MCM_getPower(MotorController *me)
 {
     return ((me->DC_Voltage) * (me->DC_Current));
@@ -436,15 +554,11 @@ sbyte2 MCM_getMotorTemp(MotorController *me)
     return me->motor_temp+me->commands_torque/50;
 }
 
-sbyte4 MCM_getGroundSpeedKPH(MotorController *me)
-{   
-    sbyte4 FD_Ratio = 3.55; // Final drive ratio
-    sbyte4 Revolutions = 60; // Convert RPM to rotations per hour
-    sbyte4 tireCirc = 1.395; // Tire circumference in meters
-    sbyte4 KPH_Unit_Conversion = 1000.0;
-    sbyte4 groundKPH = ((me->motorRPM/FD_Ratio) * Revolutions * tireCirc) / KPH_Unit_Conversion; 
-
-    return groundKPH;
+sbyte4 MCM_getGroundSpeedKPH(MotorController *me, sbyte4 motorRPM, sbyte4 FD_Ratio, sbyte4 Revolutions, sbyte4 tireCirc, sbyte4 KPH_Unit_Conversion)
+{
+    me->motorRPM = motorRPM;
+    return ((me->motorRPM/FD_Ratio) * Revolutions * tireCirc) / KPH_Unit_Conversion; 
+    // return me->groundSpeedKPH;
 }
 
 // Startup stage functions
@@ -467,4 +581,17 @@ void MCM_setMaxTorqueDNm(MotorController* me, ubyte2 newTorque)
 ubyte2 MCM_getMaxTorqueDNm(MotorController* me)
 {
     return me->torqueMaximumDNm;
+}
+
+// Helper Functions
+float4 getPercent(float4 input, float4 min, float4 max, bool increasing) {
+    if (increasing) {
+        if (input <= min) return 0;
+        if (input >= max) return 1;
+        return (input - min) / (max - min);
+    } else {
+        if (input <= min) return 1;
+        if (input >= max) return 0;
+        return 1 - ((input - min) / (max - min));
+    }
 }
