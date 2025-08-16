@@ -205,9 +205,9 @@ void POWERLIMIT_updatePIDController(PowerLimit* me, float pidSetpoint, float sen
                 }
                 break;
             case 3: 
-                if (currentError > 0) {
-                    me->pid->totalError -= PID_getPreviousError(me->pid); 
-                }
+                // if (currentError > 0) {
+                //     me->pid->totalError -= PID_getPreviousError(me->pid); 
+                // }
                 break;
             case 4: 
                 if (currentError > 0) {
