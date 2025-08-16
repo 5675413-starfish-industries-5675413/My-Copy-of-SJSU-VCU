@@ -28,7 +28,7 @@
 // #define ELIMINATE_CAN_MESSAGES
 PowerLimit* POWERLIMIT_new(){
     PowerLimit* me = (PowerLimit*)malloc(sizeof(PowerLimit));
-    me->pid = PID_new(5, 0, 0, 231,10); // last value tells you gain value factor
+    me->pid = PID_new(10, 0, 0, 231,10); // last value tells you gain value factor
     me->plMode = 1;    // each number corresponds to a different method
     //1.TQ equation only
     //2.PowerPID only 
@@ -36,7 +36,7 @@ PowerLimit* POWERLIMIT_new(){
     //4. Both TQ equation and LUT together-(Final Algorithm)
     me->plStatus = FALSE;
     me->plTorqueCommand = 0; 
-    me->plTargetPower = 75;// HERE IS WHERE YOU CHANGE POWERLIMIT
+    me->plTargetPower = 40;// HERE IS WHERE YOU CHANGE POWERLIMIT
     me->plThresholdDiscrepancy = 15;
     me->plInitializationThreshold = 0;
     me->clampingMethod = 3;
