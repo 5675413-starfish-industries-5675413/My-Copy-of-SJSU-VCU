@@ -192,18 +192,22 @@ void POWERLIMIT_updatePIDController(PowerLimit* me, sbyte2 pidSetpoint, sbyte2 s
             case 1: 
                 if (currentError > 0) {
                     PID_setSaturationPoint(me->pid, 231); 
+                    break;
                 }
             case 2: 
                 if (currentError > 0) {
                     PID_setSaturationPoint(me->pid, sensorValue); 
+                    break;
                 }
             case 3: 
                 if (currentError > 0) {
                     me->pid->totalError -= PID_getPreviousError(me->pid); 
+                    break;
                 }
             case 4: 
                 if (currentError > 0) {
                     pidSetpoint = sensorValue; 
+                    break;
                 }
         } 
 
