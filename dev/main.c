@@ -326,7 +326,7 @@ void main(void)
 
         //SensorValue TRUE and FALSE are reversed due to Pull Up Resistor
         //No regen below 5kph
-        if (MCM_getDCCurrent < -72)
+        if (MCM_getDCCurrent(mcm0) < -72)
         {
             tick++;
         }
