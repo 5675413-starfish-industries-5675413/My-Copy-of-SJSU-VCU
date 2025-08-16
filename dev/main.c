@@ -339,7 +339,7 @@ void main(void)
         {
             MCM_setRegenMode(mcm0, REGENMODE_OFF);
         } else {
-            MCM_setRegenMode(mcm0, REGENMODE_TESLA);
+            MCM_setRegenMode(mcm0, REGENMODE_FORMULAE);
             // Regen mode is now set based on battery voltage to preserve overvoltage fault 
             // if(BMS_getPackVoltage(bms) >= 38500 * 10){ 
             //     MCM_setRegenMode(mcm0, REGENMODE_FORMULAE); 
