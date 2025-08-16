@@ -87,6 +87,7 @@ struct _MotorController
     sbyte4 DC_Current;
 
     sbyte2 commandedTorque;
+    sbyte2 feedbackTorque;
     ubyte4 currentPower;
 
     sbyte4 motorRPM;
@@ -611,6 +612,8 @@ void MCM_parseCanMessage(MotorController *me, IO_CAN_DATA_FRAME *mcmCanMessage)
         //0,1 Commanded Torque
         me->commandedTorque = ((ubyte2)mcmCanMessage->data[1] << 8 | mcmCanMessage->data[0]) / 10;
         //2,3 Torque Feedback
+        me->feedbackTorque = ((ubyte2)mcmCanMessage->data[1] << 8 | mcmCanMessage->data[0]) / 10;
+        me->feedbackTorque = -1 * me->feedbackTorque;
         break;
 
     case 0x5FF:
@@ -815,6 +818,11 @@ sbyte4 MCM_getPower(MotorController *me)
 ubyte2 MCM_getCommandedTorque(MotorController *me)
 {
     return me->commandedTorque;
+}
+
+ubyte2 MCM_getFeedbackTorque(MotorController *me)
+{
+    return me->feedbackTorque;
 }
 
 sbyte2 MCM_getTemp(MotorController *me)
