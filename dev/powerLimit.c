@@ -96,24 +96,24 @@ void PowerLimit_calculateCommand(PowerLimit *me, MotorController *mcm, TorqueEnc
 //2.PowerPID only 
 //3.LUT only 
 //4. Both TQ equation and LUT together-(Final Algorithm)
-if (me->plStatus){
-    if(me->plMode==1){
-        POWERLIMIT_calculateTorqueCommandTorqueEquation(me, mcm);
-      }
-      else if (me->plMode==2){
-        POWERLIMIT_calculateTorqueCommandPowerPID(me, mcm);
-      }
-    //    else if (me->plMode==3){ // write the saftey checks for these make sure that if the lut is out of range it uses tq equation
-    //     POWERLIMIT_calculateLUTCommand(me, mcm);
-    //   }
-    //    else if (me->plMode==4){
-    //     POWERLIMIT_calculateTorqueCommandTQAndLUT(me, mcm, fieldWeakening);
-    //   }
+    if (me->plStatus){
+        if(me->plMode==1){
+            POWERLIMIT_calculateTorqueCommandTorqueEquation(me, mcm);
+        }
+        else if (me->plMode==2){
+            POWERLIMIT_calculateTorqueCommandPowerPID(me, mcm);
+        }
+        //    else if (me->plMode==3){ // write the saftey checks for these make sure that if the lut is out of range it uses tq equation
+        //     POWERLIMIT_calculateLUTCommand(me, mcm);
+        //   }
+        //    else if (me->plMode==4){
+        //     POWERLIMIT_calculateTorqueCommandTQAndLUT(me, mcm, fieldWeakening);
+        //   }
+        }
+    else{
+        MCM_update_PL_setTorqueCommand(mcm, me->plTorqueCommand);
+        MCM_set_PL_updateStatus(mcm, me->plStatus);
     }
-else{
-    MCM_update_PL_setTorqueCommand(mcm, me->plTorqueCommand);
-    MCM_set_PL_updateStatus(mcm, me->plStatus);
-}
 }
 
 void POWERLIMIT_calculateTorqueCommandTorqueEquation(PowerLimit *me, MotorController *mcm){
@@ -139,7 +139,7 @@ void POWERLIMIT_calculateTorqueCommandTorqueEquation(PowerLimit *me, MotorContro
     POWERLIMIT_updatePIDController(me, torqueSetpointFloat, commandedTorque, me->clampingMethod);
    
     float pidOutput = PID_getOutput(me->pid);
-    me->plTorqueCommand = (sbyte2)((pidOutput) * 10);
+    me->plTorqueCommand = (sbyte2)((pidOutput + commandedTorque) * 10);
    
    
     if (me->plTorqueCommand > 2310) {
