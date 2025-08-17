@@ -20,7 +20,8 @@ typedef struct _PID {
     float setpoint;         // Target       value
     float previousError;
     float totalError;
-    sbyte2 dH;               // Time interval between PID updates in seconds (VCU tick speed)
+    sbyte2 dH;  
+    sbyte2 dt;             // Time interval between PID updates in seconds (VCU tick speed)
     float output;
     float proportional;
     float integral;

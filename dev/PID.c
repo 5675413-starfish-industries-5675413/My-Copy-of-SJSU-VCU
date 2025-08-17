@@ -17,23 +17,42 @@
  ****************************************************************************/
 #include "PID.h"
 
+// PID* PID_new(sbyte1 Kp, sbyte1 Ki, sbyte1 Kd, sbyte2 saturationValue, sbyte2 scalefactor) {
+//     PID* pid = (PID*)malloc(sizeof(PID));
+//     pid->Kp = Kp;
+//     pid->Ki = Ki;
+//     pid->Kd = Kd;
+//     pid->scalefactor = scalefactor;
+//     pid->setpoint      = 0; 
+//     pid->previousError = 0;
+//     pid->totalError    = 0;
+//     pid->dH            = 100; // 100 Hz aka 10 ms cycle time. view as inverese of 0.01 seconds, being done to avoid fpu usage
+//     pid->output        = 0;
+//     pid->proportional  = 0;
+//     pid->integral      = 0;
+//     pid->derivative    = 0;
+//     pid->saturationValue = saturationValue;
+//     pid->antiWindupFlag = FALSE;
+//     return pid;
+// }
+
 PID* PID_new(sbyte1 Kp, sbyte1 Ki, sbyte1 Kd, sbyte2 saturationValue, sbyte2 scalefactor) {
-    PID* pid = (PID*)malloc(sizeof(PID));
-    pid->Kp = Kp;
-    pid->Ki = Ki;
-    pid->Kd = Kd;
-    pid->scalefactor = scalefactor;
-    pid->setpoint      = 0; 
-    pid->previousError = 0;
-    pid->totalError    = 0;
-    pid->dH            = 100; // 100 Hz aka 10 ms cycle time. view as inverese of 0.01 seconds, being done to avoid fpu usage
-    pid->output        = 0;
-    pid->proportional  = 0;
-    pid->integral      = 0;
-    pid->derivative    = 0;
-    pid->saturationValue = saturationValue;
-    pid->antiWindupFlag = FALSE;
-    return pid;
+    PID* me = (PID*)malloc(sizeof(PID));
+    me->Kp = Kp;
+    me->Ki = Ki;
+    me->Kd = Kd;
+    me->setpoint = 0; 
+    me->previousError=0.0;
+    me->totalError=0.0;
+    me->dH= 100;
+    me->scalefactor = scalefactor;
+    me->saturationValue = saturationValue; 
+    me->proportional = 0;
+    me->integral = 0;
+    me->derivative = 0;
+    me->output = 0;
+    me->antiWindupFlag = FALSE;
+    return me;
 }
 
 /** SETTER FUNCTIONS  **/
@@ -63,36 +82,28 @@ void PID_updateSetpoint(PID *pid, float setpoint) {
         pid->setpoint = setpoint;
 }
 
+
+
+void PID_dtUpdate(PID *pid, ubyte4 new_dt) {
+    pid->dt = new_dt;
+}
+
 /** COMPUTATIONS **/
 
 void PID_computeOutput(PID *pid, float sensorValue) {
-     
-
-    float currentError = pid->setpoint - sensorValue;
-    float proportional = (float)((pid->Kp * currentError) / pid->scalefactor);
-    float integral = (float)((pid->Ki * (pid->totalError + currentError)) / pid->dH / pid->scalefactor);
-    pid->proportional   = proportional;
-    pid->integral       = integral;    
-    //pid->integral       = (sbyte2) ( (sbyte4) pid->Ki * (pid->totalError + currentError) / pid->dH  /pid->scalefactor);
-    pid->derivative     = pid->Kd * (currentError - pid->previousError) * pid->dH  / pid->scalefactor;
+    float currentError = (float)(pid->setpoint - sensorValue);
+    float proportional = (float)((pid->Kp * currentError)/pid->scalefactor);
+    float integral = (float)((pid->Ki * (pid->totalError + currentError)) / pid->dH / pid->scalefactor);   
+    float derivative = (float)(pid->Kd * (currentError - pid->previousError) * pid->dH / pid->scalefactor);
+    pid->proportional = proportional;
+    pid->integral = integral;
+    pid->derivative = derivative;
     
     pid->previousError  = currentError;
     pid->totalError    += currentError;
 
-    // At minimum, a P(ID) Controller will always use Proportional Control
-    pid->output = sensorValue+ pid->proportional;
-
-    //Check to see if motor is saturated at max torque request already
-    if(pid->saturationValue >= pid->output)
-    {
-        pid->antiWindupFlag = FALSE;
-        pid->output += pid->integral;
-        pid->output += pid->derivative;
-    }
-    else
-        pid->antiWindupFlag = TRUE;
-        pid->totalError -= currentError;
-    //return pid->output;
+    float output = proportional + integral + derivative;
+    pid->output;
 }
 
 /** GETTER FUNCTIONS **/

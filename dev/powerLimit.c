@@ -28,7 +28,7 @@
 // #define ELIMINATE_CAN_MESSAGES
 PowerLimit* POWERLIMIT_new(){
     PowerLimit* me = (PowerLimit*)malloc(sizeof(PowerLimit));
-    me->pid = PID_new(10, 50, 0, 231,10); // last value tells you gain value factor
+    me->pid = PID_new(10, 50, 0, 231, 10); 
     me->plMode = 1;    // each number corresponds to a different method
     //1.TQ equation only
     //2.PowerPID only 
@@ -39,7 +39,7 @@ PowerLimit* POWERLIMIT_new(){
     me->plTargetPower = 40;// HERE IS WHERE YOU CHANGE POWERLIMIT
     me->plThresholdDiscrepancy = 15;
     me->plInitializationThreshold = 0;
-    me->clampingMethod = 3;
+    me->clampingMethod = 0;
 
     me->plAlwaysOn = TRUE;
     //LUT Corners
@@ -193,32 +193,65 @@ void POWERLIMIT_calculateTorqueCommandPowerPID(PowerLimit *me, MotorController *
 void POWERLIMIT_updatePIDController(PowerLimit* me, float pidSetpoint, float sensorValue, ubyte1 clampingMethod) {
         float currentError = pidSetpoint - sensorValue;
         switch (me->clampingMethod) {
+            case 0: //No clamping
+                me->pid->antiWindupFlag = FALSE;
+                break;
             case 1: 
                 if (currentError > 0) {
+                    me->pid->antiWindupFlag = TRUE;
                     PID_setSaturationPoint(me->pid, 231); 
+                }
+                else {
+                    me->pid->antiWindupFlag = FALSE;
                 }
                 break;
             case 2: 
                 if (currentError > 0) {
+                    me->pid->antiWindupFlag = TRUE;
                     PID_setSaturationPoint(me->pid, sensorValue); 
+                }
+                else {
+                    me->pid->antiWindupFlag = FALSE;
                 }
                 break;
             case 3: 
-                // if (currentError > 0) {
-                //     me->pid->totalError -= PID_getPreviousError(me->pid); 
-                // }
+                if (currentError > 0) {
+                    me->pid->antiWindupFlag = TRUE;
+                    me->pid->totalError -= PID_getPreviousError(me->pid); 
+                }
+                else {
+                    me->pid->antiWindupFlag = FALSE;
+                }
                 break;
             case 4: 
                 if (currentError > 0) {
+                    me->pid->antiWindupFlag = TRUE;
                     pidSetpoint = sensorValue; 
+                }
+                else {
+                    me->pid->antiWindupFlag = FALSE;
                 }
                 break;
             case 5: {
                 float tentativeOutput = me->pid->proportional + me->pid->integral + me->pid->derivative;
                 if (tentativeOutput > me->pid->saturationValue) {
+                    me->pid->antiWindupFlag = TRUE;
                     float correction = me->pid->saturationValue - tentativeOutput;
                     float scaledCorrection = correction * me->pid->Ki;
                     me->pid->integral += scaledCorrection;
+                }
+                else {
+                    me->pid->antiWindupFlag = FALSE;
+                }
+                break;
+            }
+            case 6: {
+                if (me->pid->proportional + me->pid->integral + me->pid->derivative > me->pid->saturationValue) {
+                    me->pid->totalError -= currentError;
+                    me->pid->antiWindupFlag = TRUE;
+                }
+                else {
+                    me->pid->antiWindupFlag = FALSE;
                 }
                 break;
             }
