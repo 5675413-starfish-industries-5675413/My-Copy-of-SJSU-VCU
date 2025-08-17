@@ -102,6 +102,12 @@ void PID_computeOutput(PID *pid, float sensorValue) {
     pid->previousError  = currentError;
     pid->totalError    += currentError;
 
+    // if (pid->antiWindupFlag = TRUE) {
+    //     float output = proportional;
+    // }
+    // else {
+    //     float output = proportional + integral + derivative;
+    // }
     float output = proportional + integral + derivative;
     pid->output;
 }
