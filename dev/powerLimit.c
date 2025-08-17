@@ -127,8 +127,7 @@ void POWERLIMIT_calculateTorqueCommandTorqueEquation(PowerLimit *me, MotorContro
     }
     sbyte2 commandedTorque = (sbyte2)MCM_getCommandedTorque(mcm);
     //sbyte2 commandedTorque = (sbyte2)MCM_getFeedbackTorque(mcm);
-    sbyte4 torqueSetpoint = (me->plTargetPower - (2.0))* (9549.0/motorRPM);
-    float torqueSetpointFloat = (float)(torqueSetpoint);
+    float torqueSetpointFloat = (float)(me->plTargetPower - (2.0))* (9549.0/motorRPM);
 
     //calculate current power
     sbyte4 dcVoltage = MCM_getDCVoltage(mcm);
@@ -140,7 +139,7 @@ void POWERLIMIT_calculateTorqueCommandTorqueEquation(PowerLimit *me, MotorContro
     POWERLIMIT_updatePIDController(me, torqueSetpointFloat, commandedTorque, me->clampingMethod);
    
     float pidOutput = PID_getOutput(me->pid);
-    me->plTorqueCommand = (sbyte2)((commandedTorque + pidOutput) * 10);
+    me->plTorqueCommand = (sbyte2)((pidOutput) * 10);
    
    
     if (me->plTorqueCommand > 2310) {

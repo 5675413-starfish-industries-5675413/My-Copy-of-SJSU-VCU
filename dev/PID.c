@@ -80,10 +80,10 @@ void PID_computeOutput(PID *pid, float sensorValue) {
     pid->totalError    += currentError;
 
     // At minimum, a P(ID) Controller will always use Proportional Control
-    pid->output = pid->proportional;
+    pid->output = sensorValue+ pid->proportional;
 
     //Check to see if motor is saturated at max torque request already
-    if(pid->saturationValue >= sensorValue)
+    if(pid->saturationValue >= pid->output)
     {
         pid->antiWindupFlag = FALSE;
         pid->output += pid->integral;
@@ -91,7 +91,7 @@ void PID_computeOutput(PID *pid, float sensorValue) {
     }
     else
         pid->antiWindupFlag = TRUE;
-
+        pid->totalError -= currentError;
     //return pid->output;
 }
 
