@@ -214,6 +214,15 @@ void POWERLIMIT_updatePIDController(PowerLimit* me, float pidSetpoint, float sen
                     pidSetpoint = sensorValue; 
                 }
                 break;
+            case 5: {
+                float tentativeOutput = me->pid->proportional + me->pid->integral + me->pid->derivative;
+                if (tentativeOutput > me->pid->saturationValue) {
+                    float correction = me->pid->saturationValue - tentativeOutput;
+                    float scaledCorrection = correction * me->pid->Ki;
+                    me->pid->integral += scaledCorrection;
+                }
+                break;
+            }
         } 
 
         PID_updateSetpoint(me->pid, pidSetpoint);
