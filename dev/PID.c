@@ -90,8 +90,10 @@ void PID_computeOutput(PID *pid, float sensorValue) {
         pid->output += pid->derivative;
     }
     else
+    {
         pid->antiWindupFlag = TRUE;
         pid->totalError -= currentError;
+    }
     //return pid->output;
 }
 
