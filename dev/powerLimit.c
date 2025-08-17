@@ -25,7 +25,6 @@
 
 #endif
 
-//
 // #define ELIMINATE_CAN_MESSAGES
 PowerLimit* POWERLIMIT_new(){
     PowerLimit* me = (PowerLimit*)malloc(sizeof(PowerLimit));
@@ -37,7 +36,7 @@ PowerLimit* POWERLIMIT_new(){
     //4. Both TQ equation and LUT together-(Final Algorithm)
     me->plStatus = FALSE;
     me->plTorqueCommand = 0; 
-    me->plTargetPower = 96;// HERE IS WHERE YOU CHANGE POWERLIMIT
+    me->plTargetPower = 40;// HERE IS WHERE YOU CHANGE POWERLIMIT
     me->plThresholdDiscrepancy = 15;
     me->plInitializationThreshold = 0;
     me->clampingMethod = 3;
@@ -126,8 +125,8 @@ void POWERLIMIT_calculateTorqueCommandTorqueEquation(PowerLimit *me, MotorContro
     if (motorRPM == 0){
         motorRPM = 1; //avoid division by 0
     }
-    sbyte2 commandedTorque = (sbyte2)MCM_getCommandedTorque(mcm);
-    //sbyte2 commandedTorque = (sbyte2)MCM_getFeedbackTorque(mcm);
+    //sbyte2 commandedTorque = (sbyte2)MCM_getCommandedTorque(mcm);
+    sbyte2 commandedTorque = (sbyte2)MCM_getFeedbackTorque(mcm);
     sbyte4 torqueSetpoint = (me->plTargetPower - (2.0))* (9549.0/motorRPM);
     float torqueSetpointFloat = (float)(torqueSetpoint);
 
