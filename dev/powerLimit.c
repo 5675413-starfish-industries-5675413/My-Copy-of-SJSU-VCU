@@ -215,7 +215,7 @@ void POWERLIMIT_updatePIDController(PowerLimit* me, float pidSetpoint, float sen
                 }
                 break;
             case 3: 
-                if (currentError > 0) {
+                if (currentError < 0) {
                     me->pid->antiWindupFlag = TRUE;
                     me->pid->totalError -= PID_getPreviousError(me->pid); 
                 }
