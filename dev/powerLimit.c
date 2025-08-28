@@ -42,11 +42,11 @@ PowerLimit* POWERLIMIT_new(){
     me->clampingMethod = 6;
 
     me->plAlwaysOn = TRUE;
-    //LUT Corners
-    me->vFloorRFloor = 0;
-    me->vFloorRCeiling = 0;
-    me->vCeilingRFloor = 0;
-    me->vCeilingRCeiling = 0;
+    // //LUT Corners
+    // me->vFloorRFloor = 0;
+    // me->vFloorRCeiling = 0;          // Marked to delete
+    // me->vCeilingRFloor = 0;
+    // me->vCeilingRCeiling = 0;
 
     return me;
 }
@@ -59,7 +59,7 @@ void PowerLimit_setPLInitializationThreshold(PowerLimit* me){
 void POWERLIMIT_setLimpModeOverride(PowerLimit* me){
     /*
     if(button press)
-        me->plMode = 5;
+        me->plMode = 5;                         // Marked to delete
         me->plTargetPower = 20;
             me->plInitializationThreshold = 0;
 
@@ -105,7 +105,7 @@ void PowerLimit_calculateCommand(PowerLimit *me, MotorController *mcm, TorqueEnc
         }
         //    else if (me->plMode==3){ // write the saftey checks for these make sure that if the lut is out of range it uses tq equation
         //     POWERLIMIT_calculateLUTCommand(me, mcm);
-        //   }
+        //   }                                                                                      // Marked to delete
         //    else if (me->plMode==4){
         //     POWERLIMIT_calculateTorqueCommandTQAndLUT(me, mcm, fieldWeakening);
         //   }
@@ -189,7 +189,7 @@ void POWERLIMIT_calculateTorqueCommandPowerPID(PowerLimit *me, MotorController *
 }
 
 
-
+// Review anti-windup or clamping methods --> delete obsolete ones
 void POWERLIMIT_updatePIDController(PowerLimit* me, float pidSetpoint, float sensorValue, ubyte1 clampingMethod) {
         float currentError = pidSetpoint - sensorValue;
         switch (me->clampingMethod) {
