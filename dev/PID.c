@@ -83,12 +83,6 @@ void PID_computeOutput(PID *pid, float sensorValue) {
     pid->previousError  = currentError;
     pid->totalError    += currentError;
 
-    // if (pid->antiWindupFlag = TRUE) {
-    //     float output = proportional;
-    // }
-    // else {                                                           // commented out bc should be taken care of by addition of cl = 6 in powerLimit.c
-    //     float output = proportional + integral + derivative;
-    // }
     float output = proportional + integral + derivative;
     pid->output = output;
 }
