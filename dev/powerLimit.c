@@ -29,41 +29,25 @@
 PowerLimit* POWERLIMIT_new(){
     PowerLimit* me = (PowerLimit*)malloc(sizeof(PowerLimit));
     me->pid = PID_new(10, 50, 0, 231, 10); 
+
     me->plMode = 1;    // each number corresponds to a different method
     //1.TQ equation only
     //2.PowerPID only 
-    //3.LUT only 
-    //4. Both TQ equation and LUT together-(Final Algorithm)
+
     me->plStatus = FALSE;
     me->plTorqueCommand = 0; 
-    me->plTargetPower = 40;// HERE IS WHERE YOU CHANGE POWERLIMIT
+    me->plTargetPower = 40;// HERE IS WHERE YOU CHANGE POWERLIMIT (units = kW)
     me->plThresholdDiscrepancy = 15;
     me->plInitializationThreshold = 0;
     me->clampingMethod = 6;
 
     me->plAlwaysOn = TRUE;
-    // //LUT Corners
-    // me->vFloorRFloor = 0;
-    // me->vFloorRCeiling = 0;          // Marked to delete
-    // me->vCeilingRFloor = 0;
-    // me->vCeilingRCeiling = 0;
 
     return me;
 }
 
 void PowerLimit_setPLInitializationThreshold(PowerLimit* me){
     me->plInitializationThreshold = me->plTargetPower - me->plThresholdDiscrepancy;
-}
-
-
-void POWERLIMIT_setLimpModeOverride(PowerLimit* me){
-    /*
-    if(button press)
-        me->plMode = 5;                         // Marked to delete
-        me->plTargetPower = 20;
-            me->plInitializationThreshold = 0;
-
-    */
 }
 
 /** COMPUTATIONS **/
@@ -74,6 +58,9 @@ void PowerLimit_calculateCommand(PowerLimit *me, MotorController *mcm, TorqueEnc
 
     if (MCM_commands_getAppsTorque(mcm) == 0) { // if no torque command, turn off PL
         me->plStatus = FALSE;
+        pid->totalError = 0;
+        pid->proportional = 0;
+        pid->integral = 0;
     }
     else {
         sbyte4 current_power_kw = (sbyte4) ((MCM_getDCVoltage(mcm) * MCM_getDCCurrent(mcm)) / 1000);
@@ -94,8 +81,6 @@ void PowerLimit_calculateCommand(PowerLimit *me, MotorController *mcm, TorqueEnc
   
 //1.TQ equation only
 //2.PowerPID only 
-//3.LUT only 
-//4. Both TQ equation and LUT together-(Final Algorithm)
     if (me->plStatus){
         if(me->plMode==1){
             POWERLIMIT_calculateTorqueCommandTorqueEquation(me, mcm);
@@ -103,12 +88,6 @@ void PowerLimit_calculateCommand(PowerLimit *me, MotorController *mcm, TorqueEnc
         else if (me->plMode==2){
             POWERLIMIT_calculateTorqueCommandPowerPID(me, mcm);
         }
-        //    else if (me->plMode==3){ // write the saftey checks for these make sure that if the lut is out of range it uses tq equation
-        //     POWERLIMIT_calculateLUTCommand(me, mcm);
-        //   }                                                                                      // Marked to delete
-        //    else if (me->plMode==4){
-        //     POWERLIMIT_calculateTorqueCommandTQAndLUT(me, mcm, fieldWeakening);
-        //   }
         }
     else{
         MCM_update_PL_setTorqueCommand(mcm, me->plTorqueCommand);
@@ -127,7 +106,7 @@ void POWERLIMIT_calculateTorqueCommandTorqueEquation(PowerLimit *me, MotorContro
     }
     sbyte2 commandedTorque = (sbyte2)MCM_getCommandedTorque(mcm);
     //sbyte2 commandedTorque = (sbyte2)MCM_getFeedbackTorque(mcm);
-    float torqueSetpointFloat = (float)(me->plTargetPower - (2.0))* (9549.0/motorRPM);
+    float torqueSetpointFloat = (float)(me->plTargetPower)* (9549.0/motorRPM);
 
     //calculate current power
     sbyte4 dcVoltage = MCM_getDCVoltage(mcm);
@@ -136,7 +115,7 @@ void POWERLIMIT_calculateTorqueCommandTorqueEquation(PowerLimit *me, MotorContro
         dcCurrent = 0;
     }
 
-    POWERLIMIT_updatePIDController(me, torqueSetpointFloat, commandedTorque, me->clampingMethod);
+    POWERLIMIT_updatePIDController(PowerLimit *me, torqueSetpointFloat, commandedTorque, me->clampingMethod);
    
     float pidOutput = PID_getOutput(me->pid);
     me->plTorqueCommand = (sbyte2)((pidOutput + commandedTorque) * 10);
