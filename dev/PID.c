@@ -17,25 +17,6 @@
  ****************************************************************************/
 #include "PID.h"
 
-// PID* PID_new(sbyte1 Kp, sbyte1 Ki, sbyte1 Kd, sbyte2 saturationValue, sbyte2 scalefactor) {
-//     PID* pid = (PID*)malloc(sizeof(PID));
-//     pid->Kp = Kp;
-//     pid->Ki = Ki;
-//     pid->Kd = Kd;
-//     pid->scalefactor = scalefactor;
-//     pid->setpoint      = 0; 
-//     pid->previousError = 0;
-//     pid->totalError    = 0;
-//     pid->dH            = 100; // 100 Hz aka 10 ms cycle time. view as inverese of 0.01 seconds, being done to avoid fpu usage
-//     pid->output        = 0;
-//     pid->proportional  = 0;
-//     pid->integral      = 0;
-//     pid->derivative    = 0;
-//     pid->saturationValue = saturationValue;
-//     pid->antiWindupFlag = FALSE;
-//     return pid;
-// }
-
 PID* PID_new(sbyte1 Kp, sbyte1 Ki, sbyte1 Kd, sbyte2 saturationValue, sbyte2 scalefactor) {
     PID* me = (PID*)malloc(sizeof(PID));
     me->Kp = Kp;
@@ -44,7 +25,7 @@ PID* PID_new(sbyte1 Kp, sbyte1 Ki, sbyte1 Kd, sbyte2 saturationValue, sbyte2 sca
     me->setpoint = 0; 
     me->previousError=0.0;
     me->totalError=0.0;
-    me->dH= 100;
+    me->dH= 100; // 100 Hz aka 10 ms cycle time. view as inverese of 0.01 seconds, being done to avoid fpu usage
     me->scalefactor = scalefactor;
     me->saturationValue = saturationValue; 
     me->proportional = 0;
@@ -105,11 +86,11 @@ void PID_computeOutput(PID *pid, float sensorValue) {
     // if (pid->antiWindupFlag = TRUE) {
     //     float output = proportional;
     // }
-    // else {
+    // else {                                                           // commented out bc should be taken care of by addition of cl = 6 in powerLimit.c
     //     float output = proportional + integral + derivative;
     // }
     float output = proportional + integral + derivative;
-    pid->output;
+    pid->output = output;
 }
 
 /** GETTER FUNCTIONS **/
