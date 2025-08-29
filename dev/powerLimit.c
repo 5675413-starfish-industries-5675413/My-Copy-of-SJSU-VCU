@@ -58,9 +58,9 @@ void PowerLimit_calculateCommand(PowerLimit *me, MotorController *mcm, TorqueEnc
 
     if (MCM_commands_getAppsTorque(mcm) == 0) { // if no torque command, turn off PL
         me->plStatus = FALSE;
-        pid->totalError = 0;
-        pid->proportional = 0;
-        pid->integral = 0;
+        me->pid->totalError = 0;
+        me->pid->proportional = 0;
+        me->pid->integral = 0;
     }
     else {
         sbyte4 current_power_kw = (sbyte4) ((MCM_getDCVoltage(mcm) * MCM_getDCCurrent(mcm)) / 1000);
@@ -115,7 +115,7 @@ void POWERLIMIT_calculateTorqueCommandTorqueEquation(PowerLimit *me, MotorContro
         dcCurrent = 0;
     }
 
-    POWERLIMIT_updatePIDController(PowerLimit *me, torqueSetpointFloat, commandedTorque, me->clampingMethod);
+    POWERLIMIT_updatePIDController(me, torqueSetpointFloat, commandedTorque, me->clampingMethod);
    
     float pidOutput = PID_getOutput(me->pid);
     me->plTorqueCommand = (sbyte2)((pidOutput + commandedTorque) * 10);
