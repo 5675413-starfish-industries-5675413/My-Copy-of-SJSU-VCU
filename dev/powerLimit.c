@@ -106,7 +106,7 @@ void POWERLIMIT_calculateTorqueCommandTorqueEquation(PowerLimit *me, MotorContro
     }
     sbyte2 commandedTorque = (sbyte2)MCM_getCommandedTorque(mcm);
     //sbyte2 commandedTorque = (sbyte2)MCM_getFeedbackTorque(mcm);
-    float torqueSetpointFloat = (float)(me->plTargetPower)* (9549.0/motorRPM);
+    float torqueSetpointFloat = (float)(me->plTargetPower-2)* (9549.0/motorRPM); //bc old E-meter ran 2 kW discrep
 
     //calculate current power
     sbyte4 dcVoltage = MCM_getDCVoltage(mcm);
