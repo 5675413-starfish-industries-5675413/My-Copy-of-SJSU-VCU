@@ -10,13 +10,11 @@
 #include "IO_Driver.h" //Includes datatypes, constants, etc - should be included in every c file
 #include "motorController.h"
 #include "PID.h"
-//#include "hashTable.h"
 #include "math.h"
 
 // Define a structure for the PID controller
 typedef struct _PowerLimit {
     PID *pid;
-    // HashTable* hashtable;
 
 //-------------CAN IN ORDER: 511: Power Limit Overview-----------------------------------------------------
 
@@ -65,24 +63,17 @@ typedef struct _PowerLimit {
 
 PowerLimit* POWERLIMIT_new(); 
 
-/** SETTER FUNCTIONS  **/
-void POWERLIMIT_setLimpModeOverride(PowerLimit* me);
-void PowerLimit_setPLInitializationThreshold(PowerLimit* me);
-
 /** COMPUTATIONS **/
 void PowerLimit_calculateCommand(PowerLimit *me, MotorController *mcm, TorqueEncoder *tps);
-void POWERLIMIT_calculateTorqueCommandTorqueEquation(PowerLimit *me, MotorController *mcm);
-void POWERLIMIT_calculateTorqueCommandPowerPID(PowerLimit *me, MotorController *mcm);
+void POWERLIMIT_TorquePID(PowerLimit *me, MotorController *mcm);
 void POWERLIMIT_updatePIDController(PowerLimit* me, float pidSetpoint, float sensorValue, ubyte1 clampingMethod);
-/** GETTER FUNCTIONS **/
 
+/** GETTER FUNCTIONS **/
 ubyte1 POWERLIMIT_getClampingMethod(PowerLimit* me);
 bool   POWERLIMIT_getStatus(PowerLimit* me);
 ubyte1 POWERLIMIT_getMode(PowerLimit* me);
 sbyte2 POWERLIMIT_getTorqueCommand(PowerLimit* me);
 ubyte1 POWERLIMIT_getTargetPower(PowerLimit* me);
 ubyte1 POWERLIMIT_getInitialisationThreshold(PowerLimit* me);
-//Returns 0xFF if an invalid corner is given
-ubyte1 POWERLIMIT_getLUTCorner(PowerLimit* me, ubyte1 corner);
 
 #endif //_POWERLIMIT_H

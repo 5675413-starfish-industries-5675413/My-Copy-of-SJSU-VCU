@@ -1,48 +1,36 @@
 /*****************************************************************************
- * powerLimit.c - Power Limiting using a PID controller & LUT to simplify calculations
- * Initial Author(s): Harleen Sandhu/Shaun Gilmore 
+ * powerLimit.c - Power Limiting using a PID controller to simplify calculations
+ * Previous Author(s): Harleen Sandhu/Shaun Gilmore 
+ * Current Author(s): Akash Karthik
  ******************************************************************************
  * Power Limiting code with a flexible Power Target & Initialization Limit
  * Goal: Find a way to limit power under a certain KWH limit (80kwh) while maximizing torque
- * Methods: Currently we are using three methods that are highlighted here:
- *  POWERLIMIT_calculateTorqueCommand: Algorithm is based on using a combination of LUT and the torque equation method
- *  POWERLIMIT_calculateTorqueCommandTorqueEquation: Algorithm is based on a mechanical conversion of power to torque
- *  POWERLIMIT_calculateTorqueCommandPowerPID: Algorithm uses power as a parameter inside the PID the percentage difference of the power is then used to offset torque.  
- * 
+ * Methods: Currently we are ONLY using the Torque PID method
  ****************************************************************************/
 #include "IO_Driver.h" //Includes datatypes, constants, etc - should be included in every c file
 #include "motorController.h"
 #include "PID.h"
-//#include "hashTable.h"
 #include "powerLimit.h"
 #include "mathFunctions.h"
 
 #ifndef POWERLIMITCONSTANTS
 #define POWERLIMITCONSTANTS
 
-#define VOLTAGE_STEP     5        //float voltageStep = (Voltage_MAX - Voltage_MIN) / (NUM_V - 1);
-#define RPM_STEP         160      //sbyte4 rpmStep = (RPM_MAX - RPM_MIN) / (NUM_S - 1);
-
 #endif
 
 // #define ELIMINATE_CAN_MESSAGES
+/** PARAMETERS **/
 PowerLimit* POWERLIMIT_new(){
     PowerLimit* me = (PowerLimit*)malloc(sizeof(PowerLimit));
-    me->pid = PID_new(10, 50, 0, 231, 10); 
-
-    me->plMode = 1;    // each number corresponds to a different method
-    //1.TQ equation only
-    //2.PowerPID only 
-
-    me->plStatus = FALSE;
-    me->plTorqueCommand = 0; 
+    me->pid = PID_new(10, 50, 0, 231,10); // last value tells you the factor the PID gets divided by
+    me->plMode = 1; // 1 = Torque PID
+    me->plStatus = FALSE; // FALSE = Off, TRUE = On
+    me->plTorqueCommand = 0; // Torque command in deciNewton-meters
     me->plTargetPower = 40;// HERE IS WHERE YOU CHANGE POWERLIMIT (units = kW)
-    me->plThresholdDiscrepancy = 15;
-    me->plInitializationThreshold = 0;
-    me->clampingMethod = 6;
-
-    me->plAlwaysOn = TRUE;
-
+    me->plThresholdDiscrepancy = 15; // Threshold discrepancy in kW
+    me->plInitializationThreshold = 0; // Initialization threshold in kW
+    me->clampingMethod = 6; // Clamping method
+    me->plAlwaysOn = TRUE; // TRUE = if is above threshold then stay on even if power is below threshold, FALSE = Only on if power is above threshold
     return me;
 }
 
@@ -53,9 +41,7 @@ void PowerLimit_setPLInitializationThreshold(PowerLimit* me){
 /** COMPUTATIONS **/
 
 void PowerLimit_calculateCommand(PowerLimit *me, MotorController *mcm, TorqueEncoder *tps){
-   
     PowerLimit_setPLInitializationThreshold(me);
-
     if (MCM_commands_getAppsTorque(mcm) == 0) { // if no torque command, turn off PL
         me->plStatus = FALSE;
         me->pid->totalError = 0;
@@ -80,23 +66,18 @@ void PowerLimit_calculateCommand(PowerLimit *me, MotorController *mcm, TorqueEnc
 
   
 //1.TQ equation only
-//2.PowerPID only 
-    if (me->plStatus){
-        if(me->plMode==1){
-            POWERLIMIT_calculateTorqueCommandTorqueEquation(me, mcm);
-        }
-        else if (me->plMode==2){
-            POWERLIMIT_calculateTorqueCommandPowerPID(me, mcm);
-        }
-        }
-    else{
-        MCM_update_PL_setTorqueCommand(mcm, me->plTorqueCommand);
-        MCM_set_PL_updateStatus(mcm, me->plStatus);
+if (me->plStatus){
+    if(me->plMode==1){
+        POWERLIMIT_TorquePID(me, mcm);
     }
+    }
+else{
+    MCM_update_PL_setTorqueCommand(mcm, me->plTorqueCommand);
+    MCM_set_PL_updateStatus(mcm, me->plStatus);
+}
 }
 
-void POWERLIMIT_calculateTorqueCommandTorqueEquation(PowerLimit *me, MotorController *mcm){
-    //doing this should be illegal, but since pl mode is also going to be used for the equation version for right now, i feel fine about it. 2 for second pl method, 1 representing the pwoer target
+void POWERLIMIT_TorquePID(PowerLimit *me, MotorController *mcm){
     me->plMode = 1;
     PID_setSaturationPoint(me->pid, 231);
 
@@ -105,70 +86,25 @@ void POWERLIMIT_calculateTorqueCommandTorqueEquation(PowerLimit *me, MotorContro
         motorRPM = 1; //avoid division by 0
     }
     sbyte2 commandedTorque = (sbyte2)MCM_getCommandedTorque(mcm);
-    //sbyte2 commandedTorque = (sbyte2)MCM_getFeedbackTorque(mcm);
-    float torqueSetpointFloat = (float)(me->plTargetPower-2)* (9549.0/motorRPM); //bc old E-meter ran 2 kW discrep
+    sbyte4 torqueSetpoint = (me->plTargetPower - (2.0))* (9549.0/motorRPM);
+    float torqueSetpointFloat = (float)(torqueSetpoint);
 
-    //calculate current power
+    // current safety check
     sbyte4 dcVoltage = MCM_getDCVoltage(mcm);
     sbyte4 dcCurrent = MCM_getDCCurrent(mcm);
     if (dcCurrent < 0){
         dcCurrent = 0;
     }
-
     POWERLIMIT_updatePIDController(me, torqueSetpointFloat, commandedTorque, me->clampingMethod);
-   
     float pidOutput = PID_getOutput(me->pid);
     me->plTorqueCommand = (sbyte2)((pidOutput + commandedTorque) * 10);
-   
-   
     if (me->plTorqueCommand > 2310) {
          me->plTorqueCommand = 2310; //saturation point in deciNewton-meters
      }
-     
      MCM_update_PL_setTorqueCommand(mcm, me->plTorqueCommand);
      MCM_set_PL_updateStatus(mcm, me->plStatus);
 }
 
-void POWERLIMIT_calculateTorqueCommandPowerPID(PowerLimit *me, MotorController *mcm){
-        //doing this should be illegal, but since pl mode is also going to be used for the equation version for right now, i feel fine about it. 3 for third pl method, 1 representing the pwoer target
-    PID_setSaturationPoint(me->pid, 8000);
-
-    /* Sensor inputs */
-    sbyte4 motorRPM   = MCM_getMotorRPM(mcm);
-    sbyte4 mcmVoltage = MCM_getDCVoltage(mcm);
-    sbyte4 mcmCurrent = MCM_getDCCurrent(mcm);
-    if (MCM_getDCCurrent(mcm) < 0){
-        mcmCurrent = 0;
-    }
-    else{
-        mcmCurrent = MCM_getDCCurrent(mcm);
-    }
-
-    sbyte4 pidTargetValue = (sbyte4)(POWERLIMIT_getTargetPower(me) * 1000); // W
-    sbyte4 pidCurrentValue = (sbyte4)((MCM_getDCVoltage(mcm) * mcmCurrent) / 10); // W
-
-    sbyte2 commandedTorque = (sbyte2)MCM_getCommandedTorque(mcm); // Nm
-    
-    POWERLIMIT_updatePIDController(me, pidTargetValue, pidCurrentValue, me->clampingMethod);
-
-
-    sbyte4 pidOutput = PID_getOutput(me->pid);
-    if (motorRPM == 0){
-        motorRPM = 1; //avoid division by 0
-    }
-    sbyte4 PLTQ = (pidOutput + pidCurrentValue) / (motorRPM * 9.549);
-
-    me->plTorqueCommand = PLTQ * 10; //convert to deci-Nm
-    if (me->plTorqueCommand > 2310)
-        me->plTorqueCommand = 2310;
-        
-        
-    MCM_update_PL_setTorqueCommand(mcm, me->plTorqueCommand);
-    MCM_set_PL_updateStatus(mcm, me->plStatus);
-}
-
-
-// Review anti-windup or clamping methods --> delete obsolete ones
 void POWERLIMIT_updatePIDController(PowerLimit* me, float pidSetpoint, float sensorValue, ubyte1 clampingMethod) {
         float currentError = pidSetpoint - sensorValue;
         switch (me->clampingMethod) {
