@@ -1,6 +1,5 @@
 
 #include <stdlib.h> //malloc
-
 #include "IO_Driver.h" 
 #include "IO_CAN.h"
 #include "IO_RTC.h"
