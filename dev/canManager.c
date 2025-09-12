@@ -548,6 +548,7 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
 
 }
 
+
 IO_CAN_DATA_FRAME get_tps0_can_message(TorqueEncoder* tps) {
     IO_CAN_DATA_FRAME canMessage;
     canMessage.id_format = IO_CAN_STD_FRAME;
