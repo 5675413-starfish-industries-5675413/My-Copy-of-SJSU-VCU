@@ -9,31 +9,35 @@
 #include "torqueEncoder.h"
 #include "brakePressureSensor.h"
 #include "motorController.h"
+#include "drs.h"
 
-typedef struct _PIDController {
-    float kp;         // Proportional gain
-    float ki;         // Integral gain
-    float kd;         // Derivative gain
-    float errorSum;   // Running sum of errors for the integral term
-    float lastError;  // Previous error for the derivative term
-} PIDController;
 
 typedef struct _LaunchControl {
+
+    sbyte2 lcTorqueCommand;
+
     float slipRatio;
-    ubyte2 lcTorque;
-    bool LCReady;
-    bool LCStatus; // Just for CAN to showcase when enabled
-    PIDController *pidController;
-    ubyte1 potLC;
+
+    float maxTorque;
+    float prevTorque;
+    float k;
+
+
+    ubyte4 safteyTimer;
+    ubyte1 lcReady;
+    ubyte1 lcActive;
 
     ubyte1 buttonDebug;
 } LaunchControl;
 
 LaunchControl *LaunchControl_new();
-void slipRatioCalculation(WheelSpeeds *wss, LaunchControl *lc);
-void launchControlTorqueCalculation(LaunchControl *lc, TorqueEncoder *tps, BrakePressureSensor *bps, MotorController *mcm);
-bool getLaunchControlStatus(LaunchControl *lc);
-sbyte2 getCalculatedTorque();
-ubyte1 getButtonDebug(LaunchControl *lc);
+void LaunchControl_calculateSlipRatio(LaunchControl *me, MotorController *mcm, WheelSpeeds *wss);
+void LaunchControl_calculateTorqueCommand(LaunchControl *me, MotorController *mcm);
+void LaunchControl_checkState(LaunchControl *lc, TorqueEncoder *tps, BrakePressureSensor *bps, MotorController *mcm, DRS *drs);
+
+ubyte1 LaunchControl_getActiveStatus(LaunchControl *me);
+ubyte1 LaunchControl_getReadyStatus(LaunchControl *me);
+
+ubyte1 LaunchControl_getButtonDebug(LaunchControl *me);
 
 #endif

@@ -78,8 +78,12 @@ void MCM_updateInverterStatus(MotorController* me, Status newState);
 Status MCM_getLockoutStatus(MotorController* me);
 Status MCM_getInverterStatus(MotorController* me);
 
-void MCM_update_LaunchControl_TorqueLimit(MotorController *me, sbyte2 lcTorqueLimit);
-void MCM_update_LaunchControl_State(MotorController *me, bool newLCState);
+void MCM_update_LC_torqueCommand(MotorController *me, sbyte2 lcTorqueCommand);
+sbyte2 MCM_get_LC_torqueCommand(MotorController *me);
+void MCM_update_LC_readyStatus(MotorController *me, bool newState);
+bool MCM_get_LC_readyStatus(MotorController *me);
+void MCM_update_LC_activeStatus(MotorController *me, bool newState);
+bool MCM_get_LC_activeStatus(MotorController *me);
 
 sbyte4 MCM_getPower(MotorController* me);
 ubyte2 MCM_getCommandedTorque(MotorController* me);

@@ -99,6 +99,10 @@ struct _MotorController
     ubyte4 timeStamp_lastCommandSent; //from IO_RTC_StartTime(&)
     ubyte2 updateCount;               //Number of updates since lastCommandSent
 
+    sbyte2 lcTorqueCommand;
+    bool launchControlReadyStatus;
+    bool launchControlActiveStatus;
+
     sbyte2 commands_torque;
     sbyte2 commands_torqueLimit;
     ubyte1 commands_direction;
@@ -130,8 +134,6 @@ struct _MotorController
     //_commands commands;
     //};
 
-    sbyte2 LaunchControl_TorqueLimit;
-    bool LCState;
 
 };
 
@@ -171,9 +173,11 @@ MotorController *MotorController_new(SerialManager *sm, ubyte2 canMessageBaseID,
 
     me->motor_temp = 99;
 
-    me->LaunchControl_TorqueLimit = 0;
     me->HVILOverride = FALSE;
-    me->LCState = FALSE;
+    
+    me->lcTorqueCommand = 0;
+    me->launchControlReadyStatus = FALSE;
+    me->launchControlActiveStatus = FALSE;
     /*
 me->setTorque = &setTorque;
 me->setInverter = &setInverter;
@@ -276,6 +280,7 @@ void MCM_calculateCommands(MotorController *me, TorqueEncoder *tps, BrakePressur
     MCM_commands_setDirection(me, FORWARD); //1 = forwards for our car, 0 = reverse
 
     sbyte2 torqueOutput = 0;
+
     // sbyte2 appsTorque = 0;
     // sbyte2 bpsTorque = 0;
 
@@ -287,11 +292,11 @@ void MCM_calculateCommands(MotorController *me, TorqueEncoder *tps, BrakePressur
     // appsTorque = me->torqueMaximumDNm * getPercent(appsOutputPercent, me->regen_percentAPPSForCoasting, 1, TRUE) - me->regen_torqueAtZeroPedalDNm * getPercent(appsOutputPercent, me->regen_percentAPPSForCoasting, 0, TRUE);
     // bpsTorque = 0 - (me->regen_torqueLimitDNm - me->regen_torqueAtZeroPedalDNm) * getPercent(bps->percent, 0, me->regen_percentBPSForMaxRegen, TRUE);
 
-    if(me->LCState == TRUE){
-        torqueOutput = me->LaunchControl_TorqueLimit;
-    } else if (me->LaunchControl_TorqueLimit == 0){
-        torqueOutput = me->LaunchControl_TorqueLimit;
-    } else {
+    
+    if(me->launchControlActiveStatus && me->lcTorqueCommand <= (me->torqueMaximumDNm * appsOutputPercent) && me->lcTorqueCommand > 0) {
+        torqueOutput = me->lcTorqueCommand;
+    }
+    else {
         // torqueOutput = appsTorque + bpsTorque;
         torqueOutput = me->torqueMaximumDNm * appsOutputPercent;  //REMOVE THIS LINE TO ENABLE REGEN
     }
@@ -683,17 +688,38 @@ void MCM_updateInverterStatus(MotorController *me, Status newState)
     me->inverterStatus = newState;
 }
 
-void MCM_update_LaunchControl_TorqueLimit(MotorController *me, sbyte2 lcTorqueLimit){
+//------------------------------Launch Control--------------------------------
 
-     me->LaunchControl_TorqueLimit = lcTorqueLimit;
-
+/** Converts Nm input to DNm in MCM struct */
+void MCM_update_LC_torqueCommand(MotorController *me, sbyte2 lcTorqueCommand)
+{
+    me->lcTorqueCommand = lcTorqueCommand * 10;
 }
 
-void MCM_update_LaunchControl_State(MotorController *me, bool newLCState){
-
-    me->LCState = newLCState;
-
+sbyte2 MCM_get_LC_torqueCommand(MotorController *me)
+{
+    return me->lcTorqueCommand;
 }
+
+void MCM_update_LC_readyStatus(MotorController *me, bool newState)
+{
+    me->launchControlReadyStatus = newState;
+}
+bool MCM_get_LC_readyStatus(MotorController *me)
+{
+    return me->launchControlReadyStatus;
+}
+void MCM_update_LC_activeStatus(MotorController *me, bool newState)
+{
+    me->launchControlActiveStatus = newState;
+}
+bool MCM_get_LC_activeStatus(MotorController *me)
+{
+    return me->launchControlActiveStatus;
+}
+
+////-----------------------------------------------------------------------------------
+
 
 Status MCM_getLockoutStatus(MotorController *me)
 {
