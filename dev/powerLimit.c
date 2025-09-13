@@ -53,20 +53,16 @@ void PowerLimit_calculateCommand(PowerLimit *me, MotorController *mcm, TorqueEnc
     }
     else {
         sbyte4 current_power_kw = (sbyte4) ((MCM_getDCVoltage(mcm) * MCM_getDCCurrent(mcm)) / 1000); //manually calculated bc getPower dont work
-        if (current_power_kw <= 0){
-            me->plStatus = FALSE;
-        }
-        else{
-            if (me->plAlwaysOn==FALSE) { // if PL is not always on, only turn on if power is above threshold and off if below
-                if (current_power_kw > me->plInitializationThreshold) {
-                    me->plStatus = TRUE;
-                } else {
-                    me->plStatus = FALSE;
-                }
-            } else { // if PL is always on, only turn on if power is above threshold and never turn off
-                if (me->plStatus==FALSE && current_power_kw > me->plInitializationThreshold) {
-                    me->plStatus = TRUE;
-                }
+        
+        if (!me->plAlwaysOn) { // if PL is not always on, only turn on if power is above threshold and off if below
+            if (current_power_kw > me->plInitializationThreshold) {
+                me->plStatus = TRUE;
+            } else {
+                me->plStatus = FALSE;
+            }
+        } else { // if PL is always on, only turn on if power is above threshold and never turn off
+            if (!me->plStatus && current_power_kw > me->plInitializationThreshold) {
+                me->plStatus = TRUE;
             }
         }
     }
@@ -118,37 +114,38 @@ void POWERLIMIT_TorquePID(PowerLimit *me, MotorController *mcm){
 
 void POWERLIMIT_PowerPID(PowerLimit *me, MotorController *mcm){
     me->plMode = 2;
-    me->pid->saturationValue = 80000; ////////////
+    pid->saturationValue = (me->plInitializationThreshold)*100; ////////////
 
-    sbyte2 commandedTQ = MCM_getCommandedTorque(mcm);
-    sbyte4 motorRPM = MCM_getMotorRPM(mcm);
-    sbyte4 dcVoltage = MCM_getDCVoltage(mcm);
-    sbyte4 dcCurrent = MCM_getDCCurrent(mcm);
+    sbyte2 commandedTQ = me->commandedTorque;
+    sbyte4 Voltage = MCM_getDCVoltage(mcm);
+    sbyte4 Current = MCM_getDCCurrent(mcm); 
+    if (Current < 0){      // current safety check
+        Current = 0;
+    }
     
 
-    float setpointPower =40000.0f;
-    float drawnPower = (float)((dcVoltage*dcCurrent)*1.0);
+    sbyte4 setpointPower = (me->plInitializationThreshold)*1000;
+    sbyte4 drawnPower = (Voltage*Current);
 
-    
-    POWERLIMIT_updatePIDController(me, setpointPower, drawnPower);
+    POWERLIMIT_updatePIDController(me, setpointPower, drawnPower, me->clampingMethod);
 
-    float pidOutput = me->pid->output;
+    float pidOutput = pid->output;
+    sbyte4 motorRPM   = me->motorRPM;
 
-    me->plTorqueCommand = (sbyte2)(((pidOutput + drawnPower) * (9.549 / motorRPM)) * 10.0);    
+    me->plTorqueCommand = (sbyte2)(((pidOutput + pidCurrentValue) / (motorRPM * 9.549)) * 10);    
 
     if (me->plTorqueCommand > 2310) {
-            me->plTorqueCommand = 2310; //saturation point in deciNewton-meters
-        }
+         me->plTorqueCommand = 2310; //saturation point in deciNewton-meters
+     }
     if (me->plTorqueCommand > commandedTQ) {
-            me->plTorqueCommand = commandedTQ;
-        }
-    
-    MCM_update_PL_setTorqueCommand(mcm, me->plTorqueCommand); ///// set max to be based off of TPS reading and skip middle man, commanded TQ from MCM
-    MCM_set_PL_updateStatus(mcm, me->plStatus);
+         me->plTorqueCommand = commandedTQ;
+     }
+     MCM_update_PL_setTorqueCommand(mcm, me->plTorqueCommand); ///// set max to be based off of TPS reading and skip middle man, commanded TQ from MCM
+     MCM_set_PL_updateStatus(mcm, me->plStatus);
 }
 
 
-void POWERLIMIT_updatePIDController(PowerLimit* me, float pidSetpoint, float sensorValue) {
+void POWERLIMIT_updatePIDController(PowerLimit* me, float pidSetpoint, float sensorValue, ubyte1 clampingMethod) {
         float currentError = pidSetpoint - sensorValue;
         switch (me->clampingMethod) {
             case 0: //No clamping
