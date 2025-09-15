@@ -35,6 +35,10 @@ void LaunchControl_calculateSlipRatio(LaunchControl *me, MotorController *mcm, W
 void LaunchControl_calculateTorqueCommand(LaunchControl *me, MotorController *mcm);
 void LaunchControl_checkState(LaunchControl *lc, TorqueEncoder *tps, BrakePressureSensor *bps, MotorController *mcm, DRS *drs);
 
+
+sbyte2 LaunchControl_getTorqueCommand(LaunchControl *me);
+float LaunchControl_getSlipRatio(LaunchControl *me);
+
 ubyte1 LaunchControl_getActiveStatus(LaunchControl *me);
 ubyte1 LaunchControl_getReadyStatus(LaunchControl *me);
 
