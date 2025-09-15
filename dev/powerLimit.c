@@ -23,7 +23,7 @@
 PowerLimit* POWERLIMIT_new(bool plToggle){
     PowerLimit* me = (PowerLimit*)malloc(sizeof(PowerLimit));
     me->plToggle=plToggle;
-    me->pid = PID_new(50, 50, 0, 231,10); // last value tells you the factor the PID gets divided by
+    me->pid = PID_new(10, 50, 0, 231,10); // last value tells you the factor the PID gets divided by
     me->plMode = 1; // 1 = Torque PID
     me->plStatus = FALSE; // FALSE = Off, TRUE = On
     me->plTorqueCommand = 0; // Torque command in deciNewton-meters
@@ -43,7 +43,8 @@ void PowerLimit_setPLInitializationThreshold(PowerLimit* me){
 
 void PowerLimit_calculateCommand(PowerLimit *me, MotorController *mcm, TorqueEncoder *tps){
     PowerLimit_setPLInitializationThreshold(me);
-    if (me->plStatus == FALSE){
+    if (!me->plToggle || MCM_commands_getAppsTorque(mcm) == 0) { // if no torque command, turn off PL
+        me->plStatus = FALSE;
         me->pid->totalError = 0;
         me->pid->proportional = 0;
         me->pid->integral = 0;
@@ -59,6 +60,9 @@ void PowerLimit_calculateCommand(PowerLimit *me, MotorController *mcm, TorqueEnc
                 me->plStatus = TRUE;
             } else {
                 me->plStatus = FALSE;
+                me->pid->totalError = 0;
+                me->pid->proportional = 0;
+                me->pid->integral = 0;
             }
         } else { // if PL is always on, only turn on if power is above threshold and never turn off
             if (!me->plStatus && current_power_kw > me->plInitializationThreshold) {
