@@ -15,7 +15,7 @@
 #include "wheelSpeeds.h"
 #include "serial.h"
 #include "sensorCalculations.h"
-#include "launchControl.h"
+#include "LaunchControl.h"
 #include "powerLimit.h"
 #include "drs.h"
 #include "PID.h"
@@ -733,19 +733,7 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     canMessages[canMessageCount - 1].length = byteNum;
 
     //50B: Launch Control
-    canMessageCount++;
-    byteNum = 0;
-    canMessages[canMessageCount - 1].id = canMessageID + canMessageCount - 1;
-    canMessages[canMessageCount - 1].id_format = IO_CAN_STD_FRAME;
-    canMessages[canMessageCount - 1].data[byteNum++] = lc->lcReady;
-    canMessages[canMessageCount - 1].data[byteNum++] = lc->lcActive;
-    canMessages[canMessageCount - 1].data[byteNum++] = LaunchControl_getTorqueCommand(lc);
-    canMessages[canMessageCount - 1].data[byteNum++] = LaunchControl_getTorqueCommand(lc) >> 8;
-    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)lc->slipRatio;
-    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)lc->slipRatio >> 8;
-    canMessages[canMessageCount - 1].data[byteNum++] = Sensor_LCButton.sensorValue;
-    canMessages[canMessageCount - 1].data[byteNum++] = 0;
-    canMessages[canMessageCount - 1].length = byteNum;
+   
 
     //50C: SAS (Steering Angle Sensor) and DRS
     canMessageCount++;

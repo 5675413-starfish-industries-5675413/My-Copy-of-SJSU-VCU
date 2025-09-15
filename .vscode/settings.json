@@ -7,6 +7,11 @@
         "io_driver.h": "c",
         "powerlimit.h": "c",
         "motorcontroller.h": "c",
-        "torqueencoder.h": "c"
-    }
+        "torqueencoder.h": "c",
+        "launchcontrol.h": "c",
+        "wheelspeeds.h": "c",
+        "instrumentcluster.h": "c"
+    },
+    "C_Cpp.copilotHover": "disabled",
+    "github.copilot.advanced": {}
 }
