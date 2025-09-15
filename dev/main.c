@@ -224,7 +224,7 @@ void main(void)
     LaunchControl *lc = LaunchControl_new();
 
     DRS *drs = DRS_new();
-    PowerLimit *pl = POWERLIMIT_new();
+    PowerLimit *pl = POWERLIMIT_new(TRUE);
     PID *lcPID = PID_new(200,0,0,0,1);
     PID_setSaturationPoint(lcPID, 231);
 //---------------------------------------------------------------------------------------------------------

@@ -770,7 +770,7 @@ Status MCM_getInverterOverrideStatus(MotorController *me)
     return me->InverterOverride;
 }
 
-bool MCM_getFieldWeakening(MotorController *me)
+bool MCM_getFieldWeakening(MotorController *me)  // This needs to be changed or deleted--field weakening isn't based solely on RPM--it's Id and Iq, which are impacted by pack SoC, as well as RPM
 {
     sbyte4 MotorRPM = MCM_getMotorRPM(me);
     bool fieldWeakening = (MotorRPM > 3600);
@@ -812,7 +812,12 @@ ubyte2 MCM_getTorqueMax(MotorController *me)
 
 sbyte4 MCM_getPower(MotorController *me)
 {
-    return ((me->DC_Voltage) * (me->DC_Current));
+    if (me->DC_Voltage <= 0 || me->DC_Current <= 0) {
+        return 0;
+    }
+    else {
+        return ((me->DC_Voltage) * (me->DC_Current));
+    }
 }
 
 ubyte2 MCM_getCommandedTorque(MotorController *me)
