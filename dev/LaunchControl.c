@@ -95,7 +95,7 @@ void LaunchControl_checkState(LaunchControl *me, TorqueEncoder *tps, BrakePressu
         }
     } else { me->lcReady = FALSE; }
 
-    if( tps->tps0_percent < 0.90 || tps->tps0_percent < 0.90 || bps->percent > 0.05 ){
+    if( tps->tps0_percent < 0.90 || tps->tps1_percent < 0.90 || bps->percent > 0.05 ){
         me->lcActive = FALSE;
         me->lcTorqueCommand = NULL;
     }
