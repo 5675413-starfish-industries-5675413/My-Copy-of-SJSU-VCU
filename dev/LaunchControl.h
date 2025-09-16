@@ -10,9 +10,13 @@
 #include "brakePressureSensor.h"
 #include "motorController.h"
 #include "drs.h"
+#include "PID.h"
+
 
 
 typedef struct _LaunchControl {
+
+    PID *pid;
 
     bool toggle;
 
@@ -23,6 +27,10 @@ typedef struct _LaunchControl {
     float prevTorque;
     float k;
 
+    bool initialCurve;
+    sbyte2 initialTorque;
+    sbyte2 constA;
+    sbyte2 constB;
 
     bool lcReady;
     bool lcActive;
@@ -44,5 +52,10 @@ bool LaunchControl_getReadyStatus(LaunchControl *me);
 bool LaunchControl_getToggleStatus(LaunchControl *me);
 
 ubyte1 LaunchControl_getButtonDebug(LaunchControl *me);
+
+float LaunchControl_getInitialCurveStatus(LaunchControl *me);
+void LaunchControl_calculateTorqueCommandPID(LaunchControl *me,MotorController *mcm);
+void LaunchControl_initialTorqueCurve(LaunchControl* me, MotorController* mcm);
+float LaunchControl_getPidOutput(LaunchControl *me);
 
 #endif

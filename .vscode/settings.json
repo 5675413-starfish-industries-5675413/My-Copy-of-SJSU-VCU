@@ -10,7 +10,8 @@
         "torqueencoder.h": "c",
         "launchcontrol.h": "c",
         "wheelspeeds.h": "c",
-        "instrumentcluster.h": "c"
+        "instrumentcluster.h": "c",
+        "pid.h": "c"
     },
     "C_Cpp.copilotHover": "disabled",
     "github.copilot.advanced": {}
