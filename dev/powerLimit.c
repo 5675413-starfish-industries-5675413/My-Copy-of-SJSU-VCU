@@ -70,9 +70,13 @@ void PowerLimit_calculateCommand(PowerLimit *me, MotorController *mcm, TorqueEnc
 
   
 //1.TQ equation only
+
 if (me->plStatus){
     if(me->plMode==1){
         POWERLIMIT_TorquePID(me, mcm);
+    }
+    if(me->plMode==2){
+        POWERLIMIT_PowerPID(me,mcm);
     }
     }
 else{
@@ -129,7 +133,7 @@ void POWERLIMIT_PowerPID(PowerLimit *me, MotorController *mcm){
     float pidOutput = pid->output;
     sbyte4 motorRPM   = me->motorRPM;
 
-    me->plTorqueCommand = (sbyte2)(((pidOutput + pidCurrentValue) / (motorRPM * 9.549)) * 10);    
+    me->plTorqueCommand = (sbyte2)(((pidOutput + pidCurrentValue) / (motorRPM * 9.549)) * 10.0);    
 
     if (me->plTorqueCommand > 2310) {
          me->plTorqueCommand = 2310; //saturation point in deciNewton-meters
