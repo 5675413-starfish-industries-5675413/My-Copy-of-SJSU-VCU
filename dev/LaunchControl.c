@@ -37,7 +37,8 @@ LaunchControl *LaunchControl_new(bool toggle)
     me->toggle = toggle;
 
     me->slipRatio = 0;
-    
+    me->slipRatioThreeDigits = 0;
+
     me->maxTorque = 231;
     me->prevTorque = 0;
     me->k = 0.2;
@@ -84,16 +85,14 @@ void LaunchControl_calculateTorqueCommandPID(LaunchControl *me,MotorController *
     MCM_update_LC_torqueCommand(mcm, me->lcTorqueCommand);
 }
 
-
 void LaunchControl_calculateTorqueCommand(LaunchControl *me,MotorController *mcm) 
 {
-    if (MCM_get_LC_activeStatus(mcm)) {
-        float torque = me->k * me->maxTorque + (1- me->k) * me->prevTorque;
-        me->lcTorqueCommand = (sbyte2) torque;
-        me->prevTorque = me->lcTorqueCommand;
-        MCM_update_LC_torqueCommand(mcm, me->lcTorqueCommand);
-    }
+    float torque = me->k * me->maxTorque + (1- me->k) * me->prevTorque;
+    me->lcTorqueCommand = (sbyte2) torque;
+    me->prevTorque = me->lcTorqueCommand;
+    MCM_update_LC_torqueCommand(mcm, me->lcTorqueCommand);
 }
+
 void LaunchControl_calculateSlipRatio(LaunchControl *me, MotorController *mcm, WheelSpeeds *wss)
 {
     //Non interpolated Wheelspeeds always read 0 for some reason, so we are forced to use the interpolated speeds.
@@ -101,7 +100,8 @@ void LaunchControl_calculateSlipRatio(LaunchControl *me, MotorController *mcm, W
         float RearR = (WheelSpeeds_getWheelSpeedRPM(wss, RR, TRUE) + 0.5);
         float FrontL = (WheelSpeeds_getWheelSpeedRPM(wss, FL, TRUE) + 0.5);
         float calcs = (RearR/ FrontL)-1;
-        ubyte4 threeDigitCalcs = ((RearR * 1000) / FrontL);
+        ubyte4 threeDigitCalcs = (RearR * 1000) / FrontL;
+        me->slipRatioThreeDigits = (ubyte2) threeDigitCalcs;
 
         me->slipRatio = calcs;
     }
@@ -145,27 +145,35 @@ void LaunchControl_checkState(LaunchControl *me, TorqueEncoder *tps, BrakePressu
 
 void LaunchControl_calculateCommands(LaunchControl *me, MotorController *mcm, WheelSpeeds *wss, TorqueEncoder *tps, BrakePressureSensor *bps) 
 {
-    LaunchControl_checkState(me,tps,bps,mcm);
-    if (MCM_get_LC_activeStatus(mcm)) 
+    if(LaunchControl_getToggleStatus(me)) 
     {
-        LaunchControl_calculateSlipRatio(me, mcm, wss);
-        LaunchControl_calculateTorqueCommand(me, mcm);
+        LaunchControl_checkState(me,tps,bps,mcm);
+        if (MCM_get_LC_activeStatus(mcm)) 
+        {
+            LaunchControl_calculateSlipRatio(me, mcm, wss);
+            LaunchControl_calculateTorqueCommand(me, mcm);
+        }
     }
 }
 
 void LaunchControl_calculateCommandsPID(LaunchControl *me, MotorController *mcm, WheelSpeeds *wss, TorqueEncoder *tps, BrakePressureSensor *bps) 
 {
-    LaunchControl_checkState(me,tps,bps,mcm);
-    if (MCM_get_LC_activeStatus(mcm)) 
+    if(LaunchControl_getToggleStatus(me)) 
     {
-        LaunchControl_calculateSlipRatio(me, mcm, wss);
-        LaunchControl_calculateTorqueCommandPID(me, mcm);
+        LaunchControl_checkState(me,tps,bps,mcm);
+        if (MCM_get_LC_activeStatus(mcm)) 
+        {
+            LaunchControl_calculateSlipRatio(me, mcm, wss);
+            LaunchControl_calculateTorqueCommandPID(me, mcm);
+        }
     }
 }
 
 sbyte2 LaunchControl_getTorqueCommand(LaunchControl *me) { return me->lcTorqueCommand; }
 
 float LaunchControl_getSlipRatio(LaunchControl *me) { return me->slipRatio; }
+
+ubyte2 LaunchControl_getSlipRatioThreeDigits(LaunchControl *me) { return me->slipRatioThreeDigits; }
 
 bool LaunchControl_getActiveStatus(LaunchControl *me) { return me->lcActive; }
 
@@ -176,6 +184,7 @@ float LaunchControl_getInitialCurveStatus(LaunchControl *me) { return me->initia
 float LaunchControl_getPidOutput(LaunchControl *me) { return me->pid->output; }
 
 bool LaunchControl_getToggleStatus(LaunchControl *me) { return me->toggle; }
+
 
 ubyte1 LaunchControl_getButtonDebug(LaunchControl *me) { return me->buttonDebug; }
 

@@ -21,6 +21,7 @@ typedef struct _LaunchControl {
     bool toggle;
 
     float slipRatio;
+    ubyte2 slipRatioThreeDigits;
 
     sbyte2 lcTorqueCommand;
     float maxTorque;
@@ -46,6 +47,7 @@ void LaunchControl_calculateCommands(LaunchControl *me, MotorController *mcm, Wh
 
 sbyte2 LaunchControl_getTorqueCommand(LaunchControl *me);
 float LaunchControl_getSlipRatio(LaunchControl *me);
+ubyte2 LaunchControl_getSlipRatioThreeDigits(LaunchControl *me);
 
 bool LaunchControl_getActiveStatus(LaunchControl *me);
 bool LaunchControl_getReadyStatus(LaunchControl *me);
