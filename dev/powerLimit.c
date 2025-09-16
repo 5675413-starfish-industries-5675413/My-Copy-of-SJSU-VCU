@@ -70,9 +70,13 @@ void PowerLimit_calculateCommand(PowerLimit *me, MotorController *mcm, TorqueEnc
 
   
 //1.TQ equation only
+
 if (me->plStatus){
     if(me->plMode==1){
         POWERLIMIT_TorquePID(me, mcm);
+    }
+    if(me->plMode==2){
+        POWERLIMIT_PowerPID(me,mcm);
     }
     }
 else{
@@ -111,9 +115,9 @@ void POWERLIMIT_TorquePID(PowerLimit *me, MotorController *mcm){
 
 void POWERLIMIT_PowerPID(PowerLimit *me, MotorController *mcm){
     me->plMode = 2;
-    me->pid->saturationValue = (me->plInitializationThreshold)*100; ////////////
+    pid->saturationValue = (me->plInitializationThreshold)*100; ////////////
 
-    sbyte2 commandedTQ = me->plTorqueCommand;
+    sbyte2 commandedTQ = me->commandedTorque;
     sbyte4 Voltage = MCM_getDCVoltage(mcm);
     sbyte4 Current = MCM_getDCCurrent(mcm); 
     if (Current < 0){      // current safety check
@@ -126,13 +130,10 @@ void POWERLIMIT_PowerPID(PowerLimit *me, MotorController *mcm){
 
     POWERLIMIT_updatePIDController(me, setpointPower, drawnPower, me->clampingMethod);
 
-    float pidOutput = me->pid->output;
-    sbyte4 motorRPM   = MCM_getMotorRPM(mcm);
+    float pidOutput = pid->output;
+    sbyte4 motorRPM   = me->motorRPM;
 
-    sbyte4 pidCurrentValue = (sbyte4)((MCM_getDCVoltage(mcm) * Current) / 10); // W.   CHECK THIS !!!!  Taken from previous implementation of powerPID
-
-
-    me->plTorqueCommand = (sbyte2)(((pidOutput + pidCurrentValue) / (motorRPM * 9.549)) * 10);    
+    me->plTorqueCommand = (sbyte2)(((pidOutput + pidCurrentValue) / (motorRPM * 9.549)) * 10.0);    
 
     if (me->plTorqueCommand > 2310) {
          me->plTorqueCommand = 2310; //saturation point in deciNewton-meters
