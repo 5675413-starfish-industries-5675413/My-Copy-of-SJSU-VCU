@@ -136,7 +136,7 @@ void POWERLIMIT_PowerPID(PowerLimit *me, MotorController *mcm){
     float pidOutput = pid->output;
     sbyte4 motorRPM   = me->motorRPM;
 
-    me->plTorqueCommand = (sbyte2)(((pidOutput + pidCurrentValue) / (motorRPM * 9.549)) * 10);    
+    me->plTorqueCommand = (sbyte2)(((pidOutput + pidCurrentValue) / (motorRPM * 9.549)) * 10.0);    
 
     if (me->plTorqueCommand > 2310) {
          me->plTorqueCommand = 2310; //saturation point in deciNewton-meters
