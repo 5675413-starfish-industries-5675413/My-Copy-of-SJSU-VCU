@@ -30,7 +30,7 @@ LaunchControl *LaunchControl_new(bool toggle)
     if (me == NULL)
         return NULL;
 
-    me->pid = PID_new(2, 1, 0, 0.5, 1);
+    me->pid = PID_new(200, 100, 0, 0.5, 1);
     PID_updateSetpoint(me->pid, 0.2);
 
     me->lcTorqueCommand = NULL;
