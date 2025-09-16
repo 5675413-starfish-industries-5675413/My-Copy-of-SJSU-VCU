@@ -17,7 +17,7 @@ typedef struct _PowerLimit {
     PID *pid;
 
 //-------------CAN IN ORDER: 511: Power Limit Overview-----------------------------------------------------
-
+    bool   plToggle;
     bool   plStatus;
     ubyte1 plMode;
     ubyte1 plTargetPower;
@@ -61,7 +61,7 @@ typedef struct _PowerLimit {
 
 } PowerLimit;
 
-PowerLimit* POWERLIMIT_new(); 
+PowerLimit* POWERLIMIT_new(bool plToggle); 
 
 /** COMPUTATIONS **/
 void PowerLimit_calculateCommand(PowerLimit *me, MotorController *mcm, TorqueEncoder *tps);

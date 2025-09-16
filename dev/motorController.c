@@ -133,7 +133,8 @@ struct _MotorController
     //};
 
     sbyte2 lcTorqueCommand;
-    bool launchControlState;
+    bool launchControlReadyStatus;
+    bool launchControlActiveStatus;
 
     sbyte2 plTorqueCommand;
     bool plActive;
@@ -182,7 +183,8 @@ MotorController *MotorController_new(SerialManager *sm, ubyte2 canMessageBaseID,
     me->motor_temp = 99;
 
     me->lcTorqueCommand = 0;
-    me->launchControlState = FALSE;
+    me->launchControlReadyStatus = FALSE;
+    me->launchControlActiveStatus = FALSE;
 
     me-> plTorqueCommand = 0;
     me-> plActive = FALSE;
@@ -308,13 +310,13 @@ void MCM_calculateCommands(MotorController *me, TorqueEncoder *tps, BrakePressur
 
     torqueOutput = me->appsTorque + bpsTorque;
 
-    if(me->launchControlState == TRUE && me->lcTorqueCommand < me->appsTorque)
+    if(me->launchControlActiveStatus == TRUE && me->lcTorqueCommand < me->appsTorque && me->lcTorqueCommand > 0)
     {
         torqueOutput = me->lcTorqueCommand;
     } 
     if(me->plActive == TRUE && me->plTorqueCommand < me->appsTorque)
     {
-        me->launchControlState == FALSE;
+        me->launchControlActiveStatus == FALSE;
         torqueOutput = me->plTorqueCommand + bpsTorque;
     }
     //Safety Check. torqueOutput Should never rise above 231
@@ -719,15 +721,37 @@ void MCM_updateInverterStatus(MotorController *me, Status newState)
     me->inverterStatus = newState;
 }
 
-void MCM_update_LC_torqueLimit(MotorController *me, sbyte2 lcTorqueLimit)
+
+//------------------------------Launch Control--------------------------------
+
+/** Converts Nm input to DNm in MCM struct */
+void MCM_update_LC_torqueCommand(MotorController *me, sbyte2 lcTorqueCommand)
 {
-    me->lcTorqueCommand = lcTorqueLimit;
+    me->lcTorqueCommand = lcTorqueCommand * 10;
 }
 
-void MCM_update_LC_state(MotorController *me, bool newState)
+sbyte2 MCM_get_LC_torqueCommand(MotorController *me)
 {
-    me->launchControlState = newState;
+    return me->lcTorqueCommand;
 }
+
+void MCM_update_LC_readyStatus(MotorController *me, bool newState)
+{
+    me->launchControlReadyStatus = newState;
+}
+bool MCM_get_LC_readyStatus(MotorController *me)
+{
+    return me->launchControlReadyStatus;
+}
+void MCM_update_LC_activeStatus(MotorController *me, bool newState)
+{
+    me->launchControlActiveStatus = newState;
+}
+bool MCM_get_LC_activeStatus(MotorController *me)
+{
+    return me->launchControlActiveStatus;
+}
+
 //----------------------------------------------------PL-------------------------------
 void MCM_update_PL_setTorqueCommand(MotorController *me, sbyte2 torqueCommand)
 {
@@ -770,7 +794,7 @@ Status MCM_getInverterOverrideStatus(MotorController *me)
     return me->InverterOverride;
 }
 
-bool MCM_getFieldWeakening(MotorController *me)
+bool MCM_getFieldWeakening(MotorController *me)  // This needs to be changed or deleted--field weakening isn't based solely on RPM--it's Id and Iq, which are impacted by pack SoC, as well as RPM
 {
     sbyte4 MotorRPM = MCM_getMotorRPM(me);
     bool fieldWeakening = (MotorRPM > 3600);
@@ -812,7 +836,12 @@ ubyte2 MCM_getTorqueMax(MotorController *me)
 
 sbyte4 MCM_getPower(MotorController *me)
 {
-    return ((me->DC_Voltage) * (me->DC_Current));
+    if (me->DC_Voltage <= 0 || me->DC_Current <= 0) {
+        return 0;
+    }
+    else {
+        return ((me->DC_Voltage) * (me->DC_Current));
+    }
 }
 
 ubyte2 MCM_getCommandedTorque(MotorController *me)

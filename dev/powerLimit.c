@@ -20,8 +20,9 @@
 
 // #define ELIMINATE_CAN_MESSAGES
 /** PARAMETERS **/
-PowerLimit* POWERLIMIT_new(){
+PowerLimit* POWERLIMIT_new(bool plToggle){
     PowerLimit* me = (PowerLimit*)malloc(sizeof(PowerLimit));
+    me->plToggle=plToggle;
     me->pid = PID_new(10, 50, 0, 231,10); // last value tells you the factor the PID gets divided by
     me->plMode = 1; // 1 = Torque PID
     me->plStatus = FALSE; // FALSE = Off, TRUE = On
@@ -42,7 +43,7 @@ void PowerLimit_setPLInitializationThreshold(PowerLimit* me){
 
 void PowerLimit_calculateCommand(PowerLimit *me, MotorController *mcm, TorqueEncoder *tps){
     PowerLimit_setPLInitializationThreshold(me);
-    if (MCM_commands_getAppsTorque(mcm) == 0) { // if no torque command, turn off PL
+    if (!me->plToggle || MCM_commands_getAppsTorque(mcm) == 0) { // if no torque command, turn off PL
         me->plStatus = FALSE;
         me->pid->totalError = 0;
         me->pid->proportional = 0;
@@ -56,6 +57,9 @@ void PowerLimit_calculateCommand(PowerLimit *me, MotorController *mcm, TorqueEnc
                 me->plStatus = TRUE;
             } else {
                 me->plStatus = FALSE;
+                me->pid->totalError = 0;
+                me->pid->proportional = 0;
+                me->pid->integral = 0;
             }
         } else { // if PL is always on, only turn on if power is above threshold and never turn off
             if (!me->plStatus && current_power_kw > me->plInitializationThreshold) {
@@ -107,9 +111,9 @@ void POWERLIMIT_TorquePID(PowerLimit *me, MotorController *mcm){
 
 void POWERLIMIT_PowerPID(PowerLimit *me, MotorController *mcm){
     me->plMode = 2;
-    pid->saturationValue = (me->plInitializationThreshold)*100; ////////////
+    me->pid->saturationValue = (me->plInitializationThreshold)*100; ////////////
 
-    sbyte2 commandedTQ = me->commandedTorque;
+    sbyte2 commandedTQ = me->plTorqueCommand;
     sbyte4 Voltage = MCM_getDCVoltage(mcm);
     sbyte4 Current = MCM_getDCCurrent(mcm); 
     if (Current < 0){      // current safety check
@@ -122,8 +126,11 @@ void POWERLIMIT_PowerPID(PowerLimit *me, MotorController *mcm){
 
     POWERLIMIT_updatePIDController(me, setpointPower, drawnPower, me->clampingMethod);
 
-    float pidOutput = pid->output;
-    sbyte4 motorRPM   = me->motorRPM;
+    float pidOutput = me->pid->output;
+    sbyte4 motorRPM   = MCM_getMotorRPM(mcm);
+
+    sbyte4 pidCurrentValue = (sbyte4)((MCM_getDCVoltage(mcm) * Current) / 10); // W.   CHECK THIS !!!!  Taken from previous implementation of powerPID
+
 
     me->plTorqueCommand = (sbyte2)(((pidOutput + pidCurrentValue) / (motorRPM * 9.549)) * 10);    
 

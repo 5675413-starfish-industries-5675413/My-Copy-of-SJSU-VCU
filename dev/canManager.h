@@ -10,7 +10,7 @@
 #include "bms.h"
 #include "wheelSpeeds.h"
 #include "safety.h"
-#include "launchControl.h"
+#include "LaunchControl.h"
 #include "powerLimit.h"
 #include "drs.h"
 #include "PID.h"
