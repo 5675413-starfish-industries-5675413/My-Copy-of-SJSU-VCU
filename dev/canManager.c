@@ -823,7 +823,7 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     canMessages[canMessageCount - 1].data[byteNum++] = MCM_commands_getTorqueLimit(mcm) >> 8;
     canMessages[canMessageCount - 1].length = byteNum;
 
-    // 511 : Power Limit Status A
+   // 511 : Power Limit Status A
     canMessageCount++;
     byteNum = 0;
     canMessages[canMessageCount - 1].id_format = IO_CAN_STD_FRAME;
@@ -831,10 +831,10 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(POWERLIMIT_getInitialisationThreshold(pl));
     canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(POWERLIMIT_getMode(pl));
     canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(POWERLIMIT_getStatus(pl));
-    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(pl->pid->POWERLIMIT_totalError * 100);
-    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(pl->pid->POWERLIMIT_totalError * 100)) >> 8;
-    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(pl->pid->POWERLIMIT_proportional * 100);
-    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(pl->pid->POWERLIMIT_proportional * 100)) >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(PID_getTotalError(pl->pid));
+    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(PID_getTotalError(pl->pid))) >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(PID_getProportional(pl->pid));
+    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(PID_getProportional(pl->pid))) >> 8;
     canMessages[canMessageCount - 1].length = byteNum;
 
     // 512 : Power Limit Status B
@@ -842,13 +842,13 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     byteNum = 0;
     canMessages[canMessageCount - 1].id_format = IO_CAN_STD_FRAME;
     canMessages[canMessageCount - 1].id = canMessageID + canMessageCount - 1;
-    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(pl->pid->POWERLIMIT_integral * 100);
-    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(pl->pid->POWERLIMIT_integral * 100)) >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(PID_getIntegral(pl));
+    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(PID_getIntegral(pl))) >> 8;
     canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(POWERLIMIT_getTorqueCommand(pl));
     canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(POWERLIMIT_getTorqueCommand(pl))) >> 8;
     canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(POWERLIMIT_getTargetPower(pl));
-    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(POWERLIMIT_PID_getOutput(pl->pid) * 100);
-    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(POWERLIMIT_PID_getOutput(pl->pid) * 100)) >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(PID_getOutput(pl->pid));
+    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(PID_getOutput(pl->pid))) >> 8;
     canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(POWERLIMIT_getClampingMethod(pl));
     canMessages[canMessageCount - 1].length = byteNum;
 
