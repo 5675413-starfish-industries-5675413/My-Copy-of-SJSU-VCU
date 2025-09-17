@@ -31,7 +31,7 @@ PowerLimit* POWERLIMIT_new(bool plToggle){
     me->plThresholdDiscrepancy = 15; // Threshold discrepancy in kW
     me->plInitializationThreshold = 0; // Initialization threshold in kW
     me->clampingMethod = 6; // Clamping method
-    me->plAlwaysOn = FALSE; // TRUE = if is above threshold then stay on even if power is below threshold, FALSE = Only on if power is above threshold
+    me->plAlwaysOn = TRUE; // TRUE = if is above threshold then stay on even if power is below threshold, FALSE = Only on if power is above threshold
     return me;
 }
 
