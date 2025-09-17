@@ -864,7 +864,7 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(LaunchControl_getPidOutput(lc->pid))) >> 8;
     canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(PID_getSetpoint(pl->pid));
     canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(PID_getSetpoint(pl->pid))) >> 8;
-    canMessages[canMessageCount - 1].data[byteNum++] = 0;
+    canMessages[canMessageCount - 1].data[byteNum++] = ((ubyte1)(PID_getAntiWindupFlag(pl->pid)));
     canMessages[canMessageCount - 1].length = byteNum;
     
     CanManager_send(me, CAN0_HIPRI, canMessages, canMessageCount); 
