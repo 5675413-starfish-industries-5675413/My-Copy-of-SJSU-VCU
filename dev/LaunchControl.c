@@ -42,7 +42,7 @@ LaunchControl *LaunchControl_new(bool toggle)
 
     me->maxTorque = 231;
     me->prevTorque = 0;
-    me->k = 0.2;
+    me->k = 0.05;
 
     me->initialCurve = FALSE;
     me->initialTorque = Standard;
