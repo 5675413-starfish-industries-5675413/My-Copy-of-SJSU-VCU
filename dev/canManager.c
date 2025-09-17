@@ -842,8 +842,8 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     byteNum = 0;
     canMessages[canMessageCount - 1].id_format = IO_CAN_STD_FRAME;
     canMessages[canMessageCount - 1].id = canMessageID + canMessageCount - 1;
-    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(PID_getIntegral(pl));
-    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(PID_getIntegral(pl))) >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(PID_getIntegral(pl->pid));
+    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(PID_getIntegral(pl->pid))) >> 8;
     canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(POWERLIMIT_getTorqueCommand(pl));
     canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(POWERLIMIT_getTorqueCommand(pl))) >> 8;
     canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(POWERLIMIT_getTargetPower(pl));
@@ -855,6 +855,9 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     
 
     
+    CanManager_send(me, CAN0_HIPRI, canMessages, canMessageCount); 
+
+
     //----------------------------------------------------------------------------
     //Additional sensors
     //----------------------------------------------------------------------------
