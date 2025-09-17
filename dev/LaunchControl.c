@@ -125,7 +125,7 @@ void LaunchControl_checkState(LaunchControl *me, TorqueEncoder *tps, BrakePressu
         me->lcReady = FALSE;
     }
     
-    if(me->fakeLCButtonStatus == TRUE && speedKph < 1 && bps->percent < 0.05 ) 
+    if(me->fakeLCButtonStatus == TRUE && bps->percent < 0.05 ) 
     {
         me->lcReady = TRUE;
     }
