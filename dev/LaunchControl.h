@@ -19,7 +19,7 @@ typedef struct _LaunchControl {
     PID *pid;
 
     bool toggle;
-
+    bool fakeLCButtonStatus;
     float slipRatio;
     ubyte2 slipRatioThreeDigits;
 

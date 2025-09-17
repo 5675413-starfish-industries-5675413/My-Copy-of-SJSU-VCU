@@ -389,16 +389,24 @@ void main(void)
         // CoolingSystem_enactCooling(cs); //This belongs under outputs but it doesn't really matter for cooling
 
         //New Code: Pump, ALWAYS ON
-          if (coolingOnTimer == 0) {
-            if (Sensor_LCButton.sensorValue == TRUE && Sensor_HVILTerminationSense.sensorValue == FALSE) {
-                IO_RTC_StartTime(&coolingOnTimer);
-                coolingOn = ~coolingOn;
-            }    
-        }  
-        else {
-            if (IO_RTC_GetTimeUS(coolingOnTimer) > 1000000) {
-                coolingOnTimer = 0;
-            }
+        //   if (coolingOnTimer == 0) {
+        //     if (Sensor_LCButton.sensorValue == TRUE && Sensor_HVILTerminationSense.sensorValue == FALSE) {
+        //         IO_RTC_StartTime(&coolingOnTimer);
+        //         coolingOn = ~coolingOn;
+        //     }    
+        // }  
+        // else {
+        //     if (IO_RTC_GetTimeUS(coolingOnTimer) > 1000000) {
+        //         coolingOnTimer = 0;
+        //     }
+        // }
+
+        if (Sensor_LCButton.sensorValue == TRUE) {
+            lc->fakeLCButtonStatus = TRUE;
+        }
+        else
+        {
+            lc->fakeLCButtonStatus = FALSE;
         }
         
         if (Sensor_HVILTerminationSense.sensorValue == FALSE) {

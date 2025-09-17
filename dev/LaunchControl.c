@@ -35,7 +35,8 @@ LaunchControl *LaunchControl_new(bool toggle)
 
     me->lcTorqueCommand = NULL;
     me->toggle = toggle;
-
+    
+    me->fakeLCButtonStatus = FALSE;
     me->slipRatio = 0;
     me->slipRatioThreeDigits = 0;
 
@@ -118,13 +119,13 @@ void LaunchControl_checkState(LaunchControl *me, TorqueEncoder *tps, BrakePressu
 
     sbyte2 speedKph = MCM_getGroundSpeedKPH(mcm);
 
-    if (me->lcReady == TRUE && Sensor_LCButton.sensorValue == FALSE)
+    if (me->lcReady == TRUE && me->fakeLCButtonStatus == FALSE)
     {
         me->lcActive = TRUE;
         me->lcReady = FALSE;
     }
     
-    if(Sensor_LCButton.sensorValue == TRUE && speedKph < 1 && bps->percent < 0.05 ) 
+    if(me->fakeLCButtonStatus == TRUE && speedKph < 1 && bps->percent < 0.05 ) 
     {
         me->lcReady = TRUE;
     }
@@ -139,8 +140,8 @@ void LaunchControl_checkState(LaunchControl *me, TorqueEncoder *tps, BrakePressu
         me->lcTorqueCommand = NULL;
     }
     
-    MCM_update_LC_activeStatus(mcm, (bool)me->lcActive);
-    MCM_update_LC_readyStatus(mcm, (bool)me->lcReady);
+    MCM_update_LC_activeStatus(mcm, me->lcActive);
+    MCM_update_LC_readyStatus(mcm, me->lcReady);
 }
 
 void LaunchControl_calculateCommands(LaunchControl *me, MotorController *mcm, WheelSpeeds *wss, TorqueEncoder *tps, BrakePressureSensor *bps) 
