@@ -102,7 +102,7 @@ sbyte1 PID_getKd(PID *pid){
 }
 
 sbyte2 PID_getSetpoint(PID *pid){
-    return pid->setpoint/1000;
+    return pid->setpoint;
 }
 
 sbyte2 PID_getPreviousError(PID *pid){

@@ -221,10 +221,10 @@ void main(void)
     WheelSpeeds *wss = WheelSpeeds_new(WHEEL_DIAMETER, WHEEL_DIAMETER, NUM_BUMPS, NUM_BUMPS);
     SafetyChecker *sc = SafetyChecker_new(serialMan, 320, 32); //Must match amp limits
     CoolingSystem *cs = CoolingSystem_new(serialMan);
-    LaunchControl *lc = LaunchControl_new(FALSE);
+    LaunchControl *lc = LaunchControl_new(TRUE);
 
     DRS *drs = DRS_new();
-    PowerLimit *pl = POWERLIMIT_new(TRUE);
+    PowerLimit *pl = POWERLIMIT_new(FALSE);
 //---------------------------------------------------------------------------------------------------------
     //----------------------------------------------------------------------------
     // TODO: Additional Initial Power-up functions
@@ -389,17 +389,17 @@ void main(void)
         // CoolingSystem_enactCooling(cs); //This belongs under outputs but it doesn't really matter for cooling
 
         //New Code: Pump, ALWAYS ON
-        //   if (coolingOnTimer == 0) {
-        //     if (Sensor_LCButton.sensorValue == TRUE && Sensor_HVILTerminationSense.sensorValue == FALSE) {
-        //         IO_RTC_StartTime(&coolingOnTimer);
-        //         coolingOn = ~coolingOn;
-        //     }    
-        // }  
-        // else {
-        //     if (IO_RTC_GetTimeUS(coolingOnTimer) > 1000000) {
-        //         coolingOnTimer = 0;
-        //     }
-        // }
+          if (coolingOnTimer == 0) {
+            if (Sensor_LCButton.sensorValue == TRUE && Sensor_HVILTerminationSense.sensorValue == FALSE) {
+                IO_RTC_StartTime(&coolingOnTimer);
+                coolingOn = ~coolingOn;
+            }    
+        }  
+        else {
+            if (IO_RTC_GetTimeUS(coolingOnTimer) > 1000000) {
+                coolingOnTimer = 0;
+            }
+        }
 
         if (Sensor_LCButton.sensorValue == TRUE) {
             lc->fakeLCButtonStatus = TRUE;
