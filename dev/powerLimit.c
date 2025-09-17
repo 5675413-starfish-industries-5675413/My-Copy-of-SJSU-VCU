@@ -23,11 +23,11 @@
 PowerLimit* POWERLIMIT_new(bool plToggle){
     PowerLimit* me = (PowerLimit*)malloc(sizeof(PowerLimit));
     me->plToggle=plToggle;
-    me->pid = PID_new(10, 0, 0, 231,10); // last value tells you the factor the PID gets divided by
-    me->plMode = 2; // 1 = Torque PID
+    me->pid = PID_new(10, 50, 0, 231,10); // last value tells you the factor the PID gets divided by
+    me->plMode = 1; // 1 = Torque PID
     me->plStatus = FALSE; // FALSE = Off, TRUE = On
     me->plTorqueCommand = 0; // Torque command in deciNewton-meters
-    me->plTargetPower = 40;// HERE IS WHERE YOU CHANGE POWERLIMIT (units = kW)
+    me->plTargetPower = 30;// HERE IS WHERE YOU CHANGE POWERLIMIT (units = kW)
     me->plThresholdDiscrepancy = 15; // Threshold discrepancy in kW
     me->plInitializationThreshold = 0; // Initialization threshold in kW
     me->clampingMethod = 6; // Clamping method
@@ -126,7 +126,7 @@ void POWERLIMIT_PowerPID(PowerLimit *me, MotorController *mcm){
     sbyte4 dcCurrent = MCM_getDCCurrent(mcm);
     
 
-    float setpointPower =(float)((40)*1000);
+    float setpointPower =40000.0f;
     float drawnPower = (float)((dcVoltage*dcCurrent)*1.0);
 
     
