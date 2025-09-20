@@ -48,7 +48,7 @@
 #include "serial.h"
 #include "cooling.h"
 #include "bms.h"
-#include "launchControl.h"
+#include "LaunchControl.h"
 #include "drs.h"
 #include "powerLimit.h"
 #include "PID.h"
@@ -402,14 +402,6 @@ void main(void)
             if (IO_RTC_GetTimeUS(coolingOnTimer) > 1000000) {
                 coolingOnTimer = 0;
             }
-        }
-
-        if (Sensor_LCButton.sensorValue == TRUE) {
-            lc->fakeLCButtonStatus = TRUE;
-        }
-        else
-        {
-            lc->fakeLCButtonStatus = FALSE;
         }
         
         if (Sensor_HVILTerminationSense.sensorValue == FALSE) {

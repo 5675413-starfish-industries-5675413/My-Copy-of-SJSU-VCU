@@ -851,21 +851,6 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(PID_getOutput(pl->pid))) >> 8;
     canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(POWERLIMIT_getClampingMethod(pl));
     canMessages[canMessageCount - 1].length = byteNum;
-
-    // 513 : Launch Control Debug
-    canMessageCount++;
-    byteNum = 0;
-    canMessages[canMessageCount - 1].id_format = IO_CAN_STD_FRAME;
-    canMessages[canMessageCount - 1].id = canMessageID + canMessageCount - 1;
-    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)(LaunchControl_getSlipRatioThreeDigits(lc));
-    canMessages[canMessageCount - 1].data[byteNum++] = ((ubyte2)(LaunchControl_getSlipRatioThreeDigits(lc))) >> 8;
-    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(LaunchControl_getInitialCurveStatus(lc));
-    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(LaunchControl_getPidOutput(lc->pid));
-    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(LaunchControl_getPidOutput(lc->pid))) >> 8;
-    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(PID_getSetpoint(pl->pid));
-    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(PID_getSetpoint(pl->pid))) >> 8;
-    canMessages[canMessageCount - 1].data[byteNum++] = ((ubyte1)(PID_getAntiWindupFlag(pl->pid)));
-    canMessages[canMessageCount - 1].length = byteNum;
     
     CanManager_send(me, CAN0_HIPRI, canMessages, canMessageCount); 
 
