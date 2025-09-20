@@ -133,8 +133,7 @@ struct _MotorController
     //};
 
     sbyte2 lcTorqueCommand;
-    bool launchControlReadyStatus;
-    bool launchControlActiveStatus;
+    bool launchControlState;
 
     sbyte2 plTorqueCommand;
     bool plActive;
@@ -183,8 +182,7 @@ MotorController *MotorController_new(SerialManager *sm, ubyte2 canMessageBaseID,
     me->motor_temp = 99;
 
     me->lcTorqueCommand = 0;
-    me->launchControlReadyStatus = FALSE;
-    me->launchControlActiveStatus = FALSE;
+    me->launchControlState = FALSE;
 
     me-> plTorqueCommand = 0;
     me-> plActive = FALSE;
@@ -310,7 +308,7 @@ void MCM_calculateCommands(MotorController *me, TorqueEncoder *tps, BrakePressur
 
     torqueOutput = me->appsTorque + bpsTorque;
 
-    if(me->launchControlActiveStatus == TRUE && me->lcTorqueCommand < me->appsTorque && me->lcTorqueCommand > 0)
+    if(me->launchControlState == TRUE && me->lcTorqueCommand < me->appsTorque)
     {
         torqueOutput = me->lcTorqueCommand;
     } 
@@ -319,7 +317,7 @@ void MCM_calculateCommands(MotorController *me, TorqueEncoder *tps, BrakePressur
     }
     if(me->plActive == TRUE && me->plTorqueCommand < me->appsTorque)
     {
-        me->launchControlActiveStatus == FALSE;
+        me->launchControlState == FALSE;
         torqueOutput = me->plTorqueCommand + bpsTorque;
     }
     //Safety Check. torqueOutput Should never rise above 231
@@ -724,37 +722,15 @@ void MCM_updateInverterStatus(MotorController *me, Status newState)
     me->inverterStatus = newState;
 }
 
-
-//------------------------------Launch Control--------------------------------
-
-/** Converts Nm input to DNm in MCM struct */
-void MCM_update_LC_torqueCommand(MotorController *me, sbyte2 lcTorqueCommand)
+void MCM_update_LC_torqueLimit(MotorController *me, sbyte2 lcTorqueLimit)
 {
-    me->lcTorqueCommand = lcTorqueCommand * 10;
+    me->lcTorqueCommand = lcTorqueLimit;
 }
 
-sbyte2 MCM_get_LC_torqueCommand(MotorController *me)
+void MCM_update_LC_state(MotorController *me, bool newState)
 {
-    return me->lcTorqueCommand;
+    me->launchControlState = newState;
 }
-
-void MCM_update_LC_readyStatus(MotorController *me, bool newState)
-{
-    me->launchControlReadyStatus = newState;
-}
-bool MCM_get_LC_readyStatus(MotorController *me)
-{
-    return me->launchControlReadyStatus;
-}
-void MCM_update_LC_activeStatus(MotorController *me, bool newState)
-{
-    me->launchControlActiveStatus = newState;
-}
-bool MCM_get_LC_activeStatus(MotorController *me)
-{
-    return me->launchControlActiveStatus;
-}
-
 //----------------------------------------------------PL-------------------------------
 void MCM_update_PL_setTorqueCommand(MotorController *me, sbyte2 torqueCommand)
 {

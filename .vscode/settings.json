@@ -16,4 +16,6 @@
     },
     "C_Cpp.copilotHover": "disabled",
     "github.copilot.advanced": {}
+        "torqueencoder.h": "c"
+    }
 }

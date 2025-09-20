@@ -48,7 +48,7 @@
 #include "serial.h"
 #include "cooling.h"
 #include "bms.h"
-#include "LaunchControl.h"
+#include "launchControl.h"
 #include "drs.h"
 #include "powerLimit.h"
 #include "PID.h"
@@ -221,10 +221,12 @@ void main(void)
     WheelSpeeds *wss = WheelSpeeds_new(WHEEL_DIAMETER, WHEEL_DIAMETER, NUM_BUMPS, NUM_BUMPS);
     SafetyChecker *sc = SafetyChecker_new(serialMan, 320, 32); //Must match amp limits
     CoolingSystem *cs = CoolingSystem_new(serialMan);
-    LaunchControl *lc = LaunchControl_new(FALSE);
+    LaunchControl *lc = LaunchControl_new();
 
     DRS *drs = DRS_new();
     PowerLimit *pl = POWERLIMIT_new(TRUE);
+    PID *lcPID = PID_new(200,0,0,0,1);
+    PID_setSaturationPoint(lcPID, 231);
 //---------------------------------------------------------------------------------------------------------
     //----------------------------------------------------------------------------
     // TODO: Additional Initial Power-up functions
@@ -372,6 +374,7 @@ void main(void)
 
         //Update WheelSpeed and interpolate
         WheelSpeeds_update(wss, TRUE);
+        LaunchControl_calculateSlipRatio(lc, wss);
 
         //Cool DRS things
         DRS_update(drs, mcm0, tps, bps);
@@ -430,6 +433,8 @@ void main(void)
         //DOES NOT set inverter command or rtds flag
         //MCM_setRegenMode(mcm0, REGENMODE_FORMULAE); // TODO: Read regen mode from DCU CAN message - Issue #96
         // MCM_readTCSSettings(mcm0, &Sensor_TCSSwitchUp, &Sensor_TCSSwitchDown, &Sensor_TCSKnob);
+        PID_setSaturationPoint(lcPID, 231);
+        LaunchControl_calculateTorqueCommand(lc, tps, bps, mcm0,lcPID);
         //---------------------------------------------------------------------------------------------------------
         // input the power limit calculation here from mcm 
         //---------------------------------------------------------------------------------------------------------
@@ -445,7 +450,6 @@ void main(void)
         // MCM_incrementVoltageForTesting(mcm0, 5);      // 5V increments
         // MCM_incrementCurrentForTesting(mcm0, 5);      // 5A increments  
         // MCM_incrementRPMForTesting(mcm0, 100);        // 100 RPM increments
-        LaunchControl_calculateCommands(lc, mcm0, wss, tps, bps);
         PowerLimit_calculateCommand(pl, mcm0, tps);
         MCM_calculateCommands(mcm0, tps, bps);
 
