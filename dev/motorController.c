@@ -14,7 +14,10 @@
 #include "readyToDriveSound.h"
 #include "serial.h"
 
+
 #include "canManager.h"
+
+
 
 extern Sensor Sensor_BenchTPS0;
 extern Sensor Sensor_BenchTPS1;
@@ -133,7 +136,7 @@ struct _MotorController
     //};
 
     sbyte2 lcTorqueCommand;
-    bool launchControlState;
+    bool lcEngaged;
 
     sbyte2 plTorqueCommand;
     bool plActive;
@@ -182,7 +185,7 @@ MotorController *MotorController_new(SerialManager *sm, ubyte2 canMessageBaseID,
     me->motor_temp = 99;
 
     me->lcTorqueCommand = 0;
-    me->launchControlState = FALSE;
+    me->lcEngaged = FALSE;
 
     me-> plTorqueCommand = 0;
     me-> plActive = FALSE;
@@ -308,13 +311,13 @@ void MCM_calculateCommands(MotorController *me, TorqueEncoder *tps, BrakePressur
 
     torqueOutput = me->appsTorque + bpsTorque;
 
-    if(me->launchControlState == TRUE && me->lcTorqueCommand < me->appsTorque)
+    if(me->lcEngaged == TRUE && me->lcTorqueCommand < me->appsTorque && me->lcTorqueCommand >= 0)
     {
         torqueOutput = me->lcTorqueCommand;
     } 
     if(me->plActive == TRUE && me->plTorqueCommand < me->appsTorque)
     {
-        me->launchControlState == FALSE;
+        me->lcEngaged = FALSE;
         torqueOutput = me->plTorqueCommand + bpsTorque;
     }
     //Safety Check. torqueOutput Should never rise above 231
@@ -719,14 +722,23 @@ void MCM_updateInverterStatus(MotorController *me, Status newState)
     me->inverterStatus = newState;
 }
 
-void MCM_update_LC_torqueLimit(MotorController *me, sbyte2 lcTorqueLimit)
+//-------------------------------Launch Control-------------------------------
+void MCM_update_LC_torqueCommand(MotorController *me, sbyte2 lcTorqueCommand)
 {
-    me->lcTorqueCommand = lcTorqueLimit;
+    me->lcTorqueCommand = lcTorqueCommand * 10; //Nm -> Dm
 }
 
-void MCM_update_LC_state(MotorController *me, bool newState)
+void MCM_update_LC_engagedStatus(MotorController *me, bool newState)
 {
-    me->launchControlState = newState;
+    me->lcEngaged = newState;
+}
+
+bool MCM_get_LC_engagedStatus(MotorController *me) {
+    return me->lcEngaged;
+}
+
+sbyte2 MCM_get_LC_torqueCommand(MotorController *me) {
+    return me->lcTorqueCommand;
 }
 //----------------------------------------------------PL-------------------------------
 void MCM_update_PL_setTorqueCommand(MotorController *me, sbyte2 torqueCommand)

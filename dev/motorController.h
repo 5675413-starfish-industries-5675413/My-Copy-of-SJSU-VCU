@@ -10,6 +10,7 @@
 //#include "safety.h"
 #include "serial.h"
 
+
 //typedef enum { TORQUE, DIRECTION, INVERTER, DISCHARGE, TORQUELIMIT} MCMCommand;
 typedef enum { ENABLED, DISABLED, UNKNOWN } Status;
 
@@ -84,8 +85,11 @@ void MCM_updateInverterStatus(MotorController* me, Status newState);
 Status MCM_getLockoutStatus(MotorController* me);
 Status MCM_getInverterStatus(MotorController* me);
 
-void MCM_update_LC_torqueLimit(MotorController *me, sbyte2 lcTorqueLimit);
-void MCM_update_LC_state(MotorController *me, bool newState);
+void MCM_update_LC_torqueCommand(MotorController *me, sbyte2 lcTorqueCommand);
+void MCM_update_LC_engagedStatus(MotorController *me, bool newState);
+bool MCM_get_LC_engagedStatus(MotorController *me);
+sbyte2 MCM_get_LC_torqueCommand(MotorController *me);
+
 
 void MCM_update_PL_setTorqueCommand(MotorController *me, sbyte2 torqueCommand);
 void MCM_set_PL_updateStatus(MotorController *me, bool newState);

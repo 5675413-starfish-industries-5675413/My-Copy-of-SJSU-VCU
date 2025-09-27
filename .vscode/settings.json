@@ -7,6 +7,12 @@
         "io_driver.h": "c",
         "powerlimit.h": "c",
         "motorcontroller.h": "c",
-        "torqueencoder.h": "c"
+        "torqueencoder.h": "c",
+        "pid.h": "c",
+        "initializations.h": "c",
+        "launchcontrol.h": "c",
+        "canmanager.h": "c",
+        "brakepressuresensor.h": "c",
+        "bms.h": "c"
     }
 }

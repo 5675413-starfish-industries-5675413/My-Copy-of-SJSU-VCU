@@ -221,12 +221,10 @@ void main(void)
     WheelSpeeds *wss = WheelSpeeds_new(WHEEL_DIAMETER, WHEEL_DIAMETER, NUM_BUMPS, NUM_BUMPS);
     SafetyChecker *sc = SafetyChecker_new(serialMan, 320, 32); //Must match amp limits
     CoolingSystem *cs = CoolingSystem_new(serialMan);
-    LaunchControl *lc = LaunchControl_new();
+    LaunchControl *lc = LaunchControl_new(TRUE);
 
     DRS *drs = DRS_new();
     PowerLimit *pl = POWERLIMIT_new(TRUE);
-    PID *lcPID = PID_new(200,0,0,0,1);
-    PID_setSaturationPoint(lcPID, 231);
 //---------------------------------------------------------------------------------------------------------
     //----------------------------------------------------------------------------
     // TODO: Additional Initial Power-up functions
@@ -276,31 +274,31 @@ void main(void)
         //Pull messages from CAN FIFO and update our object representations.
         //Also echoes can0 messages to can1 for DAQ.
         CanManager_read(canMan, CAN0_HIPRI, mcm0, ic0, bms, sc);
-        if (Sensor_TestButton.sensorValue == TRUE ) {
-            // TODO rewire Sensor_TestButton 
-            lc->buttonDebug |= 0x02;
-        }
-        else {
-            lc->buttonDebug &= ~0x02;
-        }
-        if (Sensor_DRSButton.sensorValue == TRUE ) { // mark gives 02
-            lc->buttonDebug |= 0x01;
-        }
-        else {
-            lc->buttonDebug &= ~0x01;
-        }
-        if (Sensor_EcoButton.sensorValue == TRUE ) { // cal gives 04
-           lc->buttonDebug |= 0x04;
-        }
-        else {
-            lc->buttonDebug &= ~0x04;
-        }
-        if (Sensor_LCButton.sensorValue == TRUE) { //drs gives 08
-          lc->buttonDebug |= 0x08;
-        }
-        else {
-            lc->buttonDebug &= ~0x08;
-        }
+        // if (Sensor_TestButton.sensorValue == TRUE ) {
+        //     // TODO rewire Sensor_TestButton 
+        //     lc->buttonDebug |= 0x02;
+        // }
+        // else {
+        //     lc->buttonDebug &= ~0x02;
+        // }
+        // if (Sensor_DRSButton.sensorValue == TRUE ) { // mark gives 02
+        //     lc->buttonDebug |= 0x01;
+        // }
+        // else {
+        //     lc->buttonDebug &= ~0x01;
+        // }
+        // if (Sensor_EcoButton.sensorValue == TRUE ) { // cal gives 04
+        //    lc->buttonDebug |= 0x04;
+        // }
+        // else {
+        //     lc->buttonDebug &= ~0x04;
+        // }
+        // if (Sensor_LCButton.sensorValue == TRUE) { //drs gives 08
+        //   lc->buttonDebug |= 0x08;
+        // }
+        // else {
+        //     lc->buttonDebug &= ~0x08;
+        // }
 
         /*switch (CanManager_getReadStatus(canMan, CAN0_HIPRI))
         {
@@ -425,8 +423,7 @@ void main(void)
         //DOES NOT set inverter command or rtds flag
         //MCM_setRegenMode(mcm0, REGENMODE_FORMULAE); // TODO: Read regen mode from DCU CAN message - Issue #96
         // MCM_readTCSSettings(mcm0, &Sensor_TCSSwitchUp, &Sensor_TCSSwitchDown, &Sensor_TCSKnob);
-        PID_setSaturationPoint(lcPID, 231);
-        LaunchControl_calculateTorqueCommand(lc, tps, bps, mcm0,lcPID);
+       
         //---------------------------------------------------------------------------------------------------------
         // input the power limit calculation here from mcm 
         //---------------------------------------------------------------------------------------------------------
@@ -442,6 +439,7 @@ void main(void)
         // MCM_incrementVoltageForTesting(mcm0, 5);      // 5V increments
         // MCM_incrementCurrentForTesting(mcm0, 5);      // 5A increments  
         // MCM_incrementRPMForTesting(mcm0, 100);        // 100 RPM increments
+        LaunchControl_calculateCommands(lc, tps, bps, mcm0, wss);
         PowerLimit_calculateCommand(pl, mcm0, tps);
         MCM_calculateCommands(mcm0, tps, bps);
 
