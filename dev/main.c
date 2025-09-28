@@ -274,31 +274,31 @@ void main(void)
         //Pull messages from CAN FIFO and update our object representations.
         //Also echoes can0 messages to can1 for DAQ.
         CanManager_read(canMan, CAN0_HIPRI, mcm0, ic0, bms, sc);
-        if (Sensor_TestButton.sensorValue == TRUE ) {
-            // TODO rewire Sensor_TestButton 
-            lc->buttonDebug |= 0x02;
-        }
-        else {
-            lc->buttonDebug &= ~0x02;
-        }
-        if (Sensor_DRSButton.sensorValue == TRUE ) { // mark gives 02
-            lc->buttonDebug |= 0x01;
-        }
-        else {
-            lc->buttonDebug &= ~0x01;
-        }
-        if (Sensor_EcoButton.sensorValue == TRUE ) { // cal gives 04
-           lc->buttonDebug |= 0x04;
-        }
-        else {
-            lc->buttonDebug &= ~0x04;
-        }
-        if (Sensor_LCButton.sensorValue == TRUE) { //drs gives 08
-          lc->buttonDebug |= 0x08;
-        }
-        else {
-            lc->buttonDebug &= ~0x08;
-        }
+        // if (Sensor_TestButton.sensorValue == TRUE ) {
+        //     // TODO rewire Sensor_TestButton 
+        //     lc->buttonDebug |= 0x02;
+        // }
+        // else {
+        //     lc->buttonDebug &= ~0x02;
+        // }
+        // if (Sensor_DRSButton.sensorValue == TRUE ) { // mark gives 02
+        //     lc->buttonDebug |= 0x01;
+        // }
+        // else {
+        //     lc->buttonDebug &= ~0x01;
+        // }
+        // if (Sensor_EcoButton.sensorValue == TRUE ) { // cal gives 04
+        //    lc->buttonDebug |= 0x04;
+        // }
+        // else {
+        //     lc->buttonDebug &= ~0x04;
+        // }
+        // if (Sensor_LCButton.sensorValue == TRUE) { //drs gives 08
+        //   lc->buttonDebug |= 0x08;
+        // }
+        // else {
+        //     lc->buttonDebug &= ~0x08;
+        // }
 
         /*switch (CanManager_getReadStatus(canMan, CAN0_HIPRI))
         {
@@ -445,7 +445,7 @@ void main(void)
         // MCM_incrementVoltageForTesting(mcm0, 5);      // 5V increments
         // MCM_incrementCurrentForTesting(mcm0, 5);      // 5A increments  
         // MCM_incrementRPMForTesting(mcm0, 100);        // 100 RPM increments
-        LaunchControl_calculateCommands(lc, mcm0, wss, tps, bps);
+        LaunchControl_calculateCommands(lc, tps, bps, mcm0, wss);
         PowerLimit_calculateCommand(pl, mcm0, tps);
         MCM_calculateCommands(mcm0, tps, bps);
 
