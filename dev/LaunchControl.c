@@ -89,6 +89,7 @@ void LaunchControl_calculateCommands(LaunchControl *me, TorqueEncoder *tps, Brak
 
     if (me->state == LC_READY) {
         me->lcTorqueCommand = 0;
+        MCM_update_LC_torqueCommand(mcm, me->lcTorqueCommand);
         return;
     }
 
