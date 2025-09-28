@@ -401,13 +401,6 @@ void main(void)
             }
         }
 
-        if (Sensor_LCButton.sensorValue == TRUE) {
-            lc->fakeLCButtonStatus = TRUE;
-        }
-        else
-        {
-            lc->fakeLCButtonStatus = FALSE;
-        }
         
         if (Sensor_HVILTerminationSense.sensorValue == FALSE) {
             if (coolingOn == 0) {

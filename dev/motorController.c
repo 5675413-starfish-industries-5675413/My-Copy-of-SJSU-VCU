@@ -315,9 +315,6 @@ void MCM_calculateCommands(MotorController *me, TorqueEncoder *tps, BrakePressur
     {
         torqueOutput = me->lcTorqueCommand;
     } 
-    if (me->launchControlReadyStatus == TRUE) {
-        torqueOutput = 0;
-    }
     if(me->plActive == TRUE && me->plTorqueCommand < me->appsTorque)
     {
         me->lcEngaged = FALSE;
