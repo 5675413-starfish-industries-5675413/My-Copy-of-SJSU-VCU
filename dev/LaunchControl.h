@@ -48,6 +48,7 @@ bool LaunchControl_isWheelSpeedsNonZero(WheelSpeeds *wss);
 LC_State LaunchControl_getState(LaunchControl *me);
 sbyte2 LaunchControl_getTorqueCommand(LaunchControl *me);
 float LaunchControl_getSlipRatio(LaunchControl *me);
+sbyte2 LaunchControl_getSlipRatioScaled(LaunchControl *me);
 bool LaunchControl_getInitialCurveStatus(LaunchControl *me);
 bool LaunchControl_getActiveStatus(LaunchControl *me);
 float LaunchControl_getPidOutput(LaunchControl *me);
