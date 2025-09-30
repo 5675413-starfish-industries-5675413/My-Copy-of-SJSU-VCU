@@ -120,19 +120,19 @@ void POWERLIMIT_PowerPID(PowerLimit *me, MotorController *mcm){
     me->plMode = 2;
     me->pid->saturationValue = 80000; ////////////
 
-    sbyte2 commandedTQ = MCM_getCommandedTorque(mcm);
-    sbyte4 motorRPM = MCM_getMotorRPM(mcm);
-    sbyte4 dcVoltage = MCM_getDCVoltage(mcm);
-    sbyte4 dcCurrent = MCM_getDCCurrent(mcm);
+    commandedTQ = (float)(MCM_getCommandedTorque(mcm));
+    motorRPM = (float)(MCM_getMotorRPM(mcm));
+    dcVoltage = (float)(MCM_getDCVoltage(mcm));
+    dcCurrent = (float)(MCM_getDCCurrent(mcm));
     
 
-    float setpointPower =40000.0f;
-    float drawnPower = (float)((dcVoltage*dcCurrent)*1.0);
+    setpointPower = ((float)(me->plTargetPower))*1000;
+    drawnPower = (float)(dcVoltage*dcCurrent);
 
     
     POWERLIMIT_updatePIDController(me, setpointPower, drawnPower);
 
-    float pidOutput = me->pid->output;
+    pidOutput = me->pid->output;
 
     me->plTorqueCommand = (sbyte2)(((pidOutput + drawnPower) * (9.549 / motorRPM)) * 10.0);    
 
@@ -204,7 +204,7 @@ void POWERLIMIT_updatePIDController(PowerLimit* me, float pidSetpoint, float sen
                 break;
             }
             case 6: {
-                if (me->pid->proportional + me->pid->integral + me->pid->derivative + sensorValue > me->pid->saturationValue) {
+                if (me->pid->proportional + me->pid->integral + me->pid->derivative + sensorValue > (float)(me->pid->saturationValue)) {
                     me->pid->totalError -= currentError;
                     me->pid->antiWindupFlag = TRUE;
                 }
