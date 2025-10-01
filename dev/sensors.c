@@ -44,6 +44,7 @@ extern Sensor Sensor_TestButton;
 extern Sensor Sensor_EcoButton;
 extern Sensor Sensor_DRSButton;
 extern Sensor Sensor_DRSKnob;
+extern Sensor Sensor_PLKnob;
 extern Sensor Sensor_LCButton;
 extern Sensor Sensor_HVILTerminationSense;
 
@@ -151,6 +152,7 @@ void sensors_updateSensors(void)
 
     //DRS Knob
     Sensor_DRSKnob.ioErr_signalGet = IO_ADC_Get(IO_ADC_VAR_00, &Sensor_DRSKnob.sensorValue, &Sensor_DRSKnob.fresh);
+    Sensor_PLKnob.ioErr_signalGet = IO_ADC_Get(IO_ADC_5V_06, &Sensor_PLKnob.sensorValue, &Sensor_PLKnob.fresh);// UPDATE PINOUT!!!!!!!!!!!!!!!!
 }
 
 void Light_set(Light light, float4 percent)
@@ -222,3 +224,26 @@ void Light_set(Light light, float4 percent)
 * Revision history:
 * 2015-11-16 - Rusty Pedrosa -
 *****************************************************************************/
+
+PLMode getPLMode() {
+    float voltage = (float)(Sensor_PLKnob.sensorValue);
+    
+    if (voltage > 3700) {
+        return PL_MODE_80;
+    } 
+    else if (voltage > 2900) {
+        return PL_MODE_60;
+    } 
+    else if (voltage > 2300) {
+        return PL_MODE_50;
+    } 
+    else if (voltage > 1500) {
+        return PL_MODE_40;
+    } 
+    else if (voltage > 800) {
+        return PL_MODE_30;
+    } 
+    else {
+        return PL_MODE_OFF;
+    }
+}

@@ -12,6 +12,7 @@
 #include "PID.h"
 #include "powerLimit.h"
 #include "mathFunctions.h"
+#include "sensors.h"
 
 #ifndef POWERLIMITCONSTANTS
 #define POWERLIMITCONSTANTS
@@ -42,6 +43,38 @@ void PowerLimit_setPLInitializationThreshold(PowerLimit* me){
 /** COMPUTATIONS **/
 
 void PowerLimit_calculateCommand(PowerLimit *me, MotorController *mcm, TorqueEncoder *tps){
+    {
+        PLMode plModeFromRotary = getPLMode();
+        switch (plModeFromRotary){
+            case PL_MODE_OFF:
+                me->plToggle = FALSE;
+                break;
+            case PL_MODE_30:
+                me->plTargetPower = 30;
+                me->plToggle = TRUE;
+                break;
+            case PL_MODE_40:
+                me->plTargetPower = 40;
+                me->plToggle = TRUE;
+                break;
+            case PL_MODE_50:
+                me->plTargetPower = 50;
+                me->plToggle = TRUE;
+                break;
+            case PL_MODE_60:
+                me->plTargetPower = 60;
+                me->plToggle = TRUE;
+                break;
+            case PL_MODE_80:
+                me->plTargetPower = 80;
+                me->plToggle = TRUE;
+                break;
+            default:
+                // Fallback to safe state
+                me->plToggle = FALSE;
+                break;
+        }
+    }
     PowerLimit_setPLInitializationThreshold(me);
     if (me->plStatus == FALSE){
         me->pid->totalError = 0;
@@ -124,19 +157,19 @@ void POWERLIMIT_PowerPID(PowerLimit *me, MotorController *mcm){
     me->plMode = 2;
     me->pid->saturationValue = 80000;
 
-    commandedTQ = (float)(MCM_getCommandedTorque(mcm));
-    motorRPM = (float)(MCM_getMotorRPM(mcm));
-    dcVoltage = (float)(MCM_getDCVoltage(mcm));
-    dcCurrent = (float)(MCM_getDCCurrent(mcm));
+    sbyte2 commandedTQ = (MCM_getCommandedTorque(mcm));
+    sbyte4 motorRPM = (MCM_getMotorRPM(mcm));
+    sbyte4 dcVoltage = (MCM_getDCVoltage(mcm));
+    sbyte4 dcCurrent = (MCM_getDCCurrent(mcm));
     
 
-    setpointPower = ((float)(me->plTargetPower))*1000;
-    drawnPower = (float)(dcVoltage*dcCurrent);
+    sbyte4 setpointPower = ((sbyte4)(me->plTargetPower))*1000;
+    sbyte4 drawnPower = (sbyte4)(dcVoltage*dcCurrent);
 
     
     POWERLIMIT_updatePIDController(me, setpointPower, drawnPower);
 
-    pidOutput = me->pid->output;
+    float pidOutput = me->pid->output;
 
     me->plTorqueCommand = (sbyte2)(((pidOutput + drawnPower) * (9.549 / motorRPM)) * 10.0);    
 

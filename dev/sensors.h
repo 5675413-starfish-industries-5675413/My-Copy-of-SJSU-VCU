@@ -112,6 +112,16 @@ typedef enum
     , Cooling_batteryFans  //on/off
 } Light;
 
+// Power Limiting Mode from rotary switch
+typedef enum {
+    PL_MODE_OFF,
+    PL_MODE_30,
+    PL_MODE_40,
+    PL_MODE_50,
+    PL_MODE_60,
+    PL_MODE_80
+} PLMode;
+
 
 //----------------------------------------------------------------------------
 // Sensor Object Definitions
@@ -183,6 +193,7 @@ extern Sensor Sensor_LCButton;
 extern Sensor Sensor_TCSKnob;
 extern Sensor Sensor_DRSButton;
 extern Sensor Sensor_DRSKnob;
+extern Sensor Sensor_PLKnob;
 //TEMP BENCH SWITCHES
 extern Sensor Sensor_TEMP_BrakingSwitch;
 
@@ -197,7 +208,7 @@ extern Sensor Sensor_LVBattery; // = { 0xA };  //Note: There will be no init for
 // Sensor Functions
 //----------------------------------------------------------------------------
 void sensors_updateSensors(void);
-
+PLMode getPLMode(void);
 
 void setMCMRelay(bool turnOn);
 

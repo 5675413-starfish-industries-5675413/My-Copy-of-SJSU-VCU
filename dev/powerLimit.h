@@ -25,6 +25,15 @@ typedef struct _PowerLimit {
     ubyte1 plInitializationThreshold;
     sbyte2 plTorqueCommand;
     ubyte1 clampingMethod;
+
+    
+    float previousPower;
+    float powerChangeRate;
+    ubyte2 settlingCounter;
+    bool usePowerPID;
+    ubyte2 SETTLING_THRESHOLD; // number of vcu cycles to confirm the settling
+    float POWER_CHANGE_THRESHOLD; // kW change rate threshold
+    float POWER_BELOW_SETPOINT_THRESHOLD; // kW below setpoint threshold
     //me->pid->pidOutput;   sbyte2
 
 //-------------CAN IN ORDER: 512: Power Limit PID Output Details-----------------------------------------------------
