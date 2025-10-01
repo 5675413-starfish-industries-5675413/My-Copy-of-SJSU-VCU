@@ -113,6 +113,12 @@ void LaunchControl_calculateCommands(LaunchControl *me, TorqueEncoder *tps, Brak
             me->isInitialCurve = TRUE;
         }
     }
+    if (me->lcTorqueCommand < 0) {
+        me->lcTorqueCommand = 0;
+    }
+    if (me->lcTorqueCommand > 231) {
+        me->lcTorqueCommand = 231;
+    }
     MCM_update_LC_torqueCommand(mcm, me->lcTorqueCommand);
 }
 
