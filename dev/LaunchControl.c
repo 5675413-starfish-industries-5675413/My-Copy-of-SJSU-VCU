@@ -67,10 +67,11 @@ void LaunchControl_updateState(LaunchControl *me, TorqueEncoder *tps, BrakePress
 
 void LaunchControl_calculateSlipRatio(LaunchControl *me, WheelSpeeds *wss)
 {
-    float avgFrontWheelsRPM = (WheelSpeeds_getWheelSpeedRPM(wss, FL, TRUE) + WheelSpeeds_getWheelSpeedRPM(wss, FR, TRUE)) / 2;
-    float avgRearWheelsRPM = (WheelSpeeds_getWheelSpeedRPM(wss, RL, TRUE) + WheelSpeeds_getWheelSpeedRPM(wss, RR, TRUE)) / 2;
-    float slipRatioCalc = ((avgRearWheelsRPM + 1) / (avgFrontWheelsRPM + 1)) - 1;
-    me->slipRatio = slipRatioCalc;
+    float avgFrontWheelsRPM = ((WheelSpeeds_getWheelSpeedRPM(wss, FL, TRUE) + 0.5) + (WheelSpeeds_getWheelSpeedRPM(wss, FR, TRUE) + 0.5)) / 2;
+    float avgRearWheelsRPM = ((WheelSpeeds_getWheelSpeedRPM(wss, RL, TRUE) + 0.5) + (WheelSpeeds_getWheelSpeedRPM(wss, RR, TRUE) + 0.5)) / 2;
+    if ((avgFrontWheelsRPM) != 0) {
+        me->slipRatio = (avgRearWheelsRPM / avgFrontWheelsRPM) - 1;
+    }
 }
 
 void LaunchControl_calculateTorqueCurve(LaunchControl *me, MotorController *mcm) {
