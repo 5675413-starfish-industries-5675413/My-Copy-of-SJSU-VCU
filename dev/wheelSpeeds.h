@@ -20,5 +20,6 @@ float4 WheelSpeeds_getSlowestFront(WheelSpeeds* me);
 float4 WheelSpeeds_getFastestRear(WheelSpeeds* me);
 float4 WheelSpeeds_getGroundSpeed(WheelSpeeds* me, ubyte1 tire_config);
 float4 WheelSpeeds_getGroundSpeedKPH(WheelSpeeds *me, ubyte1 tire_config);
+void WSS_parseCanMessage(WheelSpeeds *me, IO_CAN_DATA_FRAME *wssCanMessage);
 
 #endif //  _WHEELSPEEDS_H
