@@ -201,19 +201,19 @@ void WSS_parseCanMessage(WheelSpeeds *me, IO_CAN_DATA_FRAME *wssCanMessage) {
         case 0x800:
         {
         ubyte2 raw = (ubyte2)(((ubyte2)wssCanMessage->data[0] << 8) | (ubyte2)wssCanMessage->data[1]); // FL
-        me->speed_FL = ((float4)raw);
+        Sensor_WSS_FL.heldSensorValue = ((ubyte4)raw);
         }
         {
         ubyte2 raw = (ubyte2)(((ubyte2)wssCanMessage->data[2] << 8) | (ubyte2)wssCanMessage->data[3]); // FR
-        me->speed_FR = ((float4)raw);
+        Sensor_WSS_FR.heldSensorValue = ((ubyte4)raw);
         }
         {
         ubyte2 raw = (ubyte2)(((ubyte2)wssCanMessage->data[4] << 8) | (ubyte2)wssCanMessage->data[5]); // RL
-        me->speed_RL = ((float4)raw);
+        Sensor_WSS_RL.heldSensorValue = ((ubyte4)raw);
         }
         {
         ubyte2 raw = (ubyte2)(((ubyte2)wssCanMessage->data[6] << 8) | (ubyte2)wssCanMessage->data[7]); // RR
-        me->speed_RR = ((float4)raw);
+        Sensor_WSS_RR.heldSensorValue = ((ubyte4)raw);
         }
     }
 }
