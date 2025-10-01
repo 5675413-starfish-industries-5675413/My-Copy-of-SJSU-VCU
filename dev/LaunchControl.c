@@ -135,7 +135,7 @@ bool LaunchControl_isWheelSpeedsNonZero(WheelSpeeds *wss) {
 
 
 
-LC_State LaunchControl_getState(LaunchControl *me) { return me->state; }
+ubyte1 LaunchControl_getState(LaunchControl *me) { return me->state; }
 
 sbyte2 LaunchControl_getTorqueCommand(LaunchControl *me) { return me->lcTorqueCommand; }
 
