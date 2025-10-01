@@ -1,7 +1,7 @@
 /*****************************************************************************
  * powerLimit.c - Power Limiting using a PID controller to simplify calculations
- * Previous Author(s): Harleen Sandhu/Shaun Gilmore 
- * Current Author(s): Akash Karthik
+ * Previous Author(s): Harleen Sandhu & Shaun Gilmore 
+ * Current Author(s): Akash Karthik & Aitrieus Wright
  ******************************************************************************
  * Power Limiting code with a flexible Power Target & Initialization Limit
  * Goal: Find a way to limit power under a certain KWH limit (80kwh) while maximizing torque
@@ -24,7 +24,7 @@ PowerLimit* POWERLIMIT_new(bool plToggle){
     PowerLimit* me = (PowerLimit*)malloc(sizeof(PowerLimit));
     me->plToggle=plToggle;
     me->pid = PID_new(50, 50, 0, 231,10); // last value tells you the factor the PID gets divided by
-    me->plMode = 1; // 1 = Torque PID
+    me->plMode = 1; // 1 = Torque PID, 2 = Power PID
     me->plStatus = FALSE; // FALSE = Off, TRUE = On
     me->plTorqueCommand = 0; // Torque command in deciNewton-meters
     me->plTargetPower = 30;// HERE IS WHERE YOU CHANGE POWERLIMIT (units = kW)
@@ -73,6 +73,7 @@ void PowerLimit_calculateCommand(PowerLimit *me, MotorController *mcm, TorqueEnc
 
   
 //1.TQ equation only
+//2.Power equation only
 
 if (me->plStatus){
     if(me->plMode==1){
@@ -80,6 +81,9 @@ if (me->plStatus){
     }
     if(me->plMode==2){
         POWERLIMIT_PowerPID(me,mcm);
+    }
+    if(me->plMode==3){
+        POWERLIMIT_TorquePID_PowerPID(me,mcm);
     }
     }
 else{
@@ -118,7 +122,7 @@ void POWERLIMIT_TorquePID(PowerLimit *me, MotorController *mcm){
 
 void POWERLIMIT_PowerPID(PowerLimit *me, MotorController *mcm){
     me->plMode = 2;
-    me->pid->saturationValue = 80000; ////////////
+    me->pid->saturationValue = 80000;
 
     commandedTQ = (float)(MCM_getCommandedTorque(mcm));
     motorRPM = (float)(MCM_getMotorRPM(mcm));
@@ -147,6 +151,75 @@ void POWERLIMIT_PowerPID(PowerLimit *me, MotorController *mcm){
     MCM_set_PL_updateStatus(mcm, me->plStatus);
 }
 
+void POWERLIMIT_TorquePID_PowerPID(PowerLimit *me, MotorController *mcm){
+    me->plMode = 3;
+    PID_setSaturationPoint(me->pid, 231);
+    
+    // get power with current and voltage
+    sbyte4 dcVoltage = MCM_getDCVoltage(mcm);
+    sbyte4 dcCurrent = MCM_getDCCurrent(mcm);
+    float drawnPower = (float)(dcVoltage * dcCurrent) / 1000.0f; // Convert to kW
+    float powerSetpoint = (float)(me->plTargetPower);
+    
+    // variables to track power settling behavior
+    float previousPower = 0.0f;
+    float powerChangeRate = 0.0f;
+    ubyte2 settlingCounter = 0;
+    bool usePowerPID = FALSE;
+    ubyte2 SETTLING_THRESHOLD = 10; // number of vcu cycles to confirm the settling
+    float POWER_CHANGE_THRESHOLD = 0.5f; // kW change rate threshold
+    float POWER_BELOW_SETPOINT_THRESHOLD = 2.0f; // kW below setpoint threshold
+    
+    // calculate power change rate (kW per cycle)
+    if (previousPower > 0.0f) {
+        powerChangeRate = drawnPower - previousPower;
+    }
+    
+    // check if we should switch to power PID
+    if (!usePowerPID) {
+        // Conditions to switch to power PID:
+        // 1. drawn power is below setpoint by threshold
+        // 2. Power change rate is small (settling)
+        // 3. Power change rate is positive (approaching setpoint)
+        if (drawnPower < (powerSetpoint - POWER_BELOW_SETPOINT_THRESHOLD) &&
+            fabs(powerChangeRate) < POWER_CHANGE_THRESHOLD &&
+            powerChangeRate > 0.0f) {
+            settlingCounter++;
+        } else {
+            settlingCounter = 0; // reset counter if conditions not met
+        }
+        
+        // switch to power PID if settling conditions met for enough cycles
+        if (settlingCounter >= SETTLING_THRESHOLD) {
+            usePowerPID = TRUE;
+            settlingCounter = 0; // reset for potential switch back
+        }
+    } else {
+        // check if we should switch back to torque PID
+        // Conditions to switch back:
+        // 1. Power is above setpoint (overshoot)
+        // 2. Power change rate is large (unstable)
+        if (drawnPower > powerSetpoint ||
+            fabs(powerChangeRate) > (POWER_CHANGE_THRESHOLD * 2.0f)) {
+            usePowerPID = FALSE;
+            settlingCounter = 0;
+        }
+    }
+    
+    // execute appropriate PID method
+    if (usePowerPID) {
+        // use power PID for control when settling
+        POWERLIMIT_PowerPID(me, mcm);
+    } else {
+        // use torque PID for the initial start and reaching setpoint
+        POWERLIMIT_TorquePID(me, mcm);
+    }
+    
+    // update previous power for next cycle
+    previousPower = drawnPower;
+    MCM_update_PL_setTorqueCommand(mcm, me->plTorqueCommand);
+    MCM_set_PL_updateStatus(mcm, me->plStatus);
+}
 
 void POWERLIMIT_updatePIDController(PowerLimit* me, float pidSetpoint, float sensorValue) {
         float currentError = pidSetpoint - sensorValue;

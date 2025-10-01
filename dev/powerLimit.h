@@ -67,6 +67,7 @@ PowerLimit* POWERLIMIT_new(bool plToggle);
 void PowerLimit_calculateCommand(PowerLimit *me, MotorController *mcm, TorqueEncoder *tps);
 void POWERLIMIT_TorquePID(PowerLimit *me, MotorController *mcm);
 void POWERLIMIT_PowerPID(PowerLimit *me, MotorController *mcm);
+void POWERLIMIT_TorquePID_PowerPID(PowerLimit *me, MotorController *mcm);
 void POWERLIMIT_updatePIDController(PowerLimit* me, float pidSetpoint, float sensorValue);
 
 /** GETTER FUNCTIONS **/
