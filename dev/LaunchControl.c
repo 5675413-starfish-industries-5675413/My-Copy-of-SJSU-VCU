@@ -20,7 +20,7 @@ extern Sensor Sensor_LCButton;
 LaunchControl *LaunchControl_new(bool lcToggle)
 {
     LaunchControl* me = (LaunchControl*)malloc(sizeof(struct _LaunchControl));
-    me->pid = PID_new(200, 100, 0, 0.5, 1);
+    me->pid = PID_new(10, 0, 0, 0.5, 1);
     PID_updateSetpoint(me->pid, 0.2);
 
     me->lcToggle = lcToggle;
@@ -62,7 +62,6 @@ void LaunchControl_updateState(LaunchControl *me, TorqueEncoder *tps, BrakePress
         LaunchControl_reset(me);
     }
     MCM_update_LC_engagedStatus(mcm, (me->state != LC_IDLE));
-
 }
 
 void LaunchControl_calculateSlipRatio(LaunchControl *me, WheelSpeeds *wss)
