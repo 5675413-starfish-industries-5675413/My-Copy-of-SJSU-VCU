@@ -842,8 +842,11 @@ sbyte4 MCM_getPower(MotorController *me)
     if (me->DC_Voltage <= 0 || me->DC_Current <= 0) {
         return 0;
     }
+    else if (me->DC_Voltage > 1000 || me->DC_Current > 1000) {
+        return 0;
+    }
     else {
-        return ((me->DC_Voltage) * (me->DC_Current));
+        return ((me->DC_Voltage) *(me->DC_Current));
     }
 }
 

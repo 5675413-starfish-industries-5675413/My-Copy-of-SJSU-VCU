@@ -40,89 +40,83 @@ void PowerLimit_setPLInitializationThreshold(PowerLimit* me){
     me->plInitializationThreshold = me->plTargetPower - me->plThresholdDiscrepancy;
 }
 
-/** COMPUTATIONS **/
-
-void PowerLimit_calculateCommand(PowerLimit *me, MotorController *mcm, TorqueEncoder *tps){
-    {
-        PLMode plModeFromRotary = getPLMode();
-        switch (plModeFromRotary){
-            case PL_MODE_OFF:
-                me->plToggle = FALSE;
-                break;
-            case PL_MODE_30:
-                me->plTargetPower = 30;
-                me->plToggle = TRUE;
-                break;
-            case PL_MODE_40:
-                me->plTargetPower = 40;
-                me->plToggle = TRUE;
-                break;
-            case PL_MODE_50:
-                me->plTargetPower = 50;
-                me->plToggle = TRUE;
-                break;
-            case PL_MODE_60:
-                me->plTargetPower = 60;
-                me->plToggle = TRUE;
-                break;
-            case PL_MODE_80:
-                me->plTargetPower = 80;
-                me->plToggle = TRUE;
-                break;
-            default:
-                // Fallback to safe state
-                me->plToggle = FALSE;
-                break;
+void PowerLimit_entryConditions(PowerLimit* me, MotorController *mcm ){
+     sbyte4 current_power_kw = (sbyte4) ((MCM_getDCVoltage(mcm) * MCM_getDCCurrent(mcm)) / 1000);
+     if(MCM_commands_getAppsTorque(mcm) == 0|| current_power_kw < me->plInitializationThreshold){
+            me->plStatus == FALSE;
         }
-    }
-    PowerLimit_setPLInitializationThreshold(me);
-    if (me->plStatus == FALSE){
-        me->pid->totalError = 0;
-        me->pid->proportional = 0;
-        me->pid->integral = 0;
-    }
-    if (!me->plToggle || MCM_commands_getAppsTorque(mcm) == 0) { // if no torque command, turn off PL
-        me->plStatus = FALSE;
-    }
-    else {
-        sbyte4 current_power_kw = (sbyte4) ((MCM_getDCVoltage(mcm) * MCM_getDCCurrent(mcm)) / 1000); //manually calculated bc getPower dont work
-        if (current_power_kw <= 0){
+
+     if (current_power_kw <= 0){
             me->plStatus = FALSE;
         }
-        else{
-            if (me->plAlwaysOn==FALSE) { // if PL is not always on, only turn on if power is above threshold and off if below
-                if (current_power_kw > me->plInitializationThreshold) {
-                    me->plStatus = TRUE;
-                } else {
-                    me->plStatus = FALSE;
-                }
-            } else { // if PL is always on, only turn on if power is above threshold and never turn off
-                if (me->plStatus==FALSE && current_power_kw > me->plInitializationThreshold) {
-                    me->plStatus = TRUE;
-                }
+    else{
+        if (me->plAlwaysOn==FALSE)
+        { // if PL is not always on, only turn on if power is above threshold and off if below
+            if (current_power_kw > me->plInitializationThreshold) {
+                me->plStatus = TRUE;
+            } else {
+                me->plStatus = FALSE;
+            }
+        } else 
+        { // if PL is always on, only turn on if power is above threshold and never turn off
+            if (me->plStatus==FALSE && current_power_kw > me->plInitializationThreshold) {
+                me->plStatus = TRUE;
             }
         }
     }
+}
+/** COMPUTATIONS **/
+void PowerLimit_updatePLPower(PowerLimit* me){
+    PLMode plModeFromRotary = getPLMode();
+            switch (plModeFromRotary){
+                case PL_MODE_OFF:
+                    break;
+                case PL_MODE_30:
+                    me->plTargetPower = 30;
+                    break;
+                case PL_MODE_40:
+                    me->plTargetPower = 40;
+                    break;
+                case PL_MODE_50:
+                    me->plTargetPower = 50;
+                    break;
+                case PL_MODE_60:
+                    me->plTargetPower = 60;
+                    break;
+                case PL_MODE_80:
+                    me->plTargetPower = 80;
+                    break;
+                default:
+                    break;
+                    
+            }
+}
 
-  
-//1.TQ equation only
-//2.Power equation only
+void PowerLimit_calculateCommands(PowerLimit *me, MotorController *mcm, TorqueEncoder *tps){
 
-if (me->plStatus){
-    if(me->plMode==1){
-        POWERLIMIT_TorquePID(me, mcm);
+    if(me->plToggle){
+        PowerLimit_updatePLPower(me);
+        PowerLimit_setPLInitializationThreshold(me);
+        PowerLimit_entryConditions(me, mcm);
+        
+
+        if (me->plStatus){
+            if(me->plMode==1){
+                POWERLIMIT_TorquePID(me, mcm);
+            }
+            if(me->plMode==2){
+                POWERLIMIT_PowerPID(me,mcm);
+            }
+            if(me->plMode==3){
+                POWERLIMIT_TorquePID_PowerPID(me,mcm);
+            }
+            }
+       
     }
-    if(me->plMode==2){
-        POWERLIMIT_PowerPID(me,mcm);
-    }
-    if(me->plMode==3){
-        POWERLIMIT_TorquePID_PowerPID(me,mcm);
-    }
-    }
-else{
+
     MCM_update_PL_setTorqueCommand(mcm, me->plTorqueCommand);
     MCM_set_PL_updateStatus(mcm, me->plStatus);
-}
+ 
 }
 
 void POWERLIMIT_TorquePID(PowerLimit *me, MotorController *mcm){

@@ -73,11 +73,13 @@ typedef struct _PowerLimit {
 PowerLimit* POWERLIMIT_new(bool plToggle); 
 
 /** COMPUTATIONS **/
-void PowerLimit_calculateCommand(PowerLimit *me, MotorController *mcm, TorqueEncoder *tps);
+void PowerLimit_calculateCommands(PowerLimit *me, MotorController *mcm, TorqueEncoder *tps);
 void POWERLIMIT_TorquePID(PowerLimit *me, MotorController *mcm);
 void POWERLIMIT_PowerPID(PowerLimit *me, MotorController *mcm);
 void POWERLIMIT_TorquePID_PowerPID(PowerLimit *me, MotorController *mcm);
 void POWERLIMIT_updatePIDController(PowerLimit* me, float pidSetpoint, float sensorValue);
+void PowerLimit_updatePLPower(PowerLimit* me);
+void PowerLimit_entryConditions(PowerLimit* me, MotorController *mcm );
 
 /** GETTER FUNCTIONS **/
 ubyte1 POWERLIMIT_getClampingMethod(PowerLimit* me);

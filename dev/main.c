@@ -446,7 +446,7 @@ void main(void)
         // MCM_incrementCurrentForTesting(mcm0, 5);      // 5A increments  
         // MCM_incrementRPMForTesting(mcm0, 100);        // 100 RPM increments
         LaunchControl_calculateCommands(lc, mcm0, wss, tps, bps);
-        PowerLimit_calculateCommand(pl, mcm0, tps);
+        PowerLimit_calculateCommands(pl, mcm0, tps);
         MCM_calculateCommands(mcm0, tps, bps);
 
         SafetyChecker_update(sc, mcm0, bms, tps, bps, &Sensor_HVILTerminationSense, &Sensor_LVBattery);
