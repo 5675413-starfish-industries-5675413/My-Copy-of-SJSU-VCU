@@ -438,7 +438,6 @@ void main(void)
         // MCM_incrementVoltageForTesting(mcm0, 5);      // 5V increments
         // MCM_incrementCurrentForTesting(mcm0, 5);      // 5A increments  
         // MCM_incrementRPMForTesting(mcm0, 100);        // 100 RPM increments
-        LaunchControl_calculateSlipRatio(lc, wss);
         LaunchControl_calculateCommands(lc, tps, bps, mcm0, wss);
         PowerLimit_calculateCommand(pl, mcm0, tps);
         MCM_calculateCommands(mcm0, tps, bps);
