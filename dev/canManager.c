@@ -351,7 +351,7 @@ void CanManager_read(CanManager* me, CanChannel channel, MotorController* mcm, I
         case 0xA0:
         case 0xA1:
         case 0xA2:
-            MCM_parseCanMessage(mcm, &canMessages[currMessage]);
+            MCM_parseCanMessage(mcm, &canMessages[currMessage]); //check if this and following messages needs break statement
         case 0xA3:
         case 0xA4:
         case 0xA5:
@@ -438,7 +438,7 @@ void CanManager_read(CanManager* me, CanChannel channel, MotorController* mcm, I
         case 0x704:
             IC_parseCanMessage(ic, mcm, &canMessages[currMessage]);
             break;
-        case 0x800:
+        case 0x705:
             WSS_parseCanMessage(wss, &canMessages[currMessage]);
             break;
             
