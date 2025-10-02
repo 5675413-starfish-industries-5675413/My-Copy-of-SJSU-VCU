@@ -64,6 +64,7 @@ void LaunchControl_updateState(LaunchControl *me, TorqueEncoder *tps, BrakePress
         LaunchControl_reset(me);
     }
     MCM_update_LC_engagedStatus(mcm, (me->state != LC_IDLE));
+    
 }
 
 void LaunchControl_calculateSlipRatio(LaunchControl *me, WheelSpeeds *wss)
