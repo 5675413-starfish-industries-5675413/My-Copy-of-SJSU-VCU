@@ -31,7 +31,7 @@ LaunchControl *LaunchControl_new(bool lcToggle)
     me->prevTorque = 0;
     me->isInitialCurve = FALSE;
     me->mode = FIRST_ORDER_ONLY;
-    me->state = LC_IDLE;
+    me->state = LC_READY;
     return me;
 }
 
@@ -45,16 +45,18 @@ void LaunchControl_reset(LaunchControl *me) {
 
 void LaunchControl_updateState(LaunchControl *me, TorqueEncoder *tps, BrakePressureSensor *bps, MotorController *mcm) 
 {
-    if (Sensor_LCButton.sensorValue == TRUE && MCM_getGroundSpeedKPH(mcm) < 1 && bps->percent < 0.05) {
+    if (me->state == LC_IDLE && Sensor_LCButton.sensorValue == TRUE && MCM_getGroundSpeedKPH(mcm) < 1 && bps->percent < 0.05) {
         me->state = LC_READY;
     }
 
-    if (me->state == LC_READY && Sensor_LCButton.sensorValue == FALSE && tps->tps0_percent > .90 && bps->percent < 0.05) {
-        me->state = LC_ACTIVE;
-    }
-    else {
-        me->state = LC_IDLE;
-        LaunchControl_reset(me);
+    if (me->state == LC_READY && Sensor_LCButton.sensorValue == FALSE) {
+        if (tps->tps0_percent > .90 && bps->percent < 0.05) {
+            me->state = LC_ACTIVE;
+        }
+        else {
+            me->state = LC_IDLE;
+            LaunchControl_reset(me);
+        }
     }
 
     if (me->state == LC_ACTIVE && (tps->tps0_percent < .90 || bps->percent > 0.05)) {
