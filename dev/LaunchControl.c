@@ -31,7 +31,7 @@ LaunchControl *LaunchControl_new(bool lcToggle)
     me->prevTorque = 0;
     me->isInitialCurve = FALSE;
     me->mode = FIRST_ORDER_ONLY;
-    me->state = LC_READY;
+    me->state = LC_IDLE;
     return me;
 }
 
