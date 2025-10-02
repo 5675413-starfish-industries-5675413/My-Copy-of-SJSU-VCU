@@ -84,6 +84,8 @@ void LaunchControl_calculateTorqueCurve(LaunchControl *me, MotorController *mcm)
 
 void LaunchControl_calculateCommands(LaunchControl *me, TorqueEncoder *tps, BrakePressureSensor *bps, MotorController *mcm, WheelSpeeds *wss)
 {
+    LaunchControl_calculateSlipRatio(me, wss);
+
     if(!me->lcToggle) {
         return;
     }
@@ -115,12 +117,6 @@ void LaunchControl_calculateCommands(LaunchControl *me, TorqueEncoder *tps, Brak
             LaunchControl_calculateTorqueCurve(me, mcm);
             me->isInitialCurve = TRUE;
         }
-    }
-    if (me->lcTorqueCommand < 0) {
-        me->lcTorqueCommand = 0;
-    }
-    if (me->lcTorqueCommand > 231) {
-        me->lcTorqueCommand = 231;
     }
     MCM_update_LC_torqueCommand(mcm, me->lcTorqueCommand);
 }
