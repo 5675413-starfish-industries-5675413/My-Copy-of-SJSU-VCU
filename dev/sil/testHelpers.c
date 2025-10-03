@@ -1,4 +1,3 @@
-#include <stdbool.h>
 #include <stdint.h>
 #include "powerLimit.h"
 #include "motorController.h"
