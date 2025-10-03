@@ -23,8 +23,13 @@
 /** PARAMETERS **/
 PowerLimit* POWERLIMIT_new(bool plToggle){
     PowerLimit* me = (PowerLimit*)malloc(sizeof(PowerLimit));
+    sbyte1 Kp = 50;
+    sbyte1 Ki = 50;
+    sbyte1 Kd = 0;
+    sbyte2 saturationValue = 231;
+    sbyte2 scalefactor = 10;
     me->plToggle=plToggle;
-    me->pid = PID_new(50, 50, 0, 231,10); // last value tells you the factor the PID gets divided by
+    me->pid = PID_new(Kp, Ki, Kd, saturationValue, scalefactor); // last value tells you the factor the PID gets divided by
     me->plMode = 1; // 1 = Torque PID, 2 = Power PID
     me->plStatus = FALSE; // FALSE = Off, TRUE = On
     me->plTorqueCommand = 0; // Torque command in deciNewton-meters
