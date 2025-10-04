@@ -28,10 +28,10 @@ PowerLimit* POWERLIMIT_new(bool plToggle){
     me->plMode = 1; // 1 = Torque PID, 2 = Power PID
     me->plStatus = FALSE; // FALSE = Off, TRUE = On
     me->plTorqueCommand = 0; // Torque command in deciNewton-meters
-    me->plTargetPower = 60;// HERE IS WHERE YOU CHANGE POWERLIMIT (units = kW)
+    me->plTargetPower = 40;// HERE IS WHERE YOU CHANGE POWERLIMIT (units = kW)
     me->plThresholdDiscrepancy = 15; // Threshold discrepancy in kW
     me->plInitializationThreshold = 0; // Initialization threshold in kW
-    me->clampingMethod = 6; // Clamping method
+    me->clampingMethod = 0; // Clamping method
     me->plAlwaysOn = TRUE; // TRUE = if is above threshold then stay on even if power is below threshold, FALSE = Only on if power is above threshold
     return me;
 }
