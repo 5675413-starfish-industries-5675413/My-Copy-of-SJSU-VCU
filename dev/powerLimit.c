@@ -24,8 +24,9 @@
 PowerLimit* POWERLIMIT_new(bool plToggle){
     PowerLimit* me = (PowerLimit*)malloc(sizeof(PowerLimit));
     me->plToggle=plToggle;
-    me->pid = PID_new(10, 0, 0, 231,10); // last value tells you the factor the PID gets divided by
-    me->plMode = 1; // 1 = Torque PID, 2 = Power PID
+    me->torquePID = PID_new(10, 0, 0, 231,10); // torque PID tuning
+    me->powerPID = PID_new(5, 0, 0, 80,10);    // power PID tuning
+    me->plMode = 3; // 1 = Torque PID, 2 = Power PID, 3 = Torque+Power PID
     me->plStatus = FALSE; // FALSE = Off, TRUE = On
     me->plTorqueCommand = 0; // Torque command in deciNewton-meters
     me->plTargetPower = 60;// HERE IS WHERE YOU CHANGE POWERLIMIT (units = kW)
@@ -33,6 +34,16 @@ PowerLimit* POWERLIMIT_new(bool plToggle){
     me->plInitializationThreshold = 0; // Initialization threshold in kW
     me->clampingMethod = 6; // Clamping method
     me->plAlwaysOn = TRUE; // TRUE = if is above threshold then stay on even if power is below threshold, FALSE = Only on if power is above threshold
+    
+    // tracking variables for the tq+power switching
+    me->previousPower = 0.0f;
+    me->powerChangeRate = 0.0f;
+    me->settlingCounter = 0;
+    me->usePowerPID = FALSE;
+    me->SETTLING_THRESHOLD = 10; // number of vcu cycles to confirm the settling
+    me->POWER_CHANGE_THRESHOLD = 0.5f; // kW change rate threshold
+    me->POWER_BELOW_SETPOINT_THRESHOLD = 2.0f; // kW below setpoint threshold
+    
     return me;
 }
 
@@ -102,10 +113,10 @@ void PowerLimit_calculateCommands(PowerLimit *me, MotorController *mcm, TorqueEn
 
         if (me->plStatus){
             if(me->plMode==1){
-                POWERLIMIT_TorquePID(me, mcm);
+                POWERLIMIT_TorquePID(me, mcm, FALSE);
             }
             if(me->plMode==2){
-                POWERLIMIT_PowerPID(me,mcm);
+                POWERLIMIT_PowerPID(me,mcm, FALSE);
             }
             if(me->plMode==3){
                 POWERLIMIT_TorquePID_PowerPID(me,mcm);
@@ -119,9 +130,11 @@ void PowerLimit_calculateCommands(PowerLimit *me, MotorController *mcm, TorqueEn
  
 }
 
-void POWERLIMIT_TorquePID(PowerLimit *me, MotorController *mcm){
-    me->plMode = 1;
-    PID_setSaturationPoint(me->pid, 231);
+void POWERLIMIT_TorquePID(PowerLimit *me, MotorController *mcm, bool preserveMode){
+    if (!preserveMode) {
+        me->plMode = 1;
+    }
+    PID_setSaturationPoint(me->torquePID, 231);
 
     sbyte4 motorRPM = MCM_getMotorRPM(mcm);
     if (motorRPM == 0){
@@ -137,8 +150,8 @@ void POWERLIMIT_TorquePID(PowerLimit *me, MotorController *mcm){
     if (dcCurrent < 0){
         dcCurrent = 0;
     }
-    POWERLIMIT_updatePIDController(me, torqueSetpointFloat, commandedTorque);
-    float pidOutput = PID_getOutput(me->pid);
+    POWERLIMIT_updatePIDController(me, torqueSetpointFloat, commandedTorque, TRUE); // TRUE = use torque PID
+    float pidOutput = PID_getOutput(me->torquePID);
     me->plTorqueCommand = (sbyte2)((pidOutput + commandedTorque));
 
 
@@ -146,9 +159,11 @@ void POWERLIMIT_TorquePID(PowerLimit *me, MotorController *mcm){
      MCM_set_PL_updateStatus(mcm, me->plStatus);
 }
 
-void POWERLIMIT_PowerPID(PowerLimit *me, MotorController *mcm){
-    me->plMode = 2;
-    me->pid->saturationValue = 80;
+void POWERLIMIT_PowerPID(PowerLimit *me, MotorController *mcm, bool preserveMode){
+    if (!preserveMode) {
+        me->plMode = 2;
+    }
+    me->powerPID->saturationValue = 80;
 
     sbyte2 commandedTQ = (sbyte2)(MCM_getCommandedTorque(mcm));
     sbyte4 motorRPM = (MCM_getMotorRPM(mcm));
@@ -160,9 +175,9 @@ void POWERLIMIT_PowerPID(PowerLimit *me, MotorController *mcm){
     float drawnPower = (float)((dcVoltage*dcCurrent)/1000.0f);
 
     
-    POWERLIMIT_updatePIDController(me, setpointPower, drawnPower);
+    POWERLIMIT_updatePIDController(me, setpointPower, drawnPower, FALSE); // FALSE = use power PID
 
-    float pidOutput = me->pid->output;
+    float pidOutput = me->powerPID->output;
 
     me->plTorqueCommand =(sbyte2)((pidOutput + drawnPower)* (9549.0f)/((float)motorRPM));    
 
@@ -174,7 +189,7 @@ void POWERLIMIT_PowerPID(PowerLimit *me, MotorController *mcm){
 
 void POWERLIMIT_TorquePID_PowerPID(PowerLimit *me, MotorController *mcm){
     me->plMode = 3;
-    PID_setSaturationPoint(me->pid, 231);
+    PID_setSaturationPoint(me->torquePID, 231);
     
     // get power with current and voltage
     sbyte4 dcVoltage = MCM_getDCVoltage(mcm);
@@ -182,38 +197,29 @@ void POWERLIMIT_TorquePID_PowerPID(PowerLimit *me, MotorController *mcm){
     float drawnPower = (float)(dcVoltage * dcCurrent) / 1000.0f; // Convert to kW
     float powerSetpoint = (float)(me->plTargetPower);
     
-    // variables to track power settling behavior
-    float previousPower = 0.0f;
-    float powerChangeRate = 0.0f;
-    ubyte2 settlingCounter = 0;
-    bool usePowerPID = FALSE;
-    ubyte2 SETTLING_THRESHOLD = 10; // number of vcu cycles to confirm the settling
-    float POWER_CHANGE_THRESHOLD = 0.5f; // kW change rate threshold
-    float POWER_BELOW_SETPOINT_THRESHOLD = 2.0f; // kW below setpoint threshold
-    
     // calculate power change rate (kW per cycle)
-    if (previousPower > 0.0f) {
-        powerChangeRate = drawnPower - previousPower;
+    if (me->previousPower > 0.0f) {
+        me->powerChangeRate = drawnPower - me->previousPower;
     }
     
     // check if we should switch to power PID
-    if (!usePowerPID) {
+    if (!me->usePowerPID) {
         // Conditions to switch to power PID:
         // 1. drawn power is below setpoint by threshold
         // 2. Power change rate is small (settling)
         // 3. Power change rate is positive (approaching setpoint)
-        if (drawnPower < (powerSetpoint - POWER_BELOW_SETPOINT_THRESHOLD) &&
-            fabs(powerChangeRate) < POWER_CHANGE_THRESHOLD &&
-            powerChangeRate > 0.0f) {
-            settlingCounter++;
+        if (drawnPower < (powerSetpoint - me->POWER_BELOW_SETPOINT_THRESHOLD) &&
+            fabs(me->powerChangeRate) < me->POWER_CHANGE_THRESHOLD &&
+            me->powerChangeRate > 0.0f) {
+            me->settlingCounter++;
         } else {
-            settlingCounter = 0; // reset counter if conditions not met
+            me->settlingCounter = 0; // reset counter if conditions not met
         }
         
         // switch to power PID if settling conditions met for enough cycles
-        if (settlingCounter >= SETTLING_THRESHOLD) {
-            usePowerPID = TRUE;
-            settlingCounter = 0; // reset for potential switch back
+        if (me->settlingCounter >= me->SETTLING_THRESHOLD) {
+            me->usePowerPID = TRUE;
+            me->settlingCounter = 0; // reset for potential switch back
         }
     } else {
         // check if we should switch back to torque PID
@@ -221,95 +227,39 @@ void POWERLIMIT_TorquePID_PowerPID(PowerLimit *me, MotorController *mcm){
         // 1. Power is above setpoint (overshoot)
         // 2. Power change rate is large (unstable)
         if (drawnPower > powerSetpoint ||
-            fabs(powerChangeRate) > (POWER_CHANGE_THRESHOLD * 2.0f)) {
-            usePowerPID = FALSE;
-            settlingCounter = 0;
+            fabs(me->powerChangeRate) > (me->POWER_CHANGE_THRESHOLD * 2.0f)) {
+            me->usePowerPID = FALSE;
+            me->settlingCounter = 0;
         }
     }
     
     // execute appropriate PID method
-    if (usePowerPID) {
+    if (me->usePowerPID) {
         // use power PID for control when settling
-        POWERLIMIT_PowerPID(me, mcm);
+        POWERLIMIT_PowerPID(me, mcm, TRUE);
     } else {
         // use torque PID for the initial start and reaching setpoint
-        POWERLIMIT_TorquePID(me, mcm);
+        POWERLIMIT_TorquePID(me, mcm, TRUE);
     }
     
     // update previous power for next cycle
-    previousPower = drawnPower;
+    me->previousPower = drawnPower;
     MCM_update_PL_setTorqueCommand(mcm, me->plTorqueCommand);
     MCM_set_PL_updateStatus(mcm, me->plStatus);
 }
 
-void POWERLIMIT_updatePIDController(PowerLimit* me, float pidSetpoint, float sensorValue) {
+void POWERLIMIT_updatePIDController(PowerLimit* me, float pidSetpoint, float sensorValue, bool useTorquePID) {
+        PID* currentPID = POWERLIMIT_getCurrentPID(me);
         float currentError = pidSetpoint - sensorValue;
-        switch (me->clampingMethod) {
-            case 0: //No clamping
-                me->pid->antiWindupFlag = FALSE;
-                break;
-            case 1: 
-                if (currentError > 0) {
-                    me->pid->antiWindupFlag = TRUE;
-                    PID_setSaturationPoint(me->pid, 231); 
-                }
-                else {
-                    me->pid->antiWindupFlag = FALSE;
-                }
-                break;
-            case 2: 
-                if (currentError > 0) {
-                    me->pid->antiWindupFlag = TRUE;
-                    PID_setSaturationPoint(me->pid, sensorValue); 
-                }
-                else {
-                    me->pid->antiWindupFlag = FALSE;
-                }
-                break;
-            case 3: 
-                if (currentError < 0) {
-                    me->pid->antiWindupFlag = TRUE;
-                    me->pid->totalError -= PID_getPreviousError(me->pid); 
-                }
-                else {
-                    me->pid->antiWindupFlag = FALSE;
-                }
-                break;
-            case 4: 
-                if (currentError > 0) {
-                    me->pid->antiWindupFlag = TRUE;
-                    pidSetpoint = sensorValue; 
-                }
-                else {
-                    me->pid->antiWindupFlag = FALSE;
-                }
-                break;
-            case 5: {
-                float tentativeOutput = me->pid->proportional + me->pid->integral + me->pid->derivative + sensorValue;
-                if (tentativeOutput > me->pid->saturationValue) {
-                    me->pid->antiWindupFlag = TRUE;
-                    float correction = me->pid->saturationValue - tentativeOutput;
-                    float scaledCorrection = correction * me->pid->Ki;
-                    me->pid->integral += scaledCorrection;
-                }
-                else {
-                    me->pid->antiWindupFlag = FALSE;
-                }
-                break;
-            }
-            case 6: {
-                if (me->pid->proportional + me->pid->integral + me->pid->derivative + sensorValue > (float)(me->pid->saturationValue)) {
-                    me->pid->totalError -= currentError;
-                    me->pid->antiWindupFlag = TRUE;
-                }
-                else {
-                    me->pid->antiWindupFlag = FALSE;
-                }
-                break;
-            }
+        if (currentPID->proportional + currentPID->integral + currentPID->derivative + sensorValue > (float)(currentPID->saturationValue)) {
+            currentPID->totalError -= currentError;
+            currentPID->antiWindupFlag = TRUE;
         }
-        PID_updateSetpoint(me->pid, pidSetpoint);
-        PID_computeOutput(me->pid, sensorValue);
+        else {
+            currentPID->antiWindupFlag = FALSE;
+        }
+        PID_updateSetpoint(currentPID, pidSetpoint);
+        PID_computeOutput(currentPID, sensorValue);
 }
 
 
@@ -324,6 +274,14 @@ bool POWERLIMIT_getStatus(PowerLimit* me){
 
 ubyte1 POWERLIMIT_getMode(PowerLimit* me){
     return me->plMode;
+}
+
+bool POWERLIMIT_getUsePowerPID(PowerLimit* me){
+    return me->usePowerPID;
+}
+
+PID* POWERLIMIT_getCurrentPID(PowerLimit* me){
+    return me->usePowerPID ? me->powerPID : me->torquePID;
 }
 
 sbyte2 POWERLIMIT_getTorqueCommand(PowerLimit* me){

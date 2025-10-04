@@ -14,7 +14,8 @@
 
 // Define a structure for the PID controller
 typedef struct _PowerLimit {
-    PID *pid;
+    PID *torquePID;
+    PID *powerPID;
 
 //-------------CAN IN ORDER: 511: Power Limit Overview-----------------------------------------------------
     bool   plToggle;
@@ -74,10 +75,10 @@ PowerLimit* POWERLIMIT_new(bool plToggle);
 
 /** COMPUTATIONS **/
 void PowerLimit_calculateCommands(PowerLimit *me, MotorController *mcm, TorqueEncoder *tps);
-void POWERLIMIT_TorquePID(PowerLimit *me, MotorController *mcm);
-void POWERLIMIT_PowerPID(PowerLimit *me, MotorController *mcm);
+void POWERLIMIT_TorquePID(PowerLimit *me, MotorController *mcm, bool preserveMode);
+void POWERLIMIT_PowerPID(PowerLimit *me, MotorController *mcm, bool preserveMode);
 void POWERLIMIT_TorquePID_PowerPID(PowerLimit *me, MotorController *mcm);
-void POWERLIMIT_updatePIDController(PowerLimit* me, float pidSetpoint, float sensorValue);
+void POWERLIMIT_updatePIDController(PowerLimit* me, float pidSetpoint, float sensorValue, bool useTorquePID);
 void PowerLimit_updatePLPower(PowerLimit* me);
 void PowerLimit_entryConditions(PowerLimit* me, MotorController *mcm );
 
@@ -85,6 +86,8 @@ void PowerLimit_entryConditions(PowerLimit* me, MotorController *mcm );
 ubyte1 POWERLIMIT_getClampingMethod(PowerLimit* me);
 bool   POWERLIMIT_getStatus(PowerLimit* me);
 ubyte1 POWERLIMIT_getMode(PowerLimit* me);
+bool POWERLIMIT_getUsePowerPID(PowerLimit* me);
+PID* POWERLIMIT_getCurrentPID(PowerLimit* me);
 sbyte2 POWERLIMIT_getTorqueCommand(PowerLimit* me);
 ubyte1 POWERLIMIT_getTargetPower(PowerLimit* me);
 ubyte1 POWERLIMIT_getInitialisationThreshold(PowerLimit* me);
