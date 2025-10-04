@@ -14,7 +14,10 @@
 #include "readyToDriveSound.h"
 #include "serial.h"
 
+
 #include "canManager.h"
+
+
 
 extern Sensor Sensor_BenchTPS0;
 extern Sensor Sensor_BenchTPS1;
@@ -87,6 +90,7 @@ struct _MotorController
     sbyte4 DC_Current;
 
     sbyte2 commandedTorque;
+    sbyte2 feedbackTorque;
     ubyte4 currentPower;
 
     sbyte4 motorRPM;
@@ -132,7 +136,7 @@ struct _MotorController
     //};
 
     sbyte2 lcTorqueCommand;
-    bool launchControlState;
+    bool lcEngaged;
 
     sbyte2 plTorqueCommand;
     bool plActive;
@@ -181,7 +185,7 @@ MotorController *MotorController_new(SerialManager *sm, ubyte2 canMessageBaseID,
     me->motor_temp = 99;
 
     me->lcTorqueCommand = 0;
-    me->launchControlState = FALSE;
+    me->lcEngaged = FALSE;
 
     me-> plTorqueCommand = 0;
     me-> plActive = FALSE;
@@ -311,21 +315,21 @@ void MCM_calculateCommands(MotorController *me, TorqueEncoder *tps, BrakePressur
     // abstraction might be warranted for the below logic
 
     torqueOutput = me->appsTorque + bpsTorque;
- /*
-    if(me->launchControlState == TRUE && me->lcTorqueCommand < me->appsTorque)
+
+    if(me->lcEngaged == TRUE && me->lcTorqueCommand < torqueOutput)
     {
         torqueOutput = me->lcTorqueCommand;
     } 
-    if(me->plActive == TRUE && me->plTorqueCommand < me->appsTorque)
+    if(me->plActive == TRUE && me->plTorqueCommand < torqueOutput)
     {
-        me->launchControlState == FALSE;
-        torqueOutput = me->plTorqueCommand + bpsTorque;
+        me->lcEngaged = FALSE;
+        torqueOutput = me->plTorqueCommand;
     }
   
     //Safety Check. torqueOutput Should never rise above 231
     if(torqueOutput > 2310 || torqueOutput < 0) //attempt to fix issue of -3000
     {
-        torqueOutput = me->appsTorque+bpsTorque;
+        torqueOutput = me->appsTorque;
     }
       */
 
@@ -353,6 +357,8 @@ void MCM_calculateCommands(MotorController *me, TorqueEncoder *tps, BrakePressur
         me->InverterOverride = ENABLED;
     else
         me->InverterOverride = UNKNOWN;
+
+        
 }
 
 void MCM_relayControl(MotorController *me, Sensor *HVILTermSense)
@@ -626,6 +632,8 @@ void MCM_parseCanMessage(MotorController *me, IO_CAN_DATA_FRAME *mcmCanMessage)
         //0,1 Commanded Torque
         me->commandedTorque = ((ubyte2)mcmCanMessage->data[1] << 8 | mcmCanMessage->data[0]) / 10;
         //2,3 Torque Feedback
+        me->feedbackTorque = ((ubyte2)mcmCanMessage->data[1] << 8 | mcmCanMessage->data[0]) / 10;
+        me->feedbackTorque = -1 * me->feedbackTorque;
         break;
 
     case 0x5FF:
@@ -731,15 +739,25 @@ void MCM_updateInverterStatus(MotorController *me, Status newState)
     me->inverterStatus = newState;
 }
 
-void MCM_update_LC_torqueLimit(MotorController *me, sbyte2 lcTorqueLimit)
+//-------------------------------Launch Control-------------------------------
+void MCM_update_LC_torqueCommand(MotorController *me, sbyte2 lcTorqueCommand)
 {
-    me->lcTorqueCommand = lcTorqueLimit;
+    me->lcTorqueCommand = lcTorqueCommand * 10; //Nm -> Dm
 }
 
-void MCM_update_LC_state(MotorController *me, bool newState)
+void MCM_update_LC_engagedStatus(MotorController *me, bool newState)
 {
-    me->launchControlState = newState;
+    me->lcEngaged = newState;
 }
+
+bool MCM_get_LC_engagedStatus(MotorController *me) {
+    return me->lcEngaged;
+}
+
+sbyte2 MCM_get_LC_torqueCommand(MotorController *me) {
+    return me->lcTorqueCommand;
+}
+
 //----------------------------------------------------PL-------------------------------
 void MCM_update_PL_setTorqueCommand(MotorController *me, sbyte2 torqueCommand)
 {
@@ -782,7 +800,7 @@ Status MCM_getInverterOverrideStatus(MotorController *me)
     return me->InverterOverride;
 }
 
-bool MCM_getFieldWeakening(MotorController *me)
+bool MCM_getFieldWeakening(MotorController *me)  // This needs to be changed or deleted--field weakening isn't based solely on RPM--it's Id and Iq, which are impacted by pack SoC, as well as RPM
 {
     sbyte4 MotorRPM = MCM_getMotorRPM(me);
     bool fieldWeakening = (MotorRPM > 3600);
@@ -824,12 +842,22 @@ ubyte2 MCM_getTorqueMax(MotorController *me)
 
 sbyte4 MCM_getPower(MotorController *me)
 {
-    return ((me->DC_Voltage) * (me->DC_Current));
+    if (me->DC_Voltage <= 0 || me->DC_Current <= 0) {
+        return 0;
+    }
+    else {
+        return ((me->DC_Voltage) * (me->DC_Current));
+    }
 }
 
 ubyte2 MCM_getCommandedTorque(MotorController *me)
 {
     return me->commandedTorque;
+}
+
+ubyte2 MCM_getFeedbackTorque(MotorController *me)
+{
+    return me->feedbackTorque;
 }
 
 sbyte2 MCM_getTemp(MotorController *me)
@@ -849,7 +877,7 @@ sbyte4 MCM_getGroundSpeedKPH(MotorController *me)
     //for 16s set tireCirc to 1.295 for 18s set tireCirc to 1.395 
     //sbyte4 PI = 3.141592653589; 
     //sbyte4 Diameter_Tire = 0.4;
-    sbyte4 tireCirc = 1.395; //the actual average tire circumference in meters
+    sbyte4 tireCirc = 1.295; //the actual average tire circumference in meters
     sbyte4 KPH_Unit_Conversion = 1000.0;
     sbyte4 groundKPH = ((me->motorRPM/FD_Ratio) * Revolutions * tireCirc) / KPH_Unit_Conversion; 
 
@@ -954,4 +982,26 @@ float4 MCM_getRegen_PercentBPSForMaxRegen(MotorController* me)
 float4 MCM_getRegen_PercentAPPSForCoasting(MotorController* me)
 {
     return me->regen_percentAPPSForCoasting;
+}
+
+// Testing functions for closed-loop testing
+void MCM_incrementVoltageForTesting(MotorController* me, sbyte4 increment) {
+    me->DC_Voltage += increment;
+    if (me->DC_Voltage > 1000) {  // Cap at 1000V
+        me->DC_Voltage = 1000;
+    }
+}
+
+void MCM_incrementCurrentForTesting(MotorController* me, sbyte4 increment) {
+    me->DC_Current += increment;
+    if (me->DC_Current > 500) {   // Cap at 500A
+        me->DC_Current = 500;
+    }
+}
+
+void MCM_incrementRPMForTesting(MotorController* me, sbyte4 increment) {
+    me->motorRPM += increment;
+    if (me->motorRPM > 10000) {   // Cap at 10000 RPM
+        me->motorRPM = 10000;
+    }
 }

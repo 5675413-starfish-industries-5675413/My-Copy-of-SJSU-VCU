@@ -9,33 +9,47 @@
 #include "torqueEncoder.h"
 #include "brakePressureSensor.h"
 #include "motorController.h"
+#include "drs.h"
 #include "PID.h"
 #include "IO_Driver.h" //Includes datatypes, constants, etc - should be included in every c file
 
-/*
-typedef struct _PIDController {
-    float kp;         // Proportional gain
-    float ki;         // Integral gain
-    float kd;         // Derivative gain
-    float errorSum;   // Running sum of errors for the integral term
-    float lastError;  // Previous error for the derivative term
-} PIDController;
-*/
+
+typedef enum {
+    FIRST_ORDER_ONLY,
+    SLIP_CONTROLLER
+} LC_Mode;
+
+typedef enum {
+    LC_IDLE,
+    LC_READY,
+    LC_ACTIVE
+} LC_State;
+
 typedef struct _LaunchControl {
-    float4 slipRatio;
-    sbyte2 lcTorque;
-    bool lcReady;
-    bool lcActive; // Just for CAN to showcase when enabled
-    ubyte1 potLC;
-    ubyte1 buttonDebug;
+    bool lcToggle;
+    PID *pid;
+    float slipRatio;
     sbyte2 lcTorqueCommand;
+    float maxTorque;
+    float prevTorque;
+    float k;
+    bool isInitialCurve;
+    LC_State state;
+    LC_Mode mode;
 } LaunchControl;
 
-LaunchControl *LaunchControl_new();
+LaunchControl *LaunchControl_new(bool lcToggle);
+void LaunchControl_reset(LaunchControl *me);
+void LaunchControl_updateState(LaunchControl *me, TorqueEncoder *tps, BrakePressureSensor *bps, MotorController *mcm);
 void LaunchControl_calculateSlipRatio(LaunchControl *me, WheelSpeeds *wss);
-void LaunchControl_calculateTorqueCommand(LaunchControl *lc, TorqueEncoder *tps, BrakePressureSensor *bps, MotorController *mcm, PID *lcPID);
-bool LaunchControl_getStatus(LaunchControl *lc);
-sbyte2 LaunchControl_getCalculatedTorque(LaunchControl *lc);
-ubyte1 LaunchControl_getButtonDebug(LaunchControl *lc);
+void LaunchControl_calculateTorqueCurve(LaunchControl *me, MotorController *mcm);
+void LaunchControl_calculateCommands(LaunchControl *me, TorqueEncoder *tps, BrakePressureSensor *bps, MotorController *mcm, WheelSpeeds *wss);
+bool LaunchControl_isWheelSpeedsNonZero(WheelSpeeds *wss);
+ubyte1 LaunchControl_getState(LaunchControl *me);
+sbyte2 LaunchControl_getTorqueCommand(LaunchControl *me);
+float LaunchControl_getSlipRatio(LaunchControl *me);
+sbyte2 LaunchControl_getSlipRatioScaled(LaunchControl *me);
+bool LaunchControl_getInitialCurveStatus(LaunchControl *me);
+float LaunchControl_getPidOutput(LaunchControl *me);
 
 #endif
