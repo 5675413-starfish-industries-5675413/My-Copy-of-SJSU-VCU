@@ -299,7 +299,7 @@ void POWERLIMIT_updatePIDController(PowerLimit* me, float pidSetpoint, float sen
             }
             case 6: {
                 if (me->pid->proportional + me->pid->integral + me->pid->derivative + sensorValue > (float)(me->pid->saturationValue)) {
-                    me->pid->totalError -= currentError;
+                    me->pid->totalError -= PID_getPreviousError(me->pid);
                     me->pid->antiWindupFlag = TRUE;
                 }
                 else {
