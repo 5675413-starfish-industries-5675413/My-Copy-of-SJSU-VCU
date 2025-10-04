@@ -102,35 +102,35 @@ sbyte1 PID_getKd(PID *pid){
 }
 
 sbyte2 PID_getSetpoint(PID *pid){
-    return pid->setpoint;
+    return (sbyte2)(pid->setpoint);
 }
 
 sbyte2 PID_getPreviousError(PID *pid){
-    return pid->previousError;
+    return (sbyte2)(pid->previousError);
 }
 
 sbyte4 PID_getTotalError(PID* pid){
-    return pid->totalError;
+    return (sbyte4)(pid->totalError);
 }
 
 sbyte2 PID_getOutput(PID *pid){
-    return pid->output;
+    return (sbyte2)(pid->output);
 }
 
 sbyte2 PID_getProportional(PID *pid){
-    return pid->proportional;
+    return (sbyte2)(pid->proportional);
 }
 
 sbyte2 PID_getIntegral(PID *pid){
-    return pid->integral;
+    return (sbyte2)(pid->integral);
 }
 
 sbyte2 PID_getDerivative(PID *pid){
-    return pid->derivative;
+    return (sbyte2)(pid->derivative);
 }
 
 sbyte2 PID_getSaturationValue(PID *pid){
-    return pid->saturationValue;
+    return (sbyte2)(pid->saturationValue);
 }
 
 bool PID_getAntiWindupFlag(PID *pid){
