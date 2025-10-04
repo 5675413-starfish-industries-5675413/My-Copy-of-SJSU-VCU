@@ -159,7 +159,7 @@ void POWERLIMIT_PowerPID(PowerLimit *me, MotorController *mcm){
     float setpointPower = ((float)(me->plTargetPower));
     float drawnPower = (float)((dcVoltage*dcCurrent)/1000.0f);
 
-    
+    me->clampingMethod=4;
     POWERLIMIT_updatePIDController(me, setpointPower, drawnPower);
 
     float pidOutput = me->pid->output;
@@ -267,7 +267,7 @@ void POWERLIMIT_updatePIDController(PowerLimit* me, float pidSetpoint, float sen
                 }
                 break;
             case 3: 
-                if (currentError < 0) {
+                if (currentError > 0) {
                     me->pid->antiWindupFlag = TRUE;
                     me->pid->totalError -= PID_getPreviousError(me->pid); 
                 }
@@ -276,9 +276,10 @@ void POWERLIMIT_updatePIDController(PowerLimit* me, float pidSetpoint, float sen
                 }
                 break;
             case 4: 
-                if (currentError > 0) {
+                if (currentError < 0) {
                     me->pid->antiWindupFlag = TRUE;
-                    pidSetpoint = sensorValue; 
+                    me->pid->totalError -= PID_getPreviousError(me->pid); 
+
                 }
                 else {
                     me->pid->antiWindupFlag = FALSE;
