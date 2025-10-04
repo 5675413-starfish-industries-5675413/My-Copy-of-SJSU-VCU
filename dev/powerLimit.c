@@ -171,6 +171,29 @@ void POWERLIMIT_PowerPID(PowerLimit *me, MotorController *mcm){
     MCM_set_PL_updateStatus(mcm, me->plStatus);
 }
 
+void POWERLIMIT_PowerPID2(PowerLimit *me, MotorController *mcm){
+    me->plMode = 2;
+    me->pid->saturationValue = 80;
+
+    sbyte4 motorRPM = (MCM_getMotorRPM(mcm));
+    sbyte4 dcVoltage = (MCM_getDCVoltage(mcm));
+    sbyte4 dcCurrent = (MCM_getDCCurrent(mcm));
+    sbyte2 commandedTQ = ((dcVoltage * dcCurrent) * 9.549) / motorRPM;
+
+    float setpointPower = ((float)(me->plTargetPower));
+    float drawnPower = (float)((dcVoltage*dcCurrent)/1000.0f);
+
+    me->clampingMethod=4;
+    POWERLIMIT_updatePIDController(me, setpointPower, drawnPower);
+
+    float pidOutput = me->pid->output;
+
+    me->plTorqueCommand =(sbyte2)((pidOutput + drawnPower)* (9549.0f)/((float)motorRPM));    
+
+    
+    MCM_update_PL_setTorqueCommand(mcm, me->plTorqueCommand); ///// set max to be based off of TPS reading and skip middle man, commanded TQ from MCM
+    MCM_set_PL_updateStatus(mcm, me->plStatus);
+}
 
 void POWERLIMIT_TorquePID_PowerPID(PowerLimit *me, MotorController *mcm){
     me->plMode = 3;
