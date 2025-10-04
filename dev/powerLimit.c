@@ -24,11 +24,11 @@
 PowerLimit* POWERLIMIT_new(bool plToggle){
     PowerLimit* me = (PowerLimit*)malloc(sizeof(PowerLimit));
     me->plToggle=plToggle;
-    me->pid = PID_new(50, 50, 0, 231,10); // last value tells you the factor the PID gets divided by
-    me->plMode = 1; // 1 = Torque PID, 2 = Power PID
+    me->pid = PID_new(10, 0, 0, 231,10); // last value tells you the factor the PID gets divided by
+    me->plMode = 2; // 1 = Torque PID, 2 = Power PID
     me->plStatus = FALSE; // FALSE = Off, TRUE = On
     me->plTorqueCommand = 0; // Torque command in deciNewton-meters
-    me->plTargetPower = 30;// HERE IS WHERE YOU CHANGE POWERLIMIT (units = kW)
+    me->plTargetPower = 60;// HERE IS WHERE YOU CHANGE POWERLIMIT (units = kW)
     me->plThresholdDiscrepancy = 15; // Threshold discrepancy in kW
     me->plInitializationThreshold = 0; // Initialization threshold in kW
     me->clampingMethod = 6; // Clamping method
@@ -139,10 +139,9 @@ void POWERLIMIT_TorquePID(PowerLimit *me, MotorController *mcm){
     }
     POWERLIMIT_updatePIDController(me, torqueSetpointFloat, commandedTorque);
     float pidOutput = PID_getOutput(me->pid);
-    me->plTorqueCommand = (sbyte2)((pidOutput + commandedTorque) * 10);
-    if (me->plTorqueCommand > 2310) {
-         me->plTorqueCommand = 2310; //saturation point in deciNewton-meters
-     }
+    me->plTorqueCommand = (sbyte2)((pidOutput + commandedTorque));
+
+
      MCM_update_PL_setTorqueCommand(mcm, me->plTorqueCommand);
      MCM_set_PL_updateStatus(mcm, me->plStatus);
 }
@@ -157,22 +156,16 @@ void POWERLIMIT_PowerPID(PowerLimit *me, MotorController *mcm){
     sbyte4 dcCurrent = (MCM_getDCCurrent(mcm));
     
 
-    sbyte4 setpointPower = ((sbyte4)(me->plTargetPower))*1000;
-    sbyte4 drawnPower = (sbyte4)(dcVoltage*dcCurrent);
+    float setpointPower = ((float)(me->plTargetPower))*1000;
+    float drawnPower = (float)(dcVoltage*dcCurrent);
 
     
     POWERLIMIT_updatePIDController(me, setpointPower, drawnPower);
 
     float pidOutput = me->pid->output;
 
-    me->plTorqueCommand = (sbyte2)(((pidOutput + drawnPower) * (9.549 / motorRPM)) * 10.0);    
+    me->plTorqueCommand = (sbyte2)(((pidOutput + drawnPower) * (9.549 / (float)motorRPM)));    
 
-    if (me->plTorqueCommand > 2310) {
-            me->plTorqueCommand = 2310; //saturation point in deciNewton-meters
-        }
-    if (me->plTorqueCommand > commandedTQ) {
-            me->plTorqueCommand = commandedTQ;
-        }
     
     MCM_update_PL_setTorqueCommand(mcm, me->plTorqueCommand); ///// set max to be based off of TPS reading and skip middle man, commanded TQ from MCM
     MCM_set_PL_updateStatus(mcm, me->plStatus);
