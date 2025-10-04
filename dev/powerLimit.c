@@ -150,46 +150,24 @@ void POWERLIMIT_PowerPID(PowerLimit *me, MotorController *mcm){
     me->plMode = 2;
     me->pid->saturationValue = 80000;
 
-    // Get motor controller values with proper type handling
-    ubyte2 commandedTQ = MCM_getCommandedTorque(mcm);
-    sbyte4 motorRPM = MCM_getMotorRPM(mcm);
-    sbyte4 dcVoltage = MCM_getDCVoltage(mcm);
-    sbyte4 dcCurrent = MCM_getDCCurrent(mcm);
+    sbyte2 commandedTQ = (sbyte2)(MCM_getCommandedTorque(mcm));
+    sbyte4 motorRPM = (MCM_getMotorRPM(mcm));
+    sbyte4 dcVoltage = (MCM_getDCVoltage(mcm));
+    sbyte4 dcCurrent = (MCM_getDCCurrent(mcm));
     
-    // Ensure motorRPM is not zero to avoid division by zero
-    if (motorRPM <= 0) {
-        motorRPM = 1;
-    }
 
-    // Convert target power from kW to W (plTargetPower is in kW, scale by 1000)
-    float setpointPower = ((float)(me->plTargetPower)) * 1000.0f;
+    float setpointPower = ((float)(me->plTargetPower))*1000.0;
+    float drawnPower = (float)(dcVoltage*dcCurrent);
+
     
-    // Calculate drawn power in W (dcVoltage and dcCurrent are in deci-units)
-    // Convert from deci-units to actual units: voltage*current/100 (deci-V * deci-A = deci-W, /100 = W)
-    float drawnPower = ((float)dcVoltage * (float)dcCurrent) / 100.0f;
-
-    // Update PID controller with proper setpoint and measured power
     POWERLIMIT_updatePIDController(me, setpointPower, drawnPower);
 
-    // Get PID output using proper getter function
-    float pidOutput = (float)PID_getOutput(me->pid);
+    float pidOutput = me->pid->output;
 
-    // Calculate torque command: (PID_output + drawn_power) * conversion_factor / motorRPM
-    // Conversion factor: 9.549 converts from power (W) and RPM to torque (Nm)
-    // Scale by 10 to convert to deciNewton-meters for MCM
-    float torqueCommandFloat = ((pidOutput + drawnPower) * 9.549f / (float)motorRPM) * 10.0f;
-    
-    // Clamp torque command to valid range and convert to sbyte2
-    if (torqueCommandFloat > 32767.0f) {
-        torqueCommandFloat = 32767.0f;
-    } else if (torqueCommandFloat < -32768.0f) {
-        torqueCommandFloat = -32768.0f;
-    }
-    
-    me->plTorqueCommand = (sbyte2)torqueCommandFloat;
+    me->plTorqueCommand = (sbyte2)(((pidOutput + drawnPower) * (9.549 / (float)motorRPM)));    
 
-    // Update motor controller with torque command and status
-    MCM_update_PL_setTorqueCommand(mcm, me->plTorqueCommand);
+    
+    MCM_update_PL_setTorqueCommand(mcm, me->plTorqueCommand); ///// set max to be based off of TPS reading and skip middle man, commanded TQ from MCM
     MCM_set_PL_updateStatus(mcm, me->plStatus);
 }
 
