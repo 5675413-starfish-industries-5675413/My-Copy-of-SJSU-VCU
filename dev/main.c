@@ -224,7 +224,7 @@ void main(void)
     LaunchControl *lc = LaunchControl_new(FALSE);
 
     DRS *drs = DRS_new();
-    PowerLimit *pl = POWERLIMIT_new(TRUE);
+    PowerLimit *pl = POWERLIMIT_new(FALSE);
 //---------------------------------------------------------------------------------------------------------
     //----------------------------------------------------------------------------
     // TODO: Additional Initial Power-up functions

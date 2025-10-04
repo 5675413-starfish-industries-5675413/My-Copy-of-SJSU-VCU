@@ -25,7 +25,7 @@ PowerLimit* POWERLIMIT_new(bool plToggle){
     PowerLimit* me = (PowerLimit*)malloc(sizeof(PowerLimit));
     me->plToggle=plToggle;
     me->pid = PID_new(10, 0, 0, 231,10); // last value tells you the factor the PID gets divided by
-    me->plMode = 2; // 1 = Torque PID, 2 = Power PID
+    me->plMode = 1; // 1 = Torque PID, 2 = Power PID
     me->plStatus = FALSE; // FALSE = Off, TRUE = On
     me->plTorqueCommand = 0; // Torque command in deciNewton-meters
     me->plTargetPower = 60;// HERE IS WHERE YOU CHANGE POWERLIMIT (units = kW)
@@ -123,7 +123,7 @@ void POWERLIMIT_TorquePID(PowerLimit *me, MotorController *mcm){
     me->plMode = 1;
     PID_setSaturationPoint(me->pid, 231);
 
-    sbyte4 motorRPM   = MCM_getMotorRPM(mcm);
+    sbyte4 motorRPM = MCM_getMotorRPM(mcm);
     if (motorRPM == 0){
         motorRPM = 1; //avoid division by 0
     }
@@ -148,7 +148,7 @@ void POWERLIMIT_TorquePID(PowerLimit *me, MotorController *mcm){
 
 void POWERLIMIT_PowerPID(PowerLimit *me, MotorController *mcm){
     me->plMode = 2;
-    me->pid->saturationValue = 80000;
+    me->pid->saturationValue = 80;
 
     sbyte2 commandedTQ = (sbyte2)(MCM_getCommandedTorque(mcm));
     sbyte4 motorRPM = (MCM_getMotorRPM(mcm));
@@ -156,20 +156,21 @@ void POWERLIMIT_PowerPID(PowerLimit *me, MotorController *mcm){
     sbyte4 dcCurrent = (MCM_getDCCurrent(mcm));
     
 
-    float setpointPower = ((float)(me->plTargetPower))*1000.0;
-    float drawnPower = (float)(dcVoltage*dcCurrent);
+    float setpointPower = ((float)(me->plTargetPower));
+    float drawnPower = (float)((dcVoltage*dcCurrent)/1000.0f);
 
     
     POWERLIMIT_updatePIDController(me, setpointPower, drawnPower);
 
     float pidOutput = me->pid->output;
 
-    me->plTorqueCommand = (sbyte2)(((pidOutput + drawnPower) * (9.549 / (float)motorRPM)));    
+    me->plTorqueCommand =(sbyte2)((pidOutput + drawnPower)* (9549.0f)/((float)motorRPM));    
 
     
     MCM_update_PL_setTorqueCommand(mcm, me->plTorqueCommand); ///// set max to be based off of TPS reading and skip middle man, commanded TQ from MCM
     MCM_set_PL_updateStatus(mcm, me->plStatus);
 }
+
 
 void POWERLIMIT_TorquePID_PowerPID(PowerLimit *me, MotorController *mcm){
     me->plMode = 3;

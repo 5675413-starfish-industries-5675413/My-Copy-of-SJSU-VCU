@@ -73,7 +73,7 @@ void PID_dtUpdate(PID *pid, ubyte4 new_dt) {
 
 void PID_computeOutput(PID *pid, float sensorValue) {
     float currentError = (float)(pid->setpoint - sensorValue);
-    float proportional = (float)((pid->Kp * currentError)/(float)(pid->scalefactor));
+    float proportional = (float)((pid->Kp * currentError)/((float)(pid->scalefactor)));
     float integral = (float)((pid->Ki * (pid->totalError + currentError)) / pid->dH / pid->scalefactor);   
     float derivative = (float)(pid->Kd * (currentError - pid->previousError) * pid->dH / pid->scalefactor);
     pid->proportional = proportional;
