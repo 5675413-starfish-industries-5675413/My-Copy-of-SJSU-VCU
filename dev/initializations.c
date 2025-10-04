@@ -132,10 +132,10 @@ void vcu_initializeADC(bool benchMode)
 
     Sensor_WSS_FL.heldSensorValue = Sensor_WSS_FR.heldSensorValue = Sensor_WSS_RL.heldSensorValue = Sensor_WSS_RR.heldSensorValue = 0;
 
-    Sensor_WSS_FL.ioErr_signalInit = IO_PWD_ComplexInit(IO_PWD_10, IO_PWD_LOW_TIME, IO_PWD_RISING_VAR, IO_PWD_RESOLUTION_0_8, 0, IO_PWD_THRESH_2_5V, NULL, NULL); //P274
-    Sensor_WSS_FR.ioErr_signalInit = IO_PWD_ComplexInit(IO_PWD_08, IO_PWD_LOW_TIME, IO_PWD_RISING_VAR, IO_PWD_RESOLUTION_0_8, 0, IO_PWD_THRESH_2_5V, NULL, NULL); //P275
-    Sensor_WSS_RL.ioErr_signalInit = IO_PWD_ComplexInit(IO_PWD_09, IO_PWD_LOW_TIME, IO_PWD_RISING_VAR, IO_PWD_RESOLUTION_0_8, 0, IO_PWD_THRESH_2_5V, NULL, NULL); //P268
-    Sensor_WSS_RR.ioErr_signalInit = IO_PWD_ComplexInit(IO_PWD_11, IO_PWD_LOW_TIME, IO_PWD_RISING_VAR, IO_PWD_RESOLUTION_0_8, 0, IO_PWD_THRESH_2_5V, NULL, NULL); //P267
+    Sensor_WSS_FL.ioErr_signalInit = IO_PWD_ComplexInit(IO_PWD_10, IO_PWD_LOW_TIME, IO_PWD_FALLING_VAR, IO_PWD_RESOLUTION_0_8, 4, IO_PWD_THRESH_1_25V, NULL, NULL); //P274
+    Sensor_WSS_FR.ioErr_signalInit = IO_PWD_ComplexInit(IO_PWD_08, IO_PWD_LOW_TIME, IO_PWD_FALLING_VAR, IO_PWD_RESOLUTION_0_8, 4, IO_PWD_THRESH_1_25V, NULL, NULL); //P275
+    Sensor_WSS_RL.ioErr_signalInit = IO_PWD_ComplexInit(IO_PWD_09, IO_PWD_LOW_TIME, IO_PWD_FALLING_VAR, IO_PWD_RESOLUTION_0_8, 4, IO_PWD_THRESH_1_25V, NULL, NULL); //P268
+    Sensor_WSS_RR.ioErr_signalInit = IO_PWD_ComplexInit(IO_PWD_11, IO_PWD_LOW_TIME, IO_PWD_FALLING_VAR, IO_PWD_RESOLUTION_0_8, 4, IO_PWD_THRESH_1_25V, NULL, NULL); //P267
     //Maybe look for falling edge because we're using NPN/sinking WSS? 
 
     //----------------------------------------------------------------------------
