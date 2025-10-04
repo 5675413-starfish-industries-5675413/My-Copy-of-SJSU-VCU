@@ -302,14 +302,14 @@ void MCM_calculateCommands(MotorController *me, TorqueEncoder *tps, BrakePressur
 
     TorqueEncoder_getOutputPercent(tps, &appsOutputPercent);
     
-    mcm->regen_torqueLimitDNm = 750;
-    if (mcm->motorRPM > 2400){
-        mcm->regen_torqueLimitDNm = (-0.022)(mcm->motorRPM-2400)+750//No regen above 2400 RPM
+    me->regen_torqueLimitDNm = 750;
+    if (me->motorRPM > 2400){
+        me->regen_torqueLimitDNm = -0.022 * (me->motorRPM-2400)+750; //No regen above 2400 RPM
     }
     //----------------------------------------------------------------------------
    // me->appsTorque = me->torqueMaximumDNm * appsOutputPercent;
-    me->appsTorque = me->torqueMaximumDNm * getPercent(appsOutputPercent, me->regen_percentAPPSForCoasting, 1, TRUE) - me->regen_torqueAtZeroPedalDNm * getPercent(appsOutputPercent, me->regen_percentAPPSForCoasting, 0, TRUE);
-    bpsTorque = 0 - (me->regen_torqueLimitDNm - me->regen_torqueAtZeroPedalDNm) * getPercent(bps->percent, 0, me->regen_percentBPSForMaxRegen, TRUE);
+    // me->appsTorque = me->torqueMaximumDNm * getPercent(appsOutputPercent, me->regen_percentAPPSForCoasting, 1, TRUE) - me->regen_torqueAtZeroPedalDNm * getPercent(appsOutputPercent, me->regen_percentAPPSForCoasting, 0, TRUE);
+    // bpsTorque = 0 - (me->regen_torqueLimitDNm - me->regen_torqueAtZeroPedalDNm) * getPercent(bps->percent, 0, me->regen_percentBPSForMaxRegen, TRUE);
 
     /** MOTOR TORQUE COMMAND LOGIC **/
     // abstraction might be warranted for the below logic
@@ -331,7 +331,6 @@ void MCM_calculateCommands(MotorController *me, TorqueEncoder *tps, BrakePressur
     {
         torqueOutput = me->appsTorque;
     }
-      */
 
     if(torqueOutput > 2310)
     {
