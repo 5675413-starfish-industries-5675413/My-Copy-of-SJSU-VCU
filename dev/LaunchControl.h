@@ -39,7 +39,7 @@ typedef struct _LaunchControl {
 } LaunchControl;
 
 LaunchControl *LaunchControl_new(bool lcToggle);
-void LaunchControl_reset(LaunchControl *me);
+void LaunchControl_reset(LaunchControl *me, MotorController *mcm);
 void LaunchControl_updateState(LaunchControl *me, TorqueEncoder *tps, BrakePressureSensor *bps, MotorController *mcm);
 void LaunchControl_calculateSlipRatio(LaunchControl *me, WheelSpeeds *wss);
 void LaunchControl_calculateTorqueCurve(LaunchControl *me, MotorController *mcm);
