@@ -331,6 +331,7 @@ void MCM_calculateCommands(MotorController *me, TorqueEncoder *tps, BrakePressur
     {
         torqueOutput = me->appsTorque;
     }
+    
     MCM_commands_setTorqueDNm(me, torqueOutput);
 
     //Causes MCM relay to be driven after 30 seconds with TTC60?
@@ -750,7 +751,7 @@ sbyte2 MCM_get_LC_torqueCommand(MotorController *me) {
 //----------------------------------------------------PL-------------------------------
 void MCM_update_PL_setTorqueCommand(MotorController *me, sbyte2 torqueCommand)
 {
-    me->plTorqueCommand = torqueCommand;
+    me->plTorqueCommand = torqueCommand * 10;
 }
 
 sbyte2 MCM_get_PL_torqueCommand(MotorController *me)
@@ -834,8 +835,11 @@ sbyte4 MCM_getPower(MotorController *me)
     if (me->DC_Voltage <= 0 || me->DC_Current <= 0) {
         return 0;
     }
+    else if (me->DC_Voltage > 1000 || me->DC_Current > 1000) {
+        return 0;
+    }
     else {
-        return ((me->DC_Voltage) * (me->DC_Current));
+        return ((me->DC_Voltage) *(me->DC_Current));
     }
 }
 

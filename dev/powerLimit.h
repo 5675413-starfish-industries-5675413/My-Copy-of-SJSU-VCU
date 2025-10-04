@@ -25,6 +25,15 @@ typedef struct _PowerLimit {
     ubyte1 plInitializationThreshold;
     sbyte2 plTorqueCommand;
     ubyte1 clampingMethod;
+
+    
+    float previousPower;
+    float powerChangeRate;
+    ubyte2 settlingCounter;
+    bool usePowerPID;
+    ubyte2 SETTLING_THRESHOLD; // number of vcu cycles to confirm the settling
+    float POWER_CHANGE_THRESHOLD; // kW change rate threshold
+    float POWER_BELOW_SETPOINT_THRESHOLD; // kW below setpoint threshold
     //me->pid->pidOutput;   sbyte2
 
 //-------------CAN IN ORDER: 512: Power Limit PID Output Details-----------------------------------------------------
@@ -64,10 +73,13 @@ typedef struct _PowerLimit {
 PowerLimit* POWERLIMIT_new(bool plToggle); 
 
 /** COMPUTATIONS **/
-void PowerLimit_calculateCommand(PowerLimit *me, MotorController *mcm, TorqueEncoder *tps);
+void PowerLimit_calculateCommands(PowerLimit *me, MotorController *mcm, TorqueEncoder *tps);
 void POWERLIMIT_TorquePID(PowerLimit *me, MotorController *mcm);
 void POWERLIMIT_PowerPID(PowerLimit *me, MotorController *mcm);
+void POWERLIMIT_TorquePID_PowerPID(PowerLimit *me, MotorController *mcm);
 void POWERLIMIT_updatePIDController(PowerLimit* me, float pidSetpoint, float sensorValue);
+void PowerLimit_updatePLPower(PowerLimit* me);
+void PowerLimit_entryConditions(PowerLimit* me, MotorController *mcm );
 
 /** GETTER FUNCTIONS **/
 ubyte1 POWERLIMIT_getClampingMethod(PowerLimit* me);

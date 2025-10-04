@@ -114,7 +114,7 @@ void vcu_initializeADC(bool benchMode)
 
     //Unused
     //IO_ADC_ChannelInit(IO_ADC_5V_05, IO_ADC_RESISTIVE, 0, 0, 0, NULL);
-    //IO_ADC_ChannelInit(IO_ADC_5V_06, IO_ADC_RESISTIVE, 0, 0, 0, NULL);
+    Sensor_PLKnob.ioErr_signalInit=IO_ADC_ChannelInit(IO_ADC_5V_06, IO_ADC_ABSOLUTE, IO_ADC_RANGE_5V, 0, 0, NULL);
     //IO_ADC_ChannelInit(IO_ADC_5V_07, IO_ADC_RESISTIVE, 0, 0, 0, NULL);
 
     //----------------------------------------------------------------------------
@@ -212,6 +212,7 @@ Sensor Sensor_HVILTerminationSense;
 
 Sensor Sensor_DRSButton;
 Sensor Sensor_DRSKnob;
+Sensor Sensor_PLKnob;
 //Switches
 //precharge failure
 

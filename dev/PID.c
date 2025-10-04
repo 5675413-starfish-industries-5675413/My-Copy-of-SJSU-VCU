@@ -1,7 +1,7 @@
 /*****************************************************************************
  * pid.c - Proportional-Integral-Derivative (PID) controller
- * Initial Author: Harleen Sandhu / Mehul Williams
- * Additional Author: Shaun Gilmore
+ * Initial Author: Harleen Sandhu & Mehul Williams & Shaun Gilmore
+ * Current Author: Akash Karthik & Aitrieus Wright
  ******************************************************************************
  * General purpose PID controller, initially designed for Torque Vectoring.
  * 
@@ -73,7 +73,7 @@ void PID_dtUpdate(PID *pid, ubyte4 new_dt) {
 
 void PID_computeOutput(PID *pid, float sensorValue) {
     float currentError = (float)(pid->setpoint - sensorValue);
-    float proportional = (float)((pid->Kp * currentError)/pid->scalefactor);
+    float proportional = (float)((pid->Kp * currentError)/((float)(pid->scalefactor)));
     float integral = (float)((pid->Ki * (pid->totalError + currentError)) / pid->dH / pid->scalefactor);   
     float derivative = (float)(pid->Kd * (currentError - pid->previousError) * pid->dH / pid->scalefactor);
     pid->proportional = proportional;
@@ -102,35 +102,35 @@ sbyte1 PID_getKd(PID *pid){
 }
 
 sbyte2 PID_getSetpoint(PID *pid){
-    return pid->setpoint;
+    return (sbyte2)(pid->setpoint);
 }
 
 sbyte2 PID_getPreviousError(PID *pid){
-    return pid->previousError;
+    return (sbyte2)(pid->previousError);
 }
 
 sbyte4 PID_getTotalError(PID* pid){
-    return pid->totalError;
+    return (sbyte4)(pid->totalError);
 }
 
 sbyte2 PID_getOutput(PID *pid){
-    return pid->output;
+    return (sbyte2)(pid->output);
 }
 
 sbyte2 PID_getProportional(PID *pid){
-    return pid->proportional;
+    return (sbyte2)(pid->proportional);
 }
 
 sbyte2 PID_getIntegral(PID *pid){
-    return pid->integral;
+    return (sbyte2)(pid->integral);
 }
 
 sbyte2 PID_getDerivative(PID *pid){
-    return pid->derivative;
+    return (sbyte2)(pid->derivative);
 }
 
 sbyte2 PID_getSaturationValue(PID *pid){
-    return pid->saturationValue;
+    return (sbyte2)(pid->saturationValue);
 }
 
 bool PID_getAntiWindupFlag(PID *pid){
