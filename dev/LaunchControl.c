@@ -3,7 +3,6 @@
 #include "IO_RTC.h"
 #include "IO_DIO.h"
 #include "LaunchControl.h"
-#include "LaunchControl.h"
 #include "wheelSpeeds.h"
 #include "mathFunctions.h"
 #include "initializations.h"
@@ -35,9 +34,11 @@ LaunchControl *LaunchControl_new(bool lcToggle)
     return me;
 }
 
-void LaunchControl_reset(LaunchControl *me) {
+void LaunchControl_reset(LaunchControl *me, MotorController *mcm) {
     me->state = LC_IDLE;
     me->isInitialCurve = FALSE;
+    me->lcTorqueCommand = 0;
+    MCM_update_LC_torqueCommand(mcm, me->lcTorqueCommand);
 
     me->pid->totalError = 0;
     me->pid->previousError = 0;
@@ -55,13 +56,13 @@ void LaunchControl_updateState(LaunchControl *me, TorqueEncoder *tps, BrakePress
         }
         else {
             me->state = LC_IDLE;
-            LaunchControl_reset(me);
+            LaunchControl_reset(me, mcm);
         }
     }
 
     if (me->state == LC_ACTIVE && (tps->tps0_percent < .90 || bps->percent > 0.05)) {
         me->state = LC_IDLE;
-        LaunchControl_reset(me);
+        LaunchControl_reset(me, mcm);
     }
     MCM_update_LC_engagedStatus(mcm, (me->state != LC_IDLE));
     
@@ -140,7 +141,7 @@ sbyte2 LaunchControl_getTorqueCommand(LaunchControl *me) { return me->lcTorqueCo
 
 float LaunchControl_getSlipRatio(LaunchControl *me) { return me->slipRatio; }
 
-sbyte2 LaunchControl_getSlipRatioScaled(LaunchControl *me) { return (sbyte2)(me->slipRatio * 1000); }
+sbyte2 LaunchControl_getSlipRatioScaled(LaunchControl *me) { return (sbyte2)(me->slipRatio * 1000.0f); }
 
 bool LaunchControl_getInitialCurveStatus(LaunchControl *me) { return me->isInitialCurve; }
 
