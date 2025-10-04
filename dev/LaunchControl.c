@@ -3,7 +3,6 @@
 #include "IO_RTC.h"
 #include "IO_DIO.h"
 #include "LaunchControl.h"
-#include "LaunchControl.h"
 #include "wheelSpeeds.h"
 #include "mathFunctions.h"
 #include "initializations.h"
@@ -142,7 +141,7 @@ sbyte2 LaunchControl_getTorqueCommand(LaunchControl *me) { return me->lcTorqueCo
 
 float LaunchControl_getSlipRatio(LaunchControl *me) { return me->slipRatio; }
 
-sbyte2 LaunchControl_getSlipRatioScaled(LaunchControl *me) { return (sbyte2)(me->slipRatio * 1000); }
+sbyte2 LaunchControl_getSlipRatioScaled(LaunchControl *me) { return (sbyte2)(me->slipRatio * 1000.0f); }
 
 bool LaunchControl_getInitialCurveStatus(LaunchControl *me) { return me->isInitialCurve; }
 
