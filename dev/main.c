@@ -221,10 +221,10 @@ void main(void)
     WheelSpeeds *wss = WheelSpeeds_new(WHEEL_DIAMETER, WHEEL_DIAMETER, NUM_BUMPS, NUM_BUMPS);
     SafetyChecker *sc = SafetyChecker_new(serialMan, 320, 32); //Must match amp limits
     CoolingSystem *cs = CoolingSystem_new(serialMan);
-    LaunchControl *lc = LaunchControl_new(FALSE);
+    LaunchControl *lc = LaunchControl_new(TRUE);
 
     DRS *drs = DRS_new();
-    PowerLimit *pl = POWERLIMIT_new(TRUE);
+    PowerLimit *pl = POWERLIMIT_new(FALSE);
 //---------------------------------------------------------------------------------------------------------
     //----------------------------------------------------------------------------
     // TODO: Additional Initial Power-up functions
@@ -273,7 +273,7 @@ void main(void)
 
         //Pull messages from CAN FIFO and update our object representations.
         //Also echoes can0 messages to can1 for DAQ.
-        CanManager_read(canMan, CAN0_HIPRI, mcm0, ic0, bms, sc);
+        CanManager_read(canMan, CAN0_HIPRI, mcm0, ic0, bms, sc, wss);
         // if (Sensor_TestButton.sensorValue == TRUE ) {
         //     // TODO rewire Sensor_TestButton 
         //     lc->buttonDebug |= 0x02;
@@ -438,7 +438,6 @@ void main(void)
         // MCM_incrementVoltageForTesting(mcm0, 5);      // 5V increments
         // MCM_incrementCurrentForTesting(mcm0, 5);      // 5A increments  
         // MCM_incrementRPMForTesting(mcm0, 100);        // 100 RPM increments
-        LaunchControl_calculateSlipRatio(lc, wss);
         LaunchControl_calculateCommands(lc, tps, bps, mcm0, wss);
         PowerLimit_calculateCommand(pl, mcm0, tps);
         MCM_calculateCommands(mcm0, tps, bps);

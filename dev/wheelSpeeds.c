@@ -2,6 +2,8 @@
 #include <math.h>
 #include "IO_RTC.h"
 #include "IO_DIO.h"
+#include "IO_CAN.h"
+
 
 #include "wheelSpeeds.h"
 #include "mathFunctions.h"
@@ -192,4 +194,14 @@ float4 WheelSpeeds_getGroundSpeed(WheelSpeeds *me, ubyte1 tire_config)
 float4 WheelSpeeds_getGroundSpeedKPH(WheelSpeeds *me, ubyte1 tire_config)
 {
     return (WheelSpeeds_getGroundSpeed(me, tire_config) * 3.6); //m/s to kph
+}
+
+void WSS_parseCanMessage(WheelSpeeds *me, IO_CAN_DATA_FRAME *wssCanMessage) {
+    switch (wssCanMessage->id) {
+        case 0x705:
+            Sensor_WSS_FL.heldSensorValue = ((ubyte2)wssCanMessage->data[0] << 8 | wssCanMessage->data[1]);
+            Sensor_WSS_FR.heldSensorValue = ((ubyte2)wssCanMessage->data[2] << 8 | wssCanMessage->data[3]);
+            Sensor_WSS_RL.heldSensorValue = ((ubyte2)wssCanMessage->data[4] << 8 | wssCanMessage->data[5]);
+            Sensor_WSS_RR.heldSensorValue = ((ubyte2)wssCanMessage->data[6] << 8 | wssCanMessage->data[7]);
+    }
 }

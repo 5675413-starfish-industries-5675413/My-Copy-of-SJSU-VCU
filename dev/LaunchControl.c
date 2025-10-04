@@ -20,7 +20,7 @@ extern Sensor Sensor_LCButton;
 LaunchControl *LaunchControl_new(bool lcToggle)
 {
     LaunchControl* me = (LaunchControl*)malloc(sizeof(struct _LaunchControl));
-    me->pid = PID_new(200, 100, 0, 0.5, 1);
+    me->pid = PID_new(10, 0, 0, 0.5, 1);
     PID_updateSetpoint(me->pid, 0.2);
 
     me->lcToggle = lcToggle;
@@ -30,7 +30,7 @@ LaunchControl *LaunchControl_new(bool lcToggle)
     me->maxTorque = 231;
     me->prevTorque = 0;
     me->isInitialCurve = FALSE;
-    me->mode = FIRST_ORDER_ONLY;
+    me->mode = SLIP_CONTROLLER;
     me->state = LC_IDLE;
     return me;
 }
@@ -45,16 +45,18 @@ void LaunchControl_reset(LaunchControl *me) {
 
 void LaunchControl_updateState(LaunchControl *me, TorqueEncoder *tps, BrakePressureSensor *bps, MotorController *mcm) 
 {
-    if (Sensor_LCButton.sensorValue == TRUE && MCM_getGroundSpeedKPH(mcm) < 1 && bps->percent < 0.05) {
+    if (me->state == LC_IDLE && Sensor_LCButton.sensorValue == TRUE && MCM_getGroundSpeedKPH(mcm) < 1 && bps->percent < 0.05) {
         me->state = LC_READY;
     }
 
-    if (me->state == LC_READY && Sensor_LCButton.sensorValue == FALSE && tps->tps0_percent > .90 && bps->percent < 0.05) {
-        me->state = LC_ACTIVE;
-    }
-    else {
-        me->state = LC_IDLE;
-        LaunchControl_reset(me);
+    if (me->state == LC_READY && Sensor_LCButton.sensorValue == FALSE) {
+        if (tps->tps0_percent > .90 && bps->percent < 0.05) {
+            me->state = LC_ACTIVE;
+        }
+        else {
+            me->state = LC_IDLE;
+            LaunchControl_reset(me);
+        }
     }
 
     if (me->state == LC_ACTIVE && (tps->tps0_percent < .90 || bps->percent > 0.05)) {
@@ -62,7 +64,7 @@ void LaunchControl_updateState(LaunchControl *me, TorqueEncoder *tps, BrakePress
         LaunchControl_reset(me);
     }
     MCM_update_LC_engagedStatus(mcm, (me->state != LC_IDLE));
-
+    
 }
 
 void LaunchControl_calculateSlipRatio(LaunchControl *me, WheelSpeeds *wss)
@@ -82,6 +84,8 @@ void LaunchControl_calculateTorqueCurve(LaunchControl *me, MotorController *mcm)
 
 void LaunchControl_calculateCommands(LaunchControl *me, TorqueEncoder *tps, BrakePressureSensor *bps, MotorController *mcm, WheelSpeeds *wss)
 {
+    LaunchControl_calculateSlipRatio(me, wss);
+
     if(!me->lcToggle) {
         return;
     }
@@ -114,12 +118,6 @@ void LaunchControl_calculateCommands(LaunchControl *me, TorqueEncoder *tps, Brak
             me->isInitialCurve = TRUE;
         }
     }
-    if (me->lcTorqueCommand < 0) {
-        me->lcTorqueCommand = 0;
-    }
-    if (me->lcTorqueCommand > 231) {
-        me->lcTorqueCommand = 231;
-    }
     MCM_update_LC_torqueCommand(mcm, me->lcTorqueCommand);
 }
 
@@ -136,7 +134,7 @@ bool LaunchControl_isWheelSpeedsNonZero(WheelSpeeds *wss) {
 
 
 
-LC_State LaunchControl_getState(LaunchControl *me) { return me->state; }
+ubyte1 LaunchControl_getState(LaunchControl *me) { return me->state; }
 
 sbyte2 LaunchControl_getTorqueCommand(LaunchControl *me) { return me->lcTorqueCommand; }
 

@@ -311,19 +311,19 @@ void MCM_calculateCommands(MotorController *me, TorqueEncoder *tps, BrakePressur
 
     torqueOutput = me->appsTorque + bpsTorque;
 
-    if(me->lcEngaged == TRUE && me->lcTorqueCommand < me->appsTorque && me->lcTorqueCommand >= 0)
+    if(me->lcEngaged == TRUE && me->lcTorqueCommand < torqueOutput)
     {
         torqueOutput = me->lcTorqueCommand;
     } 
-    if(me->plActive == TRUE && me->plTorqueCommand < me->appsTorque)
+    if(me->plActive == TRUE && me->plTorqueCommand < torqueOutput)
     {
         me->lcEngaged = FALSE;
-        torqueOutput = me->plTorqueCommand + bpsTorque;
+        torqueOutput = me->plTorqueCommand;
     }
     //Safety Check. torqueOutput Should never rise above 231
     if(torqueOutput > 2310 || torqueOutput < 0) //attempt to fix issue of -3000
     {
-        torqueOutput = me->appsTorque+bpsTorque;
+        torqueOutput = me->appsTorque;
     }
     MCM_commands_setTorqueDNm(me, torqueOutput);
 
