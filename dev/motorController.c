@@ -211,7 +211,7 @@ void MCM_setRegenMode(MotorController *me, RegenMode regenMode)
     {
     case REGENMODE_FORMULAE: //Position 1 = Coasting mode (Formula E mode)
         me->regen_mode = 1;
-        me->regen_torqueLimitDNm = me->torqueMaximumDNm * 0.5;
+        me->regen_torqueLimitDNm = 500;//me->torqueMaximumDNm * 0.5;
         me->regen_torqueAtZeroPedalDNm = 0;
         me->regen_percentAPPSForCoasting = 0;
         me->regen_percentBPSForMaxRegen = .3; //zero to one.. 1 = 100%
@@ -219,7 +219,7 @@ void MCM_setRegenMode(MotorController *me, RegenMode regenMode)
 
     case REGENMODE_HYBRID: //Position 2 = light "engine braking" (Hybrid mode)
         me->regen_mode = 2;
-        me->regen_torqueLimitDNm = me->torqueMaximumDNm * 0.5;
+        me->regen_torqueLimitDNm = 500;//me->torqueMaximumDNm * 0.5;
         me->regen_torqueAtZeroPedalDNm = me->regen_torqueLimitDNm * 0.3;
         me->regen_percentAPPSForCoasting = .2;
         me->regen_percentBPSForMaxRegen = .3; //zero to one.. 1 = 100%
@@ -227,7 +227,7 @@ void MCM_setRegenMode(MotorController *me, RegenMode regenMode)
 
     case REGENMODE_TESLA: //Position 3 = One pedal driving (Tesla mode)
         me->regen_mode = 3;
-        me->regen_torqueLimitDNm = me->torqueMaximumDNm * .5;
+        me->regen_torqueLimitDNm = 500;//me->torqueMaximumDNm * .5;
         me->regen_torqueAtZeroPedalDNm = me->regen_torqueLimitDNm;
         me->regen_percentAPPSForCoasting = .1;
         me->regen_percentBPSForMaxRegen = 0;
@@ -302,9 +302,14 @@ void MCM_calculateCommands(MotorController *me, TorqueEncoder *tps, BrakePressur
 
     TorqueEncoder_getOutputPercent(tps, &appsOutputPercent);
     
-    me->appsTorque = me->torqueMaximumDNm * appsOutputPercent;
-    //me->appsTorque = me->torqueMaximumDNm * getPercent(appsOutputPercent, me->regen_percentAPPSForCoasting, 1, TRUE) - me->regen_torqueAtZeroPedalDNm * getPercent(appsOutputPercent, me->regen_percentAPPSForCoasting, 0, TRUE);
-    //bpsTorque = 0 - (me->regen_torqueLimitDNm - me->regen_torqueAtZeroPedalDNm) * getPercent(bps->percent, 0, me->regen_percentBPSForMaxRegen, TRUE);
+    mcm->regen_torqueLimitDNm = 750;
+    if (mcm->motorRPM > 2400){
+        mcm->regen_torqueLimitDNm = (-0.022)(mcm->motorRPM-2400)+750//No regen above 2400 RPM
+    }
+    //----------------------------------------------------------------------------
+   // me->appsTorque = me->torqueMaximumDNm * appsOutputPercent;
+    me->appsTorque = me->torqueMaximumDNm * getPercent(appsOutputPercent, me->regen_percentAPPSForCoasting, 1, TRUE) - me->regen_torqueAtZeroPedalDNm * getPercent(appsOutputPercent, me->regen_percentAPPSForCoasting, 0, TRUE);
+    bpsTorque = 0 - (me->regen_torqueLimitDNm - me->regen_torqueAtZeroPedalDNm) * getPercent(bps->percent, 0, me->regen_percentBPSForMaxRegen, TRUE);
 
     /** MOTOR TORQUE COMMAND LOGIC **/
     // abstraction might be warranted for the below logic
@@ -320,10 +325,22 @@ void MCM_calculateCommands(MotorController *me, TorqueEncoder *tps, BrakePressur
         me->lcEngaged = FALSE;
         torqueOutput = me->plTorqueCommand;
     }
+  
     //Safety Check. torqueOutput Should never rise above 231
     if(torqueOutput > 2310 || torqueOutput < 0) //attempt to fix issue of -3000
     {
         torqueOutput = me->appsTorque;
+    }
+      */
+
+    if(torqueOutput > 2310)
+    {
+        torqueOutput=2310;
+    }
+    
+    if (torqueOutput<-2310 )
+    {
+        torqueOutput=-2310;
     }
     MCM_commands_setTorqueDNm(me, torqueOutput);
 
