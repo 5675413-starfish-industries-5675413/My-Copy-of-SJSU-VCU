@@ -24,7 +24,7 @@
 PowerLimit* POWERLIMIT_new(bool plToggle){
     PowerLimit* me = (PowerLimit*)malloc(sizeof(PowerLimit));
     me->plToggle=plToggle;
-    me->pid = PID_new(0, 0, 0, 231,10); // last value tells you the factor the PID gets divided by
+    me->pid = PID_new(10, 0, 0, 231,10); // last value tells you the factor the PID gets divided by
     me->plMode = 2; // 1 = Torque PID, 2 = Power PID
     me->plStatus = FALSE; // FALSE = Off, TRUE = On
     me->plTorqueCommand = 0; // Torque command in deciNewton-meters
@@ -127,7 +127,7 @@ void POWERLIMIT_TorquePID(PowerLimit *me, MotorController *mcm){
     if (motorRPM == 0){
         motorRPM = 1; //avoid division by 0
     }
-    sbyte2 commandedTorque = (sbyte2)MCM_getCommandedTorque(mcm);
+    float commandedTorque = (float)MCM_getCommandedTorque(mcm);
     float torqueSetpoint = (me->plTargetPower - (2.0))* (9549.0/motorRPM);
     float torqueSetpointFloat = (float)(torqueSetpoint);
 
