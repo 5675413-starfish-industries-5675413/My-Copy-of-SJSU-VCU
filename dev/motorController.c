@@ -307,7 +307,7 @@ void MCM_calculateCommands(MotorController *me, TorqueEncoder *tps, BrakePressur
         me->regen_torqueLimitDNm = -0.022 * (me->motorRPM-2400)+750; //No regen above 2400 RPM
     }
     //----------------------------------------------------------------------------
-   // me->appsTorque = me->torqueMaximumDNm * appsOutputPercent;
+    me->appsTorque = me->torqueMaximumDNm * appsOutputPercent;
     // me->appsTorque = me->torqueMaximumDNm * getPercent(appsOutputPercent, me->regen_percentAPPSForCoasting, 1, TRUE) - me->regen_torqueAtZeroPedalDNm * getPercent(appsOutputPercent, me->regen_percentAPPSForCoasting, 0, TRUE);
     // bpsTorque = 0 - (me->regen_torqueLimitDNm - me->regen_torqueAtZeroPedalDNm) * getPercent(bps->percent, 0, me->regen_percentBPSForMaxRegen, TRUE);
 
