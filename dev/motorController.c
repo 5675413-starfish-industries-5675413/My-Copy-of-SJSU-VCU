@@ -331,16 +331,6 @@ void MCM_calculateCommands(MotorController *me, TorqueEncoder *tps, BrakePressur
     {
         torqueOutput = me->appsTorque;
     }
-
-    if(torqueOutput > 2310)
-    {
-        torqueOutput=2310;
-    }
-    
-    if (torqueOutput<-2310 )
-    {
-        torqueOutput=-2310;
-    }
     MCM_commands_setTorqueDNm(me, torqueOutput);
 
     //Causes MCM relay to be driven after 30 seconds with TTC60?
