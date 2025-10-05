@@ -30,12 +30,10 @@ typedef struct _LaunchControl {
     PID *pid;
     float slipRatio;
     sbyte2 lcTorqueCommand;
-    ubyte2 preload;
     float maxTorque;
     float prevTorque;
     float k;
     bool isInitialCurve;
-    bool isPreload;
     LC_State state;
     LC_Mode mode;
 } LaunchControl;

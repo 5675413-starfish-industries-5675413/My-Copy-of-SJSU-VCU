@@ -22,16 +22,12 @@ LaunchControl *LaunchControl_new(bool lcToggle)
     me->pid = PID_new(20, 10, 0, 0.5, 1);
     PID_updateSetpoint(me->pid, 0.2);
     //me->pid->totalError = 170;
-
-
     me->lcToggle = lcToggle;
     me->slipRatio = 0;
     me->lcTorqueCommand = 0;
     me->k = 0.2;
     me->maxTorque = 231;
-    me->preload = 100;
-    me->isPreload = TRUE;
-    me->prevTorque = 0;
+    me->prevTorque = 100;
     me->isInitialCurve = FALSE;
     me->mode = SLIP_CONTROLLER;
     me->state = LC_IDLE;
@@ -42,6 +38,7 @@ void LaunchControl_reset(LaunchControl *me, MotorController *mcm) {
     me->state = LC_IDLE;
     me->isInitialCurve = FALSE;
     me->lcTorqueCommand = 0;
+    me->prevTorque = 0;
     MCM_update_LC_torqueCommand(mcm, me->lcTorqueCommand);
 
     me->pid->totalError = 0;
@@ -82,19 +79,9 @@ void LaunchControl_calculateSlipRatio(LaunchControl *me, WheelSpeeds *wss)
 }
 
 void LaunchControl_calculateTorqueCurve(LaunchControl *me, MotorController *mcm) {
-    if (me->isPreload) {
-        me->lcTorqueCommand = me->preload;
-        if (MCM_getCommandedTorque(mcm) >= me->preload) {
-            me->isPreload = FALSE;
-            me->prevTorque = MCM_getCommandedTorque(mcm);
-        }
-    }
-    else {
-        float torque = me->k * me->maxTorque + (1 - me->k) * me->prevTorque;
-        me->lcTorqueCommand = (sbyte2) torque;
-        me->prevTorque = MCM_getCommandedTorque(mcm);
-    }
-   
+    float torque = me->k * me->maxTorque + (1 - me->k) * me->prevTorque;
+    me->lcTorqueCommand = (sbyte2) torque;
+    me->prevTorque = me->lcTorqueCommand;
 }
 
 void LaunchControl_calculateCommands(LaunchControl *me, TorqueEncoder *tps, BrakePressureSensor *bps, MotorController *mcm, WheelSpeeds *wss)
@@ -125,6 +112,12 @@ void LaunchControl_calculateCommands(LaunchControl *me, TorqueEncoder *tps, Brak
         if (LaunchControl_isWheelSpeedsNonZero(wss)) {
             LaunchControl_calculateSlipRatio(me, wss);
             PID_computeOutput(me->pid, me->slipRatio);
+            if (me->pid->output > 50) {
+                me->pid->output = 50;
+            }
+            if (me->pid->output < -20) {
+                me->pid->output = -20;
+            }
             me->lcTorqueCommand = MCM_getCommandedTorque(mcm) + me->pid->output;
             me->isInitialCurve = FALSE;
         }
