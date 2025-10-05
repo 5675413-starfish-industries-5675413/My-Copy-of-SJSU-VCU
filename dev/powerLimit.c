@@ -74,6 +74,9 @@ void PowerLimit_updatePLPower(PowerLimit* me){
             switch (plModeFromRotary){
                 case PL_MODE_OFF:
                     break;
+                case PL_MODE_20:
+                    me->plTargetPower = 20;
+                    break;
                 case PL_MODE_30:
                     me->plTargetPower = 30;
                     break;
@@ -85,9 +88,6 @@ void PowerLimit_updatePLPower(PowerLimit* me){
                     break;
                 case PL_MODE_60:
                     me->plTargetPower = 60;
-                    break;
-                case PL_MODE_80:
-                    me->plTargetPower = 80;
                     break;
                 default:
                     break;
