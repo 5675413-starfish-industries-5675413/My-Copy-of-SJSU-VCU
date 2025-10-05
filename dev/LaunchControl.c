@@ -14,7 +14,7 @@
 #include "drs.h"
 extern Sensor Sensor_LCButton;
 
-#define INITIAL_TORQUE 240
+#define INITIAL_TORQUE 0
 
 
 /* Start of Launch Control */
