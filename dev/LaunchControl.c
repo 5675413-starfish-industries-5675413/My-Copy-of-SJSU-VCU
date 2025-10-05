@@ -27,9 +27,9 @@ LaunchControl *LaunchControl_new(bool lcToggle)
     me->lcToggle = lcToggle;
     me->slipRatio = 0;
     me->lcTorqueCommand = 0;
-    me->k = 0.6;
+    me->k = 0.2;
     me->maxTorque = 231;
-    me->prevTorque = 0;
+    me->prevTorque = 75;
     me->isInitialCurve = FALSE;
     me->mode = SLIP_CONTROLLER;
     me->state = LC_IDLE;
@@ -82,7 +82,7 @@ void LaunchControl_calculateSlipRatio(LaunchControl *me, WheelSpeeds *wss)
 void LaunchControl_calculateTorqueCurve(LaunchControl *me, MotorController *mcm) {
     float torque = me->k * me->maxTorque + (1 - me->k) * me->prevTorque;
     me->lcTorqueCommand = (sbyte2) torque;
-    me->prevTorque = MCM_getCommandedTorque(mcm);
+    me->prevTorque = me->lcTorqueCommand;
 }
 
 void LaunchControl_calculateCommands(LaunchControl *me, TorqueEncoder *tps, BrakePressureSensor *bps, MotorController *mcm, WheelSpeeds *wss)
