@@ -97,7 +97,7 @@ void PowerLimit_updatePLPower(PowerLimit* me){
 
 void PowerLimit_calculateCommands(PowerLimit *me, MotorController *mcm, TorqueEncoder *tps){
     if(me->plToggle){
-       // PowerLimit_updatePLPower(me);
+        PowerLimit_updatePLPower(me);
         PowerLimit_setPLInitializationThreshold(me);
         PowerLimit_entryConditions(me, mcm);
         
