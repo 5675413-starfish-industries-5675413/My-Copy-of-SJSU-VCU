@@ -43,7 +43,7 @@ void PowerLimit_setPLInitializationThreshold(PowerLimit* me){
 void PowerLimit_entryConditions(PowerLimit* me, MotorController *mcm ){
      sbyte4 current_power_kw = (sbyte4) ((MCM_getDCVoltage(mcm) * MCM_getDCCurrent(mcm)) / 1000);
      if(MCM_commands_getAppsTorque(mcm) == 0|| current_power_kw < me->plInitializationThreshold){
-            me->plStatus == FALSE;
+            me->plStatus = FALSE;
         }
 
      if (current_power_kw <= 0){
