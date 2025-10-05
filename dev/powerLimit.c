@@ -73,6 +73,7 @@ void PowerLimit_updatePLPower(PowerLimit* me){
     PLMode plModeFromRotary = getPLMode();
             switch (plModeFromRotary){
                 case PL_MODE_OFF:
+                    me->plToggle = FALSE; // Default to 40kW when off match the struct value
                     break;
                 case PL_MODE_20:
                     me->plTargetPower = 20;
@@ -97,7 +98,7 @@ void PowerLimit_updatePLPower(PowerLimit* me){
 
 void PowerLimit_calculateCommands(PowerLimit *me, MotorController *mcm, TorqueEncoder *tps){
     if(me->plToggle){
-        PowerLimit_updatePLPower(me);
+        //PowerLimit_updatePLPower(me);
         PowerLimit_setPLInitializationThreshold(me);
         PowerLimit_entryConditions(me, mcm);
         
