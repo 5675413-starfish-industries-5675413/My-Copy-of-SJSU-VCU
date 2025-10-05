@@ -24,15 +24,16 @@
 PowerLimit* POWERLIMIT_new(bool plToggle){
     PowerLimit* me = (PowerLimit*)malloc(sizeof(PowerLimit));
     me->plToggle=plToggle;
-    me->pid = PID_new(10, 10, 0, 231,10); // last value tells you the factor the PID gets divided by
-    me->plMode = 2; // 1 = Torque PID, 2 = Power PID
+    me->pid = PID_new(10, 0, 0, 231,10); // last value tells you the factor the PID gets divided by
+    me->plMode = 1; // 1 = Torque PID, 2 = Power PID
     me->plStatus = FALSE; // FALSE = Off, TRUE = On
     me->plTorqueCommand = 0; // Torque command in deciNewton-meters
     me->plTargetPower = 40;// HERE IS WHERE YOU CHANGE POWERLIMIT (units = kW)
     me->plThresholdDiscrepancy = 5; // Threshold discrepancy in kW
     me->plInitializationThreshold = 0; // Initialization threshold in kW
-    me->clampingMethod = 4; // Clamping method
+    me->clampingMethod = 0; // Clamping method
     me->plAlwaysOn = TRUE; // TRUE = if is above threshold then stay on even if power is below threshold, FALSE = Only on if power is above threshold
+    me->counter = 0;
     return me;
 }
 
@@ -43,11 +44,13 @@ void PowerLimit_setPLInitializationThreshold(PowerLimit* me){
 void PowerLimit_entryConditions(PowerLimit* me, MotorController *mcm ){
      sbyte4 current_power_kw = (sbyte4) ((MCM_getDCVoltage(mcm) * MCM_getDCCurrent(mcm)) / 1000);
      if(MCM_commands_getAppsTorque(mcm) == 0|| current_power_kw < me->plInitializationThreshold){
-            me->plStatus == FALSE;
+            me->plStatus = FALSE;
+            me->counter = 0;
         }
 
      if (current_power_kw <= 0){
             me->plStatus = FALSE;
+            me->counter = 0;
         }
     else{
         if (me->plAlwaysOn==FALSE)
@@ -93,9 +96,8 @@ void PowerLimit_updatePLPower(PowerLimit* me){
 }
 
 void PowerLimit_calculateCommands(PowerLimit *me, MotorController *mcm, TorqueEncoder *tps){
-
     if(me->plToggle){
-       // PowerLimit_updatePLPower(me);
+        PowerLimit_updatePLPower(me);
         PowerLimit_setPLInitializationThreshold(me);
         PowerLimit_entryConditions(me, mcm);
         
@@ -104,7 +106,7 @@ void PowerLimit_calculateCommands(PowerLimit *me, MotorController *mcm, TorqueEn
             if(me->plMode==1){
                 POWERLIMIT_TorquePID(me, mcm);
             }
-            if(me->plMode==2){
+            if(me->plMode==2){// || me->counter >= 20){
                 POWERLIMIT_PowerPID(me,mcm);
             }
             if(me->plMode==3){
@@ -121,6 +123,7 @@ void PowerLimit_calculateCommands(PowerLimit *me, MotorController *mcm, TorqueEn
 
 void POWERLIMIT_TorquePID(PowerLimit *me, MotorController *mcm){
     me->plMode = 1;
+    // me->counter+=1;
     PID_setSaturationPoint(me->pid, 231);
 
     sbyte4 motorRPM = MCM_getMotorRPM(mcm);

@@ -19,14 +19,18 @@ extern Sensor Sensor_LCButton;
 LaunchControl *LaunchControl_new(bool lcToggle)
 {
     LaunchControl* me = (LaunchControl*)malloc(sizeof(struct _LaunchControl));
-    me->pid = PID_new(10, 0, 0, 0.5, 1);
+    me->pid = PID_new(20, 10, 0, 0.5, 1);
     PID_updateSetpoint(me->pid, 0.2);
+    //me->pid->totalError = 170;
+
 
     me->lcToggle = lcToggle;
     me->slipRatio = 0;
     me->lcTorqueCommand = 0;
-    me->k = 0.05;
+    me->k = 0.2;
     me->maxTorque = 231;
+    me->preload = 100;
+    me->isPreload = TRUE;
     me->prevTorque = 0;
     me->isInitialCurve = FALSE;
     me->mode = SLIP_CONTROLLER;
@@ -78,9 +82,19 @@ void LaunchControl_calculateSlipRatio(LaunchControl *me, WheelSpeeds *wss)
 }
 
 void LaunchControl_calculateTorqueCurve(LaunchControl *me, MotorController *mcm) {
-    float torque = me->k * me->maxTorque + (1 - me->k) * me->prevTorque;
-    me->lcTorqueCommand = (sbyte2) torque;
-    me->prevTorque = MCM_getCommandedTorque(mcm);
+    if (me->isPreload) {
+        me->lcTorqueCommand = me->preload;
+        if (MCM_getCommandedTorque(mcm) >= me->preload) {
+            me->isPreload = FALSE;
+            me->prevTorque = MCM_getCommandedTorque(mcm);
+        }
+    }
+    else {
+        float torque = me->k * me->maxTorque + (1 - me->k) * me->prevTorque;
+        me->lcTorqueCommand = (sbyte2) torque;
+        me->prevTorque = MCM_getCommandedTorque(mcm);
+    }
+   
 }
 
 void LaunchControl_calculateCommands(LaunchControl *me, TorqueEncoder *tps, BrakePressureSensor *bps, MotorController *mcm, WheelSpeeds *wss)
