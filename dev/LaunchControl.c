@@ -27,9 +27,9 @@ LaunchControl *LaunchControl_new(bool lcToggle)
     me->lcToggle = lcToggle;
     me->slipRatio = 0;
     me->lcTorqueCommand = 0;
-    me->k = 0.05;
+    me->k = 0.6;
     me->maxTorque = 231;
-    me->prevTorque = 100;
+    me->prevTorque = 0;
     me->isInitialCurve = FALSE;
     me->mode = SLIP_CONTROLLER;
     me->state = LC_IDLE;
