@@ -19,7 +19,7 @@ extern Sensor Sensor_LCButton;
 LaunchControl *LaunchControl_new(bool lcToggle)
 {
     LaunchControl* me = (LaunchControl*)malloc(sizeof(struct _LaunchControl));
-    me->pid = PID_new(10, 0, 0, 0.5, 1);
+    me->pid = PID_new(20, 0, 0, 0.5, 1);
     PID_updateSetpoint(me->pid, 0.2);
     //me->pid->totalError = 170;
 
