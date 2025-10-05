@@ -19,8 +19,10 @@ extern Sensor Sensor_LCButton;
 LaunchControl *LaunchControl_new(bool lcToggle)
 {
     LaunchControl* me = (LaunchControl*)malloc(sizeof(struct _LaunchControl));
-    me->pid = PID_new(10, 0, 0, 0.5, 1);
+    me->pid = PID_new(20, 1, 0, 0.5, 1);
     PID_updateSetpoint(me->pid, 0.2);
+    me->pid->totalError = 170;
+
 
     me->lcToggle = lcToggle;
     me->slipRatio = 0;
@@ -40,7 +42,7 @@ void LaunchControl_reset(LaunchControl *me, MotorController *mcm) {
     me->lcTorqueCommand = 0;
     MCM_update_LC_torqueCommand(mcm, me->lcTorqueCommand);
 
-    me->pid->totalError = 0;
+    //me->pid->totalError = 0;
     me->pid->previousError = 0;
 }
 
