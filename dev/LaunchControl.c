@@ -14,6 +14,8 @@
 #include "drs.h"
 extern Sensor Sensor_LCButton;
 
+#define INITIAL_TORQUE 240
+
 
 /* Start of Launch Control */
 LaunchControl *LaunchControl_new(bool lcToggle)
@@ -25,9 +27,9 @@ LaunchControl *LaunchControl_new(bool lcToggle)
     me->lcToggle = lcToggle;
     me->slipRatio = 0;
     me->lcTorqueCommand = 0;
-    me->k = 0.2;
-    me->maxTorque = 231;
-    me->prevTorque = 100;
+    me->k = 0.6;
+    me->maxTorque = 240;
+    me->prevTorque = INITIAL_TORQUE;
     me->isInitialCurve = FALSE;
     me->mode = SLIP_CONTROLLER;
     me->state = LC_IDLE;
@@ -38,7 +40,7 @@ void LaunchControl_reset(LaunchControl *me, MotorController *mcm) {
     me->state = LC_IDLE;
     me->isInitialCurve = FALSE;
     me->lcTorqueCommand = 0;
-    me->prevTorque = 0;
+    me->prevTorque = INITIAL_TORQUE;
     MCM_update_LC_torqueCommand(mcm, me->lcTorqueCommand);
 
     me->pid->totalError = 0;
@@ -112,12 +114,12 @@ void LaunchControl_calculateCommands(LaunchControl *me, TorqueEncoder *tps, Brak
         if (LaunchControl_isWheelSpeedsNonZero(wss)) {
             LaunchControl_calculateSlipRatio(me, wss);
             PID_computeOutput(me->pid, me->slipRatio);
-            if (me->pid->output > 50) {
-                me->pid->output = 50;
-            }
-            if (me->pid->output < -20) {
-                me->pid->output = -20;
-            }
+            // if (me->pid->output > 50) {
+            //     me->pid->output = 50;
+            // }
+            // if (me->pid->output < -20) {
+            //     me->pid->output = -20;
+            // }
             me->lcTorqueCommand = MCM_getCommandedTorque(mcm) + me->pid->output;
             me->isInitialCurve = FALSE;
         }
