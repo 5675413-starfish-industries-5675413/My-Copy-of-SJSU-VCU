@@ -20,7 +20,7 @@
 #endif
 
 // #define ELIMINATE_CAN_MESSAGES
-/** PARAMETERS **/
+//STARTOFPARAMETERS
 PowerLimit* POWERLIMIT_new(bool plToggle){
     PowerLimit* me = (PowerLimit*)malloc(sizeof(PowerLimit));
     sbyte1 Kp = 50;
@@ -40,6 +40,7 @@ PowerLimit* POWERLIMIT_new(bool plToggle){
     me->plAlwaysOn = TRUE; // TRUE = if is above threshold then stay on even if power is below threshold, FALSE = Only on if power is above threshold
     return me;
 }
+//ENDOFPARAMETERS
 
 void PowerLimit_setPLInitializationThreshold(PowerLimit* me){
     me->plInitializationThreshold = me->plTargetPower - me->plThresholdDiscrepancy;
