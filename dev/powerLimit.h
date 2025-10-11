@@ -26,7 +26,6 @@ typedef struct _PowerLimit {
     ubyte1 plInitializationThreshold;
     sbyte2 plTorqueCommand;
     ubyte1 clampingMethod;
-    ubyte2 counter;
 
     
     float previousPower;
