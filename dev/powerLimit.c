@@ -30,9 +30,9 @@ PowerLimit* POWERLIMIT_new(bool plToggle){
     me->plStatus = FALSE; // FALSE = Off, TRUE = On
     me->plTorqueCommand = 0; // Torque command in deciNewton-meters
     me->plTargetPower = 60;// HERE IS WHERE YOU CHANGE POWERLIMIT (units = kW)
-    me->plThresholdDiscrepancy = 15; // Threshold discrepancy in kW
+    me->plThresholdDiscrepancy = 5; // Threshold discrepancy in kW
     me->plInitializationThreshold = 0; // Initialization threshold in kW
-    me->clampingMethod = 6; // Clamping method
+    me->clampingMethod = 4; // Clamping method
     me->plAlwaysOn = TRUE; // TRUE = if is above threshold then stay on even if power is below threshold, FALSE = Only on if power is above threshold
     
     // tracking variables for the tq+power switching
@@ -54,11 +54,13 @@ void PowerLimit_setPLInitializationThreshold(PowerLimit* me){
 void PowerLimit_entryConditions(PowerLimit* me, MotorController *mcm ){
      sbyte4 current_power_kw = (sbyte4) ((MCM_getDCVoltage(mcm) * MCM_getDCCurrent(mcm)) / 1000);
      if(MCM_commands_getAppsTorque(mcm) == 0|| current_power_kw < me->plInitializationThreshold){
-            me->plStatus == FALSE;
+            me->plStatus = FALSE;
+            me->counter = 0;
         }
 
      if (current_power_kw <= 0){
             me->plStatus = FALSE;
+            me->counter = 0;
         }
     else{
         if (me->plAlwaysOn==FALSE)
@@ -81,6 +83,10 @@ void PowerLimit_updatePLPower(PowerLimit* me){
     PLMode plModeFromRotary = getPLMode();
             switch (plModeFromRotary){
                 case PL_MODE_OFF:
+                    me->plToggle = FALSE; // Default to 40kW when off match the struct value
+                    break;
+                case PL_MODE_20:
+                    me->plTargetPower = 20;
                     break;
                 case PL_MODE_30:
                     me->plTargetPower = 30;
@@ -94,9 +100,6 @@ void PowerLimit_updatePLPower(PowerLimit* me){
                 case PL_MODE_60:
                     me->plTargetPower = 60;
                     break;
-                case PL_MODE_80:
-                    me->plTargetPower = 80;
-                    break;
                 default:
                     break;
                     
@@ -104,9 +107,8 @@ void PowerLimit_updatePLPower(PowerLimit* me){
 }
 
 void PowerLimit_calculateCommands(PowerLimit *me, MotorController *mcm, TorqueEncoder *tps){
-
     if(me->plToggle){
-        PowerLimit_updatePLPower(me);
+        //PowerLimit_updatePLPower(me);
         PowerLimit_setPLInitializationThreshold(me);
         PowerLimit_entryConditions(me, mcm);
         
@@ -174,8 +176,32 @@ void POWERLIMIT_PowerPID(PowerLimit *me, MotorController *mcm, bool preserveMode
     float setpointPower = ((float)(me->plTargetPower));
     float drawnPower = (float)((dcVoltage*dcCurrent)/1000.0f);
 
+    me->clampingMethod=4;
+    POWERLIMIT_updatePIDController(me, setpointPower, drawnPower);
+
+    float pidOutput = me->pid->output;
+
+    me->plTorqueCommand =(sbyte2)((pidOutput + drawnPower)* (9549.0f)/((float)motorRPM));    
+
     
-    POWERLIMIT_updatePIDController(me, setpointPower, drawnPower, FALSE); // FALSE = use power PID
+    MCM_update_PL_setTorqueCommand(mcm, me->plTorqueCommand); ///// set max to be based off of TPS reading and skip middle man, commanded TQ from MCM
+    MCM_set_PL_updateStatus(mcm, me->plStatus);
+}
+
+void POWERLIMIT_PowerPID2(PowerLimit *me, MotorController *mcm){
+    me->plMode = 2;
+    me->pid->saturationValue = 80;
+
+    sbyte4 motorRPM = (MCM_getMotorRPM(mcm));
+    sbyte4 dcVoltage = (MCM_getDCVoltage(mcm));
+    sbyte4 dcCurrent = (MCM_getDCCurrent(mcm));
+    sbyte2 commandedTQ = ((dcVoltage * dcCurrent) * 9.549) / motorRPM;
+
+    float setpointPower = ((float)(me->plTargetPower));
+    float drawnPower = (float)((dcVoltage*dcCurrent)/1000.0f);
+
+    me->clampingMethod=4;
+    POWERLIMIT_updatePIDController(me, setpointPower, drawnPower);
 
     float pidOutput = me->powerPID->output;
 
@@ -185,7 +211,6 @@ void POWERLIMIT_PowerPID(PowerLimit *me, MotorController *mcm, bool preserveMode
     MCM_update_PL_setTorqueCommand(mcm, me->plTorqueCommand); ///// set max to be based off of TPS reading and skip middle man, commanded TQ from MCM
     MCM_set_PL_updateStatus(mcm, me->plStatus);
 }
-
 
 void POWERLIMIT_TorquePID_PowerPID(PowerLimit *me, MotorController *mcm){
     me->plMode = 3;
@@ -251,15 +276,73 @@ void POWERLIMIT_TorquePID_PowerPID(PowerLimit *me, MotorController *mcm){
 void POWERLIMIT_updatePIDController(PowerLimit* me, float pidSetpoint, float sensorValue, bool useTorquePID) {
         PID* currentPID = POWERLIMIT_getCurrentPID(me);
         float currentError = pidSetpoint - sensorValue;
-        if (currentPID->proportional + currentPID->integral + currentPID->derivative + sensorValue > (float)(currentPID->saturationValue)) {
-            currentPID->totalError -= currentError;
-            currentPID->antiWindupFlag = TRUE;
+        switch (me->clampingMethod) {
+            case 0: //No clamping
+                me->pid->antiWindupFlag = FALSE;
+                break;
+            case 1: 
+                if (currentError > 0) {
+                    me->pid->antiWindupFlag = TRUE;
+                    PID_setSaturationPoint(me->pid, 231); 
+                }
+                else {
+                    me->pid->antiWindupFlag = FALSE;
+                }
+                break;
+            case 2: 
+                if (currentError > 0) {
+                    me->pid->antiWindupFlag = TRUE;
+                    PID_setSaturationPoint(me->pid, sensorValue); 
+                }
+                else {
+                    me->pid->antiWindupFlag = FALSE;
+                }
+                break;
+            case 3: 
+                if (currentError > 0) {
+                    me->pid->antiWindupFlag = TRUE;
+                    me->pid->totalError -= PID_getPreviousError(me->pid); 
+                }
+                else {
+                    me->pid->antiWindupFlag = FALSE;
+                }
+                break;
+            case 4: 
+                if (currentError < 0) {
+                    me->pid->antiWindupFlag = TRUE;
+                    me->pid->totalError -= PID_getPreviousError(me->pid); 
+
+                }
+                else {
+                    me->pid->antiWindupFlag = FALSE;
+                }
+                break;
+            case 5: {
+                float tentativeOutput = me->pid->proportional + me->pid->integral + me->pid->derivative + sensorValue;
+                if (tentativeOutput > me->pid->saturationValue) {
+                    me->pid->antiWindupFlag = TRUE;
+                    float correction = me->pid->saturationValue - tentativeOutput;
+                    float scaledCorrection = correction * me->pid->Ki;
+                    me->pid->integral += scaledCorrection;
+                }
+                else {
+                    me->pid->antiWindupFlag = FALSE;
+                }
+                break;
+            }
+            case 6: {
+                if (me->pid->proportional + me->pid->integral + me->pid->derivative + sensorValue > (float)(me->pid->saturationValue)) {
+                    me->pid->totalError -= PID_getPreviousError(me->pid);
+                    me->pid->antiWindupFlag = TRUE;
+                }
+                else {
+                    me->pid->antiWindupFlag = FALSE;
+                }
+                break;
+            }
         }
-        else {
-            currentPID->antiWindupFlag = FALSE;
-        }
-        PID_updateSetpoint(currentPID, pidSetpoint);
-        PID_computeOutput(currentPID, sensorValue);
+        PID_updateSetpoint(me->pid, pidSetpoint);
+        PID_computeOutput(me->pid, sensorValue);
 }
 
 

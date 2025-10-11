@@ -228,22 +228,23 @@ void Light_set(Light light, float4 percent)
 PLMode getPLMode() {
     float voltage = (float)(Sensor_PLKnob.sensorValue);
     
+
     if (voltage > 3700) {
-        return PL_MODE_80;
+        return PL_MODE_OFF;
     } 
     else if (voltage > 2900) {
-        return PL_MODE_60;
+        return PL_MODE_20;
     } 
     else if (voltage > 2300) {
-        return PL_MODE_50;
+        return PL_MODE_30;
     } 
     else if (voltage > 1500) {
         return PL_MODE_40;
     } 
     else if (voltage > 800) {
-        return PL_MODE_30;
+        return PL_MODE_50;
     } 
     else {
-        return PL_MODE_OFF;
+        return PL_MODE_60;
     }
 }
