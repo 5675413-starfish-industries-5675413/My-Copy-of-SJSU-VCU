@@ -827,14 +827,15 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     canMessages[canMessageCount - 1].data[byteNum++] = MCM_commands_getTorqueLimit(mcm) >> 8;
     canMessages[canMessageCount - 1].length = byteNum;
 
-    PID* currentPID = POWERLIMIT_getCurrentPID(pl);
+    bool useTorquePID = POWERLIMIT_getUseTorquePID(pl);
+    PID* currentPID = POWERLIMIT_getCurrentPID(pl, useTorquePID);
    // 511 : Power Limit Status A
     canMessageCount++;
     byteNum = 0;
     canMessages[canMessageCount - 1].id_format = IO_CAN_STD_FRAME;
     canMessages[canMessageCount - 1].id = canMessageID + canMessageCount - 1;
     canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(POWERLIMIT_getInitialisationThreshold(pl));
-    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(POWERLIMIT_getUsePowerPID(pl));
+    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(POWERLIMIT_getMode(pl));
     canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(POWERLIMIT_getStatus(pl));
     canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(PID_getTotalError(currentPID));
     canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(PID_getTotalError(currentPID)) >> 8;

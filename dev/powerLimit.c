@@ -79,20 +79,18 @@ void PowerLimit_entryConditions(PowerLimit* me, MotorController *mcm ){
 
 void PowerLimit_PIDReset(PowerLimit* me){
     // Reset torque PID
-    PID* torquePID = POWERLIMIT_getCurrentPID(me, TRUE);
-    torquePID->proportional = 0;
-    torquePID->integral = 0;
-    torquePID->previousError = 0;
-    torquePID->totalError = 0;
-    torquePID->derivative = 0;
+    me->torquePID->proportional = 0;
+    me->torquePID->integral = 0;
+    me->torquePID->previousError = 0;
+    me->torquePID->totalError = 0;
+    me->torquePID->derivative = 0;
     
     // Reset power PID
-    PID* powerPID = POWERLIMIT_getCurrentPID(me, FALSE);
-    powerPID->proportional = 0;
-    powerPID->integral = 0;
-    powerPID->previousError = 0;
-    powerPID->totalError = 0;
-    powerPID->derivative = 0;
+    me->powerPID->proportional = 0;
+    me->powerPID->integral = 0;
+    me->powerPID->previousError = 0;
+    me->powerPID->totalError = 0;
+    me->powerPID->derivative = 0;
 }
 
 
@@ -153,6 +151,7 @@ void PowerLimit_calculateCommands(PowerLimit *me, MotorController *mcm, TorqueEn
 void POWERLIMIT_TorquePID(PowerLimit *me, MotorController *mcm, bool preserveMode){
     if (!preserveMode) {
         me->plMode = 1;
+        me->usePowerPID = FALSE;
     }
     PID_setSaturationPoint(me->torquePID, 231);
 
@@ -181,8 +180,10 @@ void POWERLIMIT_TorquePID(PowerLimit *me, MotorController *mcm, bool preserveMod
 
 void POWERLIMIT_PowerPID(PowerLimit *me, MotorController *mcm, bool preserveMode){
     if (!preserveMode) {
+        me->usePowerPID = TRUE;
         me->plMode = 2;
     }
+
     me->powerPID->saturationValue = 80;
 
     sbyte2 commandedTQ = (sbyte2)(MCM_getCommandedTorque(mcm));
@@ -208,6 +209,7 @@ void POWERLIMIT_PowerPID(PowerLimit *me, MotorController *mcm, bool preserveMode
 
 void POWERLIMIT_PowerPID2(PowerLimit *me, MotorController *mcm){
     me->plMode = 2;
+    me->usePowerPID = TRUE;
     me->powerPID->saturationValue = 80;
 
     sbyte4 motorRPM = (MCM_getMotorRPM(mcm));
@@ -377,12 +379,13 @@ ubyte1 POWERLIMIT_getMode(PowerLimit* me){
     return me->plMode;
 }
 
-bool POWERLIMIT_getUsePowerPID(PowerLimit* me){
-    return me->usePowerPID;
-}
 
 PID* POWERLIMIT_getCurrentPID(PowerLimit* me, bool useTorquePID){
     return useTorquePID ? me->torquePID : me->powerPID;
+}
+
+bool POWERLIMIT_getUseTorquePID(PowerLimit* me){
+    return !me->usePowerPID;
 }
 
 sbyte2 POWERLIMIT_getTorqueCommand(PowerLimit* me){
