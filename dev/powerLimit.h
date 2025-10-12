@@ -81,6 +81,7 @@ void POWERLIMIT_TorquePID_PowerPID(PowerLimit *me, MotorController *mcm);
 void POWERLIMIT_updatePIDController(PowerLimit* me, float pidSetpoint, float sensorValue, bool useTorquePID);
 void PowerLimit_updatePLPower(PowerLimit* me);
 void PowerLimit_entryConditions(PowerLimit* me, MotorController *mcm );
+void PowerLimit_PIDReset(PowerLimit* me);
 
 /** GETTER FUNCTIONS **/
 ubyte1 POWERLIMIT_getClampingMethod(PowerLimit* me);

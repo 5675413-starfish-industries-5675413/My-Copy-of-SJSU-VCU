@@ -53,26 +53,49 @@ void PowerLimit_setPLInitializationThreshold(PowerLimit* me){
 
 void PowerLimit_entryConditions(PowerLimit* me, MotorController *mcm ){
      sbyte4 current_power_kw = (sbyte4) ((MCM_getDCVoltage(mcm) * MCM_getDCCurrent(mcm)) / 1000);
-     if(MCM_commands_getAppsTorque(mcm) == 0|| current_power_kw <= 0){
+     if(MCM_commands_getAppsTorque(mcm) == 0 || current_power_kw <= 0){ // if no torque command or power is 0, turn off PL
             me->plStatus = FALSE;
+            PowerLimit_PIDReset(me);
         }
 
     else{
-        if (me->plAlwaysOn==FALSE)
+        if (me->plAlwaysOn == FALSE)
         { // if PL is not always on, only turn on if power is above threshold and off if below
             if (current_power_kw > me->plInitializationThreshold) {
                 me->plStatus = TRUE;
             } else {
                 me->plStatus = FALSE;
+                PowerLimit_PIDReset(me);
             }
         } else 
         { // if PL is always on, only turn on if power is above threshold and never turn off
-            if (me->plStatus==FALSE && current_power_kw > me->plInitializationThreshold) {
+            if (me->plStatus == FALSE && current_power_kw > me->plInitializationThreshold) {
                 me->plStatus = TRUE;
+                PowerLimit_PIDReset(me); // start PL with a clean slate
             }
         }
     }
 }
+
+void PowerLimit_PIDReset(PowerLimit* me){
+    // Reset torque PID
+    PID* torquePID = POWERLIMIT_getCurrentPID(me, TRUE);
+    torquePID->proportional = 0;
+    torquePID->integral = 0;
+    torquePID->previousError = 0;
+    torquePID->totalError = 0;
+    torquePID->derivative = 0;
+    
+    // Reset power PID
+    PID* powerPID = POWERLIMIT_getCurrentPID(me, FALSE);
+    powerPID->proportional = 0;
+    powerPID->integral = 0;
+    powerPID->previousError = 0;
+    powerPID->totalError = 0;
+    powerPID->derivative = 0;
+}
+
+
 /** COMPUTATIONS **/
 void PowerLimit_updatePLPower(PowerLimit* me){
     PLMode plModeFromRotary = getPLMode();
@@ -269,7 +292,7 @@ void POWERLIMIT_TorquePID_PowerPID(PowerLimit *me, MotorController *mcm){
 }
 
 void POWERLIMIT_updatePIDController(PowerLimit* me, float pidSetpoint, float sensorValue, bool useTorquePID) {
-        PID* currentPID = POWERLIMIT_getCurrentPID(me);
+        PID* currentPID = POWERLIMIT_getCurrentPID(me, useTorquePID);
         float currentError = pidSetpoint - sensorValue;
         switch (me->clampingMethod) {
             case 0: //No clamping
@@ -358,8 +381,8 @@ bool POWERLIMIT_getUsePowerPID(PowerLimit* me){
     return me->usePowerPID;
 }
 
-PID* POWERLIMIT_getCurrentPID(PowerLimit* me){
-    return me->usePowerPID ? me->powerPID : me->torquePID;
+PID* POWERLIMIT_getCurrentPID(PowerLimit* me, bool useTorquePID){
+    return useTorquePID ? me->torquePID : me->powerPID;
 }
 
 sbyte2 POWERLIMIT_getTorqueCommand(PowerLimit* me){
