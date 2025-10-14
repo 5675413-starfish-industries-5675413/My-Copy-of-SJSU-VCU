@@ -1,0 +1,28 @@
+#include "IO_Driver.h" //Includes datatypes, constants, etc - should be included in every c file
+#include "motorController.h"
+#include "PID.h"
+#include "math.h"
+#include "powerLimit.h"
+
+typedef struct _Efficiency {
+    bool efficiencyToggle;
+    
+    // Energy Budget Algorithm Variables
+    float energyBudget_kWh;  // Energy Budget per lap (for now im doing 0.3 kWh)
+    float carryOverEnergy_kWh;  // Carry Over Energy from previous lap
+    float timeInStraights_s;  // Time in Straights
+    float timeInCorners_s;  // Time in Corners
+    float energySpentInCorners_kWh;  // Energy spent in corners
+    float energySpentInStraights_kWh;  // Energy spent in straights
+    float totalEnergyUsed_kWh;  // Total energy used this lap
+    float powerLimit_kW; // Power Limit calculated for next lap
+    PowerLimit *powerLimit;
+    
+} Efficiency;
+
+Efficiency* EFFICIENCY_new(bool efficiencyToggle);
+void Efficiency_calculateCommands(Efficiency* me, MotorController *mcm);
+// void EFFICIENCY_resetLap(Efficiency* me);
+// void EFFICIENCY_completeLap(Efficiency* me, MotorController *mcm);
+// bool EFFICIENCY_isLapComplete(Efficiency* me);
+// void EFFICIENCY_applyPowerLimit(Efficiency* me, PowerLimit* pl);

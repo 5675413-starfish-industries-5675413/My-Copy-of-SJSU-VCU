@@ -52,6 +52,7 @@
 #include "drs.h"
 #include "powerLimit.h"
 #include "PID.h"
+#include "efficiency.h"
 
 //Application Database, needed for TTC-Downloader
 APDB appl_db =
@@ -225,6 +226,7 @@ void main(void)
     LaunchControl *lc = LaunchControl_new(TRUE);
     DRS *drs = DRS_new();
     PowerLimit *pl = POWERLIMIT_new(FALSE);
+    Efficiency *eff = EFFICIENCY_new(FALSE);
 //---------------------------------------------------------------------------------------------------------
     //----------------------------------------------------------------------------
     // TODO: Additional Initial Power-up functions
@@ -450,6 +452,7 @@ void main(void)
         LaunchControl_calculateCommands(lc, tps, bps, mcm0, wss);
         // PowerLimit_updatePLPower(pl);
         PowerLimit_calculateCommands(pl, mcm0, tps);
+        Efficiency_calculateCommands(eff, mcm0);
         MCM_calculateCommands(mcm0, tps, bps);
 
         SafetyChecker_update(sc, mcm0, bms, tps, bps, &Sensor_HVILTerminationSense, &Sensor_LVBattery);
