@@ -1,10 +1,10 @@
 from cffi import FFI
 import pytest
-import math
 
 ffi = FFI()
 import os
 import sys
+import json
 
 # Get absolute path to DLL
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -95,6 +95,13 @@ uint8_t TEST_getPLClampingMethod(PowerLimit* me);
 
 
 # -------- Helper functions --------
+def load_power_limit_configs():
+    """Load configurations from power_limit_params.json"""
+    json_path = os.path.join(script_dir, "easyCompiling", "power_limit_params.json")
+    with open(json_path, 'r') as f:
+        data = json.load(f)
+    return data['build_configurations']
+
 def set_tps_percent(tps, percent):
     """Set TPS percentages directly (0.0 to 1.0)"""
     lib.TEST_TPS_setBoth_percent(tps, percent)
@@ -127,8 +134,13 @@ def pl(request):
 
 
 # -------- Basic functionality tests --------
-def test_one_step_runs(pl, mcm0, tps):
-    # Set TPS to 50%
+@pytest.mark.parametrize("config", load_power_limit_configs(), ids=lambda c: c['name'])
+def test_one_step_runs_parameterized(pl, mcm0, tps, config):
+    """Run test with configuration from JSON"""
+    params = config['parameters']
+    pid = params['pid']
+    
+    # Set TPS to 100%
     set_tps_percent(tps, 1.0)
     
     # Configure Motor Controller Parameters
@@ -143,27 +155,73 @@ def test_one_step_runs(pl, mcm0, tps):
     lib.TEST_setPLKnobVoltage(1800)  # Select 40kW mode
     
     # Configure Power Limit Parameters
-    lib.TEST_setPLAlwaysOn(pl, True)
-    lib.TEST_setPID(pl, 10, 50, 0, 231, 10)
-    lib.TEST_setPLMode(pl, 1)
+    lib.TEST_setPLAlwaysOn(pl, params['plAlwaysOn'])
+    lib.TEST_setPID(pl, pid['Kp'], pid['Ki'], pid['Kd'], pid['saturation'], pid['gain'])
+    lib.TEST_setPLMode(pl, params['plMode'])
     lib.TEST_setPLStatus(pl, True)
     lib.TEST_setPLTorqueCommand(pl, 0)
-    lib.TEST_setPLTargetPower(pl, 40)
-    lib.TEST_setPLThresholdDiscrepancy(pl, 15)
-    lib.TEST_setPLInitializationThreshold(pl, 0)
-    lib.TEST_setClampingMethod(pl, 6)
+    lib.TEST_setPLTargetPower(pl, params['plTargetPower'])
+    lib.TEST_setPLThresholdDiscrepancy(pl, params['plThresholdDiscrepancy'])
+    lib.TEST_setPLInitializationThreshold(pl, params['plInitializationThreshold'])
+    lib.TEST_setClampingMethod(pl, params['clampingMethod'])
     
-    # Debug: Print values before PL calculation
+    # Print values before PL calculation
     print("\n=== DEBUG: Before PowerLimit_calculateCommand ===")
-    print(f"TPS0: {lib.TEST_getTPS0_percent(tps):.2f}, TPS1: {lib.TEST_getTPS1_percent(tps):.2f}, Travel: {lib.TEST_getTravelPercent(tps):.2f}")
-    print(f"MCM RPM: {lib.TEST_MCM_getMotorRPM(mcm0)}, Voltage: {lib.TEST_MCM_getDCVoltage(mcm0)}V, Current: {lib.TEST_MCM_getDCCurrent(mcm0)}A")
+    print(f"TPS0: {lib.TEST_getTPS0_percent(tps):.2f}\nTPS1: {lib.TEST_getTPS1_percent(tps):.2f}\nTravel: {lib.TEST_getTravelPercent(tps):.2f}")
+    print(f"MCM RPM: {lib.TEST_MCM_getMotorRPM(mcm0)}\nVoltage: {lib.TEST_MCM_getDCVoltage(mcm0)}V\nCurrent: {lib.TEST_MCM_getDCCurrent(mcm0)}A")
     print(f"MCM appsTorque: {lib.TEST_MCM_getAppsTorque(mcm0)}")
-    print(f"PL Status (before): {lib.TEST_getPLStatus(pl)}, Mode: {lib.TEST_getPLMode(pl)}, AlwaysOn: {lib.TEST_getPLAlwaysOn(pl)}")
-    print(f"PL TargetPower: {lib.TEST_getPLTargetPower(pl)}kW, InitThreshold: {lib.TEST_getPLInitializationThreshold(pl)}kW")
+    print(f"PL Status (before): {lib.TEST_getPLStatus(pl)}\nMode: {lib.TEST_getPLMode(pl)}\nAlwaysOn: {lib.TEST_getPLAlwaysOn(pl)}")
+    print(f"PL TargetPower: {lib.TEST_getPLTargetPower(pl)}kW\nInitThreshold: {lib.TEST_getPLInitializationThreshold(pl)}kW")
     
     lib.PowerLimit_calculateCommand(pl, mcm0, tps)
     
-    # Debug: Print values after PL calculation
+    # Print values after PL calculation
+    print("\n=== DEBUG: After PowerLimit_calculateCommand ===")
+    print(f"PL Status (after): {lib.TEST_getPLStatus(pl)}")
+    print(f"PL TorqueCommand: {lib.TEST_getPLTorqueCommand(pl)}")
+    
+    # Verify PL is active and producing a torque command
+    assert lib.TEST_getPLStatus(pl) == True, "PowerLimit should be active"
+    assert lib.TEST_getPLTorqueCommand(pl) > 0, "PowerLimit should produce non-zero torque command"
+    # Actual value is ~1270 with these parameters
+    
+def test_one_step_runs(pl, mcm0, tps):
+    # Set TPS to 100%
+    set_tps_percent(tps, 1.0)
+    
+    # Configure Motor Controller Parameters
+    lib.TEST_MCM_setCommandedTorque(mcm0)
+    lib.TEST_MCM_setRPM(mcm0, 3000)
+    lib.TEST_MCM_setDCVoltage(mcm0, 700)
+    lib.TEST_MCM_setDCCurrent(mcm0, 50)
+    lib.MCM_calculateCommands(mcm0, tps, ffi.NULL)
+    
+    # Configure PL Knob Sensor (must be set for getPLMode() to work!)
+    # For PL_MODE_40: voltage must be between 1500-2300
+    lib.TEST_setPLKnobVoltage(1800)  # Select 40kW mode
+    
+    # Configure Power Limit Parameters
+    lib.TEST_setPLAlwaysOn(pl, 1)
+    lib.TEST_setPID(pl, 10, 0, 0, 231, 10)
+    lib.TEST_setPLMode(pl, 1)
+    lib.TEST_setPLStatus(pl, True)
+    lib.TEST_setPLTorqueCommand(pl, 0)
+    lib.TEST_setPLTargetPower(pl, 80)
+    lib.TEST_setPLThresholdDiscrepancy(pl, 15)
+    lib.TEST_setPLInitializationThreshold(pl, 0)
+    lib.TEST_setClampingMethod(pl, 3)
+    
+    # Print values before PL calculation
+    print("\n=== DEBUG: Before PowerLimit_calculateCommand ===")
+    print(f"TPS0: {lib.TEST_getTPS0_percent(tps):.2f}\nTPS1: {lib.TEST_getTPS1_percent(tps):.2f}\nTravel: {lib.TEST_getTravelPercent(tps):.2f}")
+    print(f"MCM RPM: {lib.TEST_MCM_getMotorRPM(mcm0)}\nVoltage: {lib.TEST_MCM_getDCVoltage(mcm0)}V\nCurrent: {lib.TEST_MCM_getDCCurrent(mcm0)}A")
+    print(f"MCM appsTorque: {lib.TEST_MCM_getAppsTorque(mcm0)}")
+    print(f"PL Status (before): {lib.TEST_getPLStatus(pl)}\nMode: {lib.TEST_getPLMode(pl)}\nAlwaysOn: {lib.TEST_getPLAlwaysOn(pl)}")
+    print(f"PL TargetPower: {lib.TEST_getPLTargetPower(pl)}kW\nInitThreshold: {lib.TEST_getPLInitializationThreshold(pl)}kW")
+    
+    lib.PowerLimit_calculateCommand(pl, mcm0, tps)
+    
+    # Print values after PL calculation
     print("\n=== DEBUG: After PowerLimit_calculateCommand ===")
     print(f"PL Status (after): {lib.TEST_getPLStatus(pl)}")
     print(f"PL TorqueCommand: {lib.TEST_getPLTorqueCommand(pl)}")
