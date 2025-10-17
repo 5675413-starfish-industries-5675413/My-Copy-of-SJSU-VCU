@@ -1002,3 +1002,8 @@ void MCM_incrementRPMForTesting(MotorController* me, sbyte4 increment) {
         me->motorRPM = 10000;
     }
 }
+
+void MCM_TEST_setCommandedTorque(MotorController *me, sbyte2 torque)
+{
+    me->commandedTorque = torque;
+}

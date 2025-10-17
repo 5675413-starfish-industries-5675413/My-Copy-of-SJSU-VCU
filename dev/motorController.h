@@ -64,6 +64,7 @@ void MCM_set_Regen_percentAPPSForCoasting(MotorController* mcm, float4 percentAP
 void MCM_incrementVoltageForTesting(MotorController* me, sbyte4 increment);
 void MCM_incrementCurrentForTesting(MotorController* me, sbyte4 increment);
 void MCM_incrementRPMForTesting(MotorController* me, sbyte4 increment);
+void MCM_TEST_setCommandedTorque(MotorController* me, sbyte2 torque);
 
 ubyte2 MCM_getMaxTorqueDNm(MotorController* mcm);
 ubyte2 MCM_get_Regen_torqueLimitDNm(MotorController* mcm);
