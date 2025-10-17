@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include "torqueEncoder.h"
 #include "motorController.h"
+#include "powerLimit.h"
 
 //Export macro
 #ifdef _WIN32
@@ -38,5 +39,72 @@ DLL_EXPORT void TEST_TPS_setBoth_percent(TorqueEncoder* te, float percent) {
 // Set Travel Percent
 DLL_EXPORT void TEST_TPS_setTravelPercent(TorqueEncoder* te) { 
     te->travelPercent = (te->tps0_percent + te->tps1_percent) / 2; 
+}
+
+//-----------------MotorController-----------------//
+// Set CommandedTorque with commands_torque (simulates MCM feedback over CAN)
+DLL_EXPORT void TEST_MCM_setCommandedTorque(MotorController* me) { 
+    MCM_TEST_setCommandedTorque(me, MCM_commands_getTorque(me));
+}
+
+// Set DC Voltage increment
+DLL_EXPORT void TEST_MCM_setDCVoltage(MotorController* me, sbyte4 voltage) { 
+    MCM_incrementVoltageForTesting(me, voltage);
+}
+
+// Set DC Current increment
+DLL_EXPORT void TEST_MCM_setDCCurrent(MotorController* me, sbyte4 current) { 
+    MCM_incrementCurrentForTesting(me, current);
+}
+
+// Set Motor RPM increment
+DLL_EXPORT void TEST_MCM_setRPM(MotorController* me, sbyte4 motorRPM) { 
+    MCM_incrementRPMForTesting(me, motorRPM);
+}
+
+//-----------------PowerLimit-----------------//
+// Set PLAlwaysOn
+DLL_EXPORT void TEST_PL_setAlwaysOn(PowerLimit* me, bool alwaysOn) { 
+    me->plAlwaysOn = alwaysOn;
+}
+
+// Set PID -> kp, ki, kd, saturationValue, scalefactor
+DLL_EXPORT void TEST_PL_setPID(PowerLimit* me, sbyte1 kp, sbyte1 ki, sbyte1 kd, sbyte2 saturationValue, sbyte2 scalefactor) { 
+    me->pid = PID_new(kp, ki, kd, saturationValue, scalefactor);
+}
+
+// Set PLMode
+DLL_EXPORT void TEST_PL_setMode(PowerLimit* me, ubyte1 mode) { 
+    me->plMode = mode;
+}
+
+// Set PLStatus
+DLL_EXPORT void TEST_PL_setStatus(PowerLimit* me, bool status) { 
+    me->plStatus = status;
+}
+
+// Set PLTorqueCommand
+DLL_EXPORT void TEST_PL_setTorqueCommand(PowerLimit* me, sbyte2 plTorqueCommand) { 
+    me->plTorqueCommand = plTorqueCommand;
+}
+
+// Set PLTargetPower
+DLL_EXPORT void TEST_PL_setTargetPower(PowerLimit* me, ubyte1 targetPower) { 
+    me->plTargetPower = targetPower;
+}
+
+// Set PLThresholdDiscrepancy
+DLL_EXPORT void TEST_PL_setThresholdDiscrepancy(PowerLimit* me, ubyte1 thresholdDiscrepancy) { 
+    me->plThresholdDiscrepancy = thresholdDiscrepancy;
+}
+
+// Set PLInitializationThreshold
+DLL_EXPORT void TEST_PL_setInitializationThreshold(PowerLimit* me, ubyte1 initializationThreshold) { 
+    me->plInitializationThreshold = initializationThreshold;
+}
+
+// Set PLClampingMethod
+DLL_EXPORT void TEST_PL_setClampingMethod(PowerLimit* me, ubyte1 clampingMethod) { 
+    me->clampingMethod = clampingMethod;
 }
 
