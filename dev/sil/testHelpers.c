@@ -10,6 +10,13 @@
   #define DLL_EXPORT __attribute__((visibility("default")))
 #endif
 
+//-----------------Constructors (Exported Wrappers)-----------------//
+// These already exist in the source files, just export them
+extern SerialManager* SerialManager_new(void);
+extern MotorController* MotorController_new(SerialManager* sm, ubyte2 id, Direction dir, sbyte2 a, sbyte1 b, sbyte1 c);
+extern PowerLimit* POWERLIMIT_new(bool plToggle);
+extern TorqueEncoder* TorqueEncoder_new(bool bench);
+
 //-----------------TorqueEncoder-----------------//
 // typedef struct {
 //     int raw0;
@@ -41,6 +48,21 @@ DLL_EXPORT void TEST_TPS_setTravelPercent(TorqueEncoder* te) {
     te->travelPercent = (te->tps0_percent + te->tps1_percent) / 2; 
 }
 
+// Get tps0_percent
+DLL_EXPORT float TEST_getTPS0_percent(TorqueEncoder* te) { 
+    return te->tps0_percent;
+}
+
+// Get tps1_percent
+DLL_EXPORT float TEST_getTPS1_percent(TorqueEncoder* te) { 
+    return te->tps1_percent;
+}
+
+// Get travelPercent
+DLL_EXPORT float TEST_getTravelPercent(TorqueEncoder* te) { 
+    return te->travelPercent;
+}
+
 //-----------------MotorController-----------------//
 // Set CommandedTorque with commands_torque (simulates MCM feedback over CAN)
 DLL_EXPORT void TEST_MCM_setCommandedTorque(MotorController* me) { 
@@ -60,6 +82,21 @@ DLL_EXPORT void TEST_MCM_setDCCurrent(MotorController* me, sbyte4 current) {
 // Set Motor RPM increment
 DLL_EXPORT void TEST_MCM_setRPM(MotorController* me, sbyte4 motorRPM) { 
     MCM_incrementRPMForTesting(me, motorRPM);
+}
+
+// Get DC Voltage
+DLL_EXPORT sbyte4 TEST_MCM_getDCVoltage(MotorController* me) { 
+    return MCM_getDCVoltage(me);
+}
+
+// Get DC Current
+DLL_EXPORT sbyte4 TEST_MCM_getDCCurrent(MotorController* me) { 
+    return MCM_getDCCurrent(me);
+}
+
+// Get Motor RPM
+DLL_EXPORT sbyte4 TEST_MCM_getMotorRPM(MotorController* me) { 
+    return MCM_getMotorRPM(me);
 }
 
 //-----------------PowerLimit-----------------//
@@ -113,3 +150,38 @@ DLL_EXPORT sbyte2 TEST_getPLTorqueCommand(PowerLimit* me) {
     return me->plTorqueCommand;
 }
 
+// TESTING IF IT IS PROPERLY SETTING THE VALUES
+// Get PLAlwaysOn
+DLL_EXPORT bool TEST_getPLAlwaysOn(PowerLimit* me) { 
+    return me->plAlwaysOn;
+}
+
+// Get PLMode
+DLL_EXPORT ubyte1 TEST_getPLMode(PowerLimit* me) { 
+    return me->plMode;
+}
+
+// Get PLStatus
+DLL_EXPORT bool TEST_getPLStatus(PowerLimit* me) { 
+    return me->plStatus;
+}
+
+// Get PLTargetPower
+DLL_EXPORT ubyte1 TEST_getPLTargetPower(PowerLimit* me) { 
+    return me->plTargetPower;
+}
+
+// Get PLThresholdDiscrepancy
+DLL_EXPORT ubyte1 TEST_getPLThresholdDiscrepancy(PowerLimit* me) { 
+    return me->plThresholdDiscrepancy;
+}
+
+// Get PLInitializationThreshold
+DLL_EXPORT ubyte1 TEST_getPLInitializationThreshold(PowerLimit* me) { 
+    return me->plInitializationThreshold;
+}
+
+// Get PLClampingMethod
+DLL_EXPORT ubyte1 TEST_getPLClampingMethod(PowerLimit* me) { 
+    return me->clampingMethod;
+}
