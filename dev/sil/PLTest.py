@@ -311,5 +311,55 @@ def test_powerlimit_setters(pl):
     lib.TEST_setPLTorqueCommand(pl, 1500)
     assert lib.TEST_getPLTorqueCommand(pl) == 1500
 
+# -------- Rotary (PL Knob) Tests --------
+@pytest.mark.parametrize("voltage,expected_power,description", [
+    (4000, 80, "PL_MODE_80 (>3700V)"),
+    (3000, 60, "PL_MODE_60 (2901-3700V)"),
+    (2500, 50, "PL_MODE_50 (2301-2900V)"),
+    (1800, 40, "PL_MODE_40 (1501-2300V)"),
+    (1200, 30, "PL_MODE_30 (801-1500V)"),
+    (500, 0, "PL_MODE_OFF (<=800V)"),
+])
+def test_rotary_voltage_ranges(pl, mcm0, tps, voltage, expected_power, description):
+    """Test that rotary knob voltage correctly maps to power limit modes"""
+    
+    # Set up test conditions
+    set_tps_percent(tps, 1.0)  # Full throttle
+    lib.TEST_MCM_setCommandedTorque(mcm0)
+    lib.TEST_MCM_setRPM(mcm0, 3000)
+    lib.TEST_MCM_setDCVoltage(mcm0, 700)
+    lib.TEST_MCM_setDCCurrent(mcm0, 50)
+    lib.MCM_calculateCommands(mcm0, tps, ffi.NULL)
+    
+    # Set rotary knob voltage
+    lib.TEST_setPLKnobVoltage(voltage)
+    
+    # Configure basic PL parameters
+    lib.TEST_setPLAlwaysOn(pl, False)  # Let rotary control toggle
+    lib.TEST_setPID(pl, 10, 0, 0, 231, 10)
+    lib.TEST_setPLMode(pl, 1)
+    lib.TEST_setPLStatus(pl, False)
+    lib.TEST_setPLTorqueCommand(pl, 0)
+    lib.TEST_setPLThresholdDiscrepancy(pl, 15)
+    lib.TEST_setClampingMethod(pl, 3)
+    
+    # Run power limit calculation (this reads rotary and sets target power)
+    lib.PowerLimit_calculateCommand(pl, mcm0, tps)
+    
+    # Verify the target power was set correctly (except for OFF mode)
+    if expected_power > 0:
+        actual_power = lib.TEST_getPLTargetPower(pl)
+        print(f"\n{description}: Voltage={voltage}V -> Expected={expected_power}kW, Got={actual_power}kW")
+        assert actual_power == expected_power, f"Voltage {voltage}V should map to {expected_power}kW, got {actual_power}kW"
+        
+        # For power modes where motor power (~44kW) is below target, PL status will be True
+        # For 60kW and 80kW modes, motor is already below limit so PL may not need to activate
+        if expected_power <= 50:
+            assert lib.TEST_getPLStatus(pl) == True, f"PowerLimit should be active at {voltage}V ({expected_power}kW)"
+    else:
+        # OFF mode - just verify that PL is disabled (status should be False)
+        print(f"\n{description}: Voltage={voltage}V -> PL should be OFF")
+        assert lib.TEST_getPLStatus(pl) == False, f"PowerLimit should be OFF at {voltage}V"
+        
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
