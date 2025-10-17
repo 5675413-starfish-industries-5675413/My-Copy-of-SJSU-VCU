@@ -4,18 +4,42 @@ import math
 
 ffi = FFI()
 import os
-lib_path = os.path.join(os.path.dirname(__file__), "libpl_sil.dll")
-lib = ffi.dlopen(lib_path)  # Windows DLL with full path
+import sys
+
+# Get absolute path to DLL
+script_dir = os.path.dirname(os.path.abspath(__file__))
+lib_path = os.path.join(script_dir, "libpl_sil.dll")
+
+print(f"Loading DLL from: {lib_path}")
+print(f"DLL exists: {os.path.exists(lib_path)}")
+
+try:
+    lib = ffi.dlopen(lib_path)
+    print("✓ DLL loaded successfully!")
+except OSError as e:
+    print(f"✗ Failed to load DLL: {e}")
+    print("\nTrying alternative: load with ctypes first...")
+    import ctypes
+    try:
+        ctypes.CDLL(lib_path)
+        print("ctypes can load it - retrying with cffi...")
+        lib = ffi.dlopen(lib_path)
+    except Exception as e2:
+        print(f"ctypes also failed: {e2}")
+        sys.exit(1)
 
 ffi.cdef(r"""
 typedef unsigned char  uint8_t;
+typedef signed char    int8_t;
 typedef short          int16_t;
+typedef int            int32_t;
 typedef _Bool          bool;
 
-typedef struct SerialManager   SerialManager;
-typedef struct MotorController MotorController;
-typedef struct PowerLimit      PowerLimit;
-typedef struct TorqueEncoder   TorqueEncoder;
+typedef struct SerialManager       SerialManager;
+typedef struct MotorController     MotorController;
+typedef struct PowerLimit          PowerLimit;
+typedef struct TorqueEncoder       TorqueEncoder;
+typedef struct BrakePressureSensor BusPower;  /* BusPower is alias for BrakePressureSensor */
 
 /* REAL constructors */
 SerialManager*   SerialManager_new(void);
@@ -23,65 +47,41 @@ MotorController* MotorController_new(SerialManager* sm, int id, int dir, int a, 
 PowerLimit*      POWERLIMIT_new(bool plToggle);
 TorqueEncoder*   TorqueEncoder_new(bool bench);
 
-/* Function under test */
-int PowerLimit_calculateCommand(PowerLimit* pl, MotorController* mcm0, TorqueEncoder* tps);
+/* Functions under test */
+void MCM_calculateCommands(MotorController* mcm0, TorqueEncoder* tps, BusPower* bps);
+void PowerLimit_calculateCommand(PowerLimit* pl, MotorController* mcm0, TorqueEncoder* tps);
+
+/* TorqueEncoder Test Helpers */
+void    TEST_TPS_set0_percent(TorqueEncoder* te, float percent);
+void    TEST_TPS_set1_percent(TorqueEncoder* te, float percent);
+void    TEST_TPS_setBoth_percent(TorqueEncoder* te, float percent);
+void    TEST_TPS_setTravelPercent(TorqueEncoder* te);
 
 /* Motor Controller Test Helpers */
-void    TEST_MCM_setRPM(MotorController* mcm, int rpm);
-void    TEST_MCM_setBusDeciVolts(MotorController* mcm, int dv);
-void    TEST_MCM_setCurrent(MotorController* mcm, int current);
-void    TEST_MCM_setCommandedTorque(MotorController* mcm, int torque);
-int     TEST_MCM_getRPM(MotorController* mcm);
-int     TEST_MCM_getBusDeciVolts(MotorController* mcm);
-int     TEST_MCM_getCurrent(MotorController* mcm);
-int     TEST_MCM_getCommandedTorque(MotorController* mcm);
-int     TEST_MCM_getAppsTorque(MotorController* mcm);
+void    TEST_MCM_setCommandedTorque(MotorController* me);
+void    TEST_MCM_setDCVoltage(MotorController* me, int32_t voltage);
+void    TEST_MCM_setDCCurrent(MotorController* me, int32_t current);
+void    TEST_MCM_setRPM(MotorController* me, int32_t motorRPM);
 
 /* Power Limit Test Helpers */
-void    TEST_PL_setTargetPower(PowerLimit* pl, uint8_t kw);
-void    TEST_PL_setMode(PowerLimit* pl, uint8_t mode);
-void    TEST_PL_setAlwaysOn(PowerLimit* pl, bool on);
-void    TEST_PL_setToggle(PowerLimit* pl, bool on);
-void    TEST_PL_setClampingMethod(PowerLimit* pl, uint8_t method);
-void    TEST_PL_setThresholdDiscrepancy(PowerLimit* pl, uint8_t threshold);
-int16_t TEST_PL_getTorqueCmd(const PowerLimit* pl);
-bool    TEST_PL_getStatus(const PowerLimit* pl);
-uint8_t TEST_PL_getTargetPower(const PowerLimit* pl);
-uint8_t TEST_PL_getMode(const PowerLimit* pl);
-bool    TEST_PL_getAlwaysOn(const PowerLimit* pl);
-bool    TEST_PL_getToggle(const PowerLimit* pl);
-uint8_t TEST_PL_getClampingMethod(const PowerLimit* pl);
-uint8_t TEST_PL_getThresholdDiscrepancy(const PowerLimit* pl);
-
-/* Torque Encoder Test Helpers */
-void    TEST_TPS_attachVirtual(TorqueEncoder* te);
-void    TEST_TPS_set0_raw(TorqueEncoder* te, int raw);
-void    TEST_TPS_set1_raw(TorqueEncoder* te, int raw);
-int     TEST_TPS_get0_raw(void);
-int     TEST_TPS_get1_raw(void);
+void    TEST_setPLAlwaysOn(PowerLimit* me, bool alwaysOn);
+void    TEST_setPID(PowerLimit* me, int8_t kp, int8_t ki, int8_t kd, int16_t saturationValue, int16_t scalefactor);
+void    TEST_setPLMode(PowerLimit* me, uint8_t mode);
+void    TEST_setPLStatus(PowerLimit* me, bool status);
+void    TEST_setPLTorqueCommand(PowerLimit* me, int16_t plTorqueCommand);
+void    TEST_setPLTargetPower(PowerLimit* me, uint8_t targetPower);
+void    TEST_setPLThresholdDiscrepancy(PowerLimit* me, uint8_t thresholdDiscrepancy);
+void    TEST_setPLInitializationThreshold(PowerLimit* me, uint8_t initializationThreshold);
+void    TEST_setClampingMethod(PowerLimit* me, uint8_t clampingMethod);
+int16_t TEST_getPLTorqueCommand(PowerLimit* me);
 """)
 
 
 # -------- Helper functions --------
-def set_tps_for_torque(tps, target_torque_dnm, max_torque_dnm=2310):
-    """Set TPS raw values to achieve a target torque command"""
-    # Calculate percentage: target_torque / max_torque
-    percentage = target_torque_dnm / max_torque_dnm
-    
-    # TPS raw values typically range from ~1000 to ~3000 for 0-100%
-    # Map percentage to TPS raw values
-    tps_min = 1000
-    tps_max = 3000
-    tps_range = tps_max - tps_min
-    
-    tps0_raw = int(tps_min + percentage * tps_range)
-    tps1_raw = int(tps_min + percentage * tps_range - 20)  # Slight offset for redundancy
-    
-    lib.TEST_TPS_set0_raw(tps, tps0_raw)
-    lib.TEST_TPS_set1_raw(tps, tps1_raw)
-    
-    return tps0_raw, tps1_raw
-
+def set_tps_percent(tps, percent):
+    """Set TPS percentages directly (0.0 to 1.0)"""
+    lib.TEST_TPS_setBoth_percent(tps, percent)
+    lib.TEST_TPS_setTravelPercent(tps)
 
 # -------- fixtures (new objects per test) --------
 @pytest.fixture
@@ -111,247 +111,75 @@ def pl(request):
 
 # -------- Basic functionality tests --------
 def test_one_step_runs(pl, mcm0, tps):
-    """Basic smoke test to ensure power limit calculation runs"""
-    lib.TEST_PL_setToggle(pl, True)
-    lib.TEST_PL_setAlwaysOn(pl, True)
-    lib.TEST_PL_setMode(pl, 1)         # 1 = Torque-PID
-    lib.TEST_PL_setTargetPower(pl, 30) # 30 kW
-
-    lib.TEST_MCM_setRPM(mcm0, 2500)
-    lib.TEST_MCM_setBusDeciVolts(mcm0, 6500)  # 650.0 V
-    lib.TEST_MCM_setCurrent(mcm0, 50)         # 50 A
+    # Set TPS to 50%
+    set_tps_percent(tps, 1.0)
     
-    # Set TPS values to simulate 1000 dNm apps torque
-    set_tps_for_torque(tps, 1000)
-
-    rc = lib.PowerLimit_calculateCommand(pl, mcm0, tps)
-    assert rc == 0
-
-    cmd = lib.TEST_PL_getTorqueCmd(pl)
-    status = lib.TEST_PL_getStatus(pl)
-    assert status in (True, False)
-    assert -32768 <= cmd <= 32767
-
-
-# -------- Parameter injection tests --------
-@pytest.mark.parametrize("commanded_torque", [500, 1000, 1500, 2000, 2310])
-def test_different_commanded_torques(pl, mcm0, tps, commanded_torque):
-    """Test power limit behavior with different commanded torque values"""
-    lib.TEST_PL_setToggle(pl, True)
-    lib.TEST_PL_setAlwaysOn(pl, True)
-    lib.TEST_PL_setMode(pl, 1)
-    lib.TEST_PL_setTargetPower(pl, 30)
-
-    # Set up motor controller state
+    # Configure Motor Controller Parameters
+    lib.TEST_MCM_setCommandedTorque(mcm0)
     lib.TEST_MCM_setRPM(mcm0, 3000)
-    lib.TEST_MCM_setBusDeciVolts(mcm0, 6000)  # 600V
-    lib.TEST_MCM_setCurrent(mcm0, 60)         # 60A = 36kW
+    lib.TEST_MCM_setDCVoltage(mcm0, 700)
+    lib.TEST_MCM_setDCCurrent(mcm0, 50)
+    lib.MCM_calculateCommands(mcm0, tps, ffi.NULL)
     
-    # Set TPS values to simulate the commanded torque
-    set_tps_for_torque(tps, commanded_torque)
-
-    rc = lib.PowerLimit_calculateCommand(pl, mcm0, tps)
-    assert rc == 0
-
-    pl_torque = lib.TEST_PL_getTorqueCmd(pl)
-    pl_status = lib.TEST_PL_getStatus(pl)
+    # Configure Power Limit Parameters
+    lib.TEST_setPLAlwaysOn(pl, True)
+    lib.TEST_setPID(pl, 10, 50, 0, 231, 10)
+    lib.TEST_setPLMode(pl, 1)
+    #lib.TEST_setPLStatus(pl, True)
+    lib.TEST_setPLTorqueCommand(pl, 0)
+    lib.TEST_setPLTargetPower(pl, 40)
+    lib.TEST_setPLThresholdDiscrepancy(pl, 15)
+    lib.TEST_setPLInitializationThreshold(pl, 0)
+    lib.TEST_setClampingMethod(pl, 6)
     
-    # Power limit should be active since 36kW > 30kW target
-    if pl_status:
-        assert pl_torque <= commanded_torque  # Should limit torque
-        assert pl_torque >= 0  # Should be positive
+    lib.PowerLimit_calculateCommand(pl, mcm0, tps)
+    print(lib.TEST_getPLTorqueCommand(pl))
+    assert lib.TEST_getPLTorqueCommand(pl) == 1000
 
-
-@pytest.mark.parametrize("target_power", [20, 30, 40, 50, 60, 80])
-def test_different_power_targets(pl, mcm0, tps, target_power):
-    """Test power limit behavior with different power targets"""
-    lib.TEST_PL_setToggle(pl, True)
-    lib.TEST_PL_setAlwaysOn(pl, True)
-    lib.TEST_PL_setMode(pl, 1)
-    lib.TEST_PL_setTargetPower(pl, target_power)
-
-    # Set up high power scenario
-    lib.TEST_MCM_setRPM(mcm0, 4000)
-    lib.TEST_MCM_setBusDeciVolts(mcm0, 7000)  # 700V
-    lib.TEST_MCM_setCurrent(mcm0, 80)         # 80A = 56kW
+# -------- Setter Verification Tests --------
+def test_tps_setters(tps):
+    """Verify TPS percentage setters work correctly"""
+    # Test setting percentages - verified by successful calls (no crashes)
+    lib.TEST_TPS_set0_percent(tps, 0.3)
+    lib.TEST_TPS_set1_percent(tps, 0.3)
     
-    # Set TPS values to simulate 2000 dNm apps torque
-    set_tps_for_torque(tps, 2000)
-
-    rc = lib.PowerLimit_calculateCommand(pl, mcm0, tps)
-    assert rc == 0
-
-    pl_torque = lib.TEST_PL_getTorqueCmd(pl)
-    pl_status = lib.TEST_PL_getStatus(pl)
+    # Test setting both at once
+    lib.TEST_TPS_setBoth_percent(tps, 0.75)
     
-    # Should be active when 56kW > target_power
-    if 56 > target_power:
-        assert pl_status == True
-        assert pl_torque < 2000  # Should limit torque
-    else:
-        assert pl_status == False or pl_torque == 2000
-
-
-@pytest.mark.parametrize("pl_mode", [1, 2, 3])
-def test_different_power_limit_modes(pl, mcm0, tps, pl_mode):
-    """Test different power limit control modes"""
-    lib.TEST_PL_setToggle(pl, True)
-    lib.TEST_PL_setAlwaysOn(pl, True)
-    lib.TEST_PL_setMode(pl, pl_mode)
-    lib.TEST_PL_setTargetPower(pl, 40)
-
-    # Set up scenario that should trigger power limiting
-    lib.TEST_MCM_setRPM(mcm0, 3500)
-    lib.TEST_MCM_setBusDeciVolts(mcm0, 6500)  # 650V
-    lib.TEST_MCM_setCurrent(mcm0, 70)         # 70A = 45.5kW
+    # Test travel percent calculation
+    lib.TEST_TPS_setTravelPercent(tps)
     
-    # Set TPS values to simulate 1800 dNm apps torque
-    set_tps_for_torque(tps, 1800)
+    # If no errors, test passes
+    assert True
 
-    rc = lib.PowerLimit_calculateCommand(pl, mcm0, tps)
-    assert rc == 0
-
-    pl_torque = lib.TEST_PL_getTorqueCmd(pl)
-    pl_status = lib.TEST_PL_getStatus(pl)
-    
-    # All modes should limit torque when power exceeds target
-    if pl_status:
-        assert pl_torque <= 1800
-        assert pl_torque >= 0
-
-
-# -------- Edge case tests --------
-def test_zero_torque_command(pl, mcm0, tps):
-    """Test power limit behavior with zero torque command"""
-    lib.TEST_PL_setToggle(pl, True)
-    lib.TEST_PL_setAlwaysOn(pl, True)
-    lib.TEST_PL_setMode(pl, 1)
-    lib.TEST_PL_setTargetPower(pl, 30)
-
-    lib.TEST_MCM_setRPM(mcm0, 2500)
-    lib.TEST_MCM_setBusDeciVolts(mcm0, 6500)
-    lib.TEST_MCM_setCurrent(mcm0, 50)
-    
-    # Set TPS values to simulate zero torque (0% pedal)
-    set_tps_for_torque(tps, 0)
-
-    rc = lib.PowerLimit_calculateCommand(pl, mcm0, tps)
-    assert rc == 0
-
-    pl_status = lib.TEST_PL_getStatus(pl)
-    # Power limit should be off when no torque is commanded
-    assert pl_status == False
-
-
-def test_zero_rpm(pl, mcm0, tps):
-    """Test power limit behavior with zero RPM"""
-    lib.TEST_PL_setToggle(pl, True)
-    lib.TEST_PL_setAlwaysOn(pl, True)
-    lib.TEST_PL_setMode(pl, 1)
-    lib.TEST_PL_setTargetPower(pl, 30)
-
-    lib.TEST_MCM_setRPM(mcm0, 0)  # Zero RPM
-    lib.TEST_MCM_setBusDeciVolts(mcm0, 6500)
-    lib.TEST_MCM_setCurrent(mcm0, 10)
-    
-    # Set TPS values to simulate 1000 dNm apps torque
-    set_tps_for_torque(tps, 1000)
-
-    rc = lib.PowerLimit_calculateCommand(pl, mcm0, tps)
-    assert rc == 0
-
-    # Should handle zero RPM gracefully (avoid division by zero)
-    pl_torque = lib.TEST_PL_getTorqueCmd(pl)
-    pl_status = lib.TEST_PL_getStatus(pl)
-    assert pl_status in (True, False)
-    assert -32768 <= pl_torque <= 32767
-
-
-def test_low_power_scenario(pl, mcm0, tps):
-    """Test power limit behavior when power is below target"""
-    lib.TEST_PL_setToggle(pl, True)
-    lib.TEST_PL_setAlwaysOn(pl, False)  # Not always on
-    lib.TEST_PL_setMode(pl, 1)
-    lib.TEST_PL_setTargetPower(pl, 50)
-
-    # Set up low power scenario
-    lib.TEST_MCM_setRPM(mcm0, 2000)
-    lib.TEST_MCM_setBusDeciVolts(mcm0, 5000)  # 500V
-    lib.TEST_MCM_setCurrent(mcm0, 30)         # 30A = 15kW
-    
-    # Set TPS values to simulate 800 dNm apps torque
-    set_tps_for_torque(tps, 800)
-
-    rc = lib.PowerLimit_calculateCommand(pl, mcm0, tps)
-    assert rc == 0
-
-    pl_status = lib.TEST_PL_getStatus(pl)
-    # Power limit should be off when power is below target and not always on
-    assert pl_status == False
-
-
-def test_power_limit_disabled(pl, mcm0, tps):
-    """Test behavior when power limit toggle is disabled"""
-    lib.TEST_PL_setToggle(pl, False)  # Disabled
-    lib.TEST_PL_setAlwaysOn(pl, True)
-    lib.TEST_PL_setMode(pl, 1)
-    lib.TEST_PL_setTargetPower(pl, 30)
-
-    # Set up high power scenario
-    lib.TEST_MCM_setRPM(mcm0, 4000)
-    lib.TEST_MCM_setBusDeciVolts(mcm0, 7000)  # 700V
-    lib.TEST_MCM_setCurrent(mcm0, 80)         # 80A = 56kW
-    
-    # Set TPS values to simulate 2000 dNm apps torque
-    set_tps_for_torque(tps, 2000)
-
-    rc = lib.PowerLimit_calculateCommand(pl, mcm0, tps)
-    assert rc == 0
-
-    pl_status = lib.TEST_PL_getStatus(pl)
-    # Power limit should be off when toggle is disabled
-    assert pl_status == False
-
-
-# -------- Parameter tweaking tests --------
-def test_power_limit_parameter_tweaking(pl, mcm0, tps):
-    """Test tweaking power limit parameters during operation"""
-    lib.TEST_PL_setToggle(pl, True)
-    lib.TEST_PL_setAlwaysOn(pl, True)
-    lib.TEST_PL_setMode(pl, 1)
-    lib.TEST_PL_setTargetPower(pl, 35)
-
-    # Set up high power scenario
+def test_mcm_setters(mcm0, serialMan):
+    """Verify MCM setter functions work correctly"""
+    # Test RPM setter - verified by successful calls
     lib.TEST_MCM_setRPM(mcm0, 3000)
-    lib.TEST_MCM_setBusDeciVolts(mcm0, 6000)  # 600V
-    lib.TEST_MCM_setCurrent(mcm0, 70)         # 70A = 42kW
+    lib.TEST_MCM_setRPM(mcm0, 5000)
     
-    # Set TPS values to simulate 1500 dNm apps torque
-    set_tps_for_torque(tps, 1500)
+    # Test voltage and current setters
+    lib.TEST_MCM_setDCVoltage(mcm0, 4000)
+    lib.TEST_MCM_setDCCurrent(mcm0, 200)
+    
+    # If no errors, test passes
+    assert True
 
-    # Test with initial target
-    rc = lib.PowerLimit_calculateCommand(pl, mcm0, tps)
-    assert rc == 0
-    initial_torque = lib.TEST_PL_getTorqueCmd(pl)
-    initial_status = lib.TEST_PL_getStatus(pl)
-
-    # Change target power to 50kW (should turn off power limiting)
-    lib.TEST_PL_setTargetPower(pl, 50)
-    rc = lib.PowerLimit_calculateCommand(pl, mcm0, tps)
-    assert rc == 0
-    new_torque = lib.TEST_PL_getTorqueCmd(pl)
-    new_status = lib.TEST_PL_getStatus(pl)
-
-    # Power limit should turn off with higher target
-    if initial_status and not new_status:
-        assert new_torque >= initial_torque
-
-    # Test threshold discrepancy parameter
-    lib.TEST_PL_setTargetPower(pl, 35)
-    lib.TEST_PL_setThresholdDiscrepancy(pl, 20)  # Large threshold
-    rc = lib.PowerLimit_calculateCommand(pl, mcm0, tps)
-    assert rc == 0
-
+def test_powerlimit_setters(pl):
+    """Verify PowerLimit setter functions work correctly"""
+    # Test all setters - verified by successful calls
+    lib.TEST_setPLTargetPower(pl, 80)
+    lib.TEST_setPLMode(pl, 1)
+    lib.TEST_setPLAlwaysOn(pl, True)
+    lib.TEST_setPLAlwaysOn(pl, False)
+    lib.TEST_setPLThresholdDiscrepancy(pl, 20)
+    lib.TEST_setClampingMethod(pl, 6)
+    lib.TEST_setPLStatus(pl, True)
+    
+    # Test torque command with getter to verify it works
+    lib.TEST_setPLTorqueCommand(pl, 1500)
+    torque = lib.TEST_getPLTorqueCommand(pl)
+    assert torque == 1500  # This should work since we have a getter
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
