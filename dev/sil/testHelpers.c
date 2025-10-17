@@ -99,6 +99,18 @@ DLL_EXPORT sbyte4 TEST_MCM_getMotorRPM(MotorController* me) {
     return MCM_getMotorRPM(me);
 }
 
+// Get APPS Torque
+DLL_EXPORT sbyte2 TEST_MCM_getAppsTorque(MotorController* me) { 
+    return MCM_commands_getAppsTorque(me);
+}
+
+//-----------------Sensors-----------------//
+// Set PL Knob sensor value (for getPLMode() in sensors.c)
+extern Sensor Sensor_PLKnob;  // Declared in sensors_sil_stubs.c
+DLL_EXPORT void TEST_setPLKnobVoltage(sbyte4 voltage) {
+    Sensor_PLKnob.sensorValue = voltage;
+}
+
 //-----------------PowerLimit-----------------//
 // Set PLAlwaysOn
 DLL_EXPORT void TEST_setPLAlwaysOn(PowerLimit* me, bool alwaysOn) { 
