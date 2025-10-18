@@ -451,8 +451,8 @@ void main(void)
         // MCM_incrementRPMForTesting(mcm0, 100);        // 100 RPM increments
         LaunchControl_calculateCommands(lc, tps, bps, mcm0, wss);
         // PowerLimit_updatePLPower(pl);
+        Efficiency_calculateCommands(eff, mcm0, pl);
         PowerLimit_calculateCommands(pl, mcm0, tps);
-        Efficiency_calculateCommands(eff, mcm0);
         MCM_calculateCommands(mcm0, tps, bps);
 
         SafetyChecker_update(sc, mcm0, bms, tps, bps, &Sensor_HVILTerminationSense, &Sensor_LVBattery);

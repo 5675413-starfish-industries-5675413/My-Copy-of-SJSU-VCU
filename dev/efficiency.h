@@ -16,13 +16,13 @@ typedef struct _Efficiency {
     float energySpentInStraights_kWh;  // Energy spent in straights
     float totalEnergyUsed_kWh;  // Total energy used this lap
     float powerLimit_kW; // Power Limit calculated for next lap
+    float totalLapDistance_km;  // Accumulated distance this lap
+    bool finishedLap;  // Flag for lap completion
     PowerLimit *powerLimit;
     
 } Efficiency;
 
 Efficiency* EFFICIENCY_new(bool efficiencyToggle);
-void Efficiency_calculateCommands(Efficiency* me, MotorController *mcm);
-// void EFFICIENCY_resetLap(Efficiency* me);
-// void EFFICIENCY_completeLap(Efficiency* me, MotorController *mcm);
-// bool EFFICIENCY_isLapComplete(Efficiency* me);
-// void EFFICIENCY_applyPowerLimit(Efficiency* me, PowerLimit* pl);
+void Efficiency_calculateCommands(Efficiency* me, MotorController *mcm, PowerLimit *pl);
+void Efficiency_resetLap(Efficiency* me);
+void Efficiency_completeLap(Efficiency* me, MotorController *mcm);
