@@ -248,6 +248,7 @@ void main(void)
     ubyte4 timestamp_mainLoopStart = 0;
     ubyte4 coolingOnTimer = 0;
     ubyte1 coolingOn = 0;
+    ubyte1 time = 0;
         //IO_RTC_StartTime(&timestamp_calibStart);
     SerialManager_send(serialMan, "VCU initializations complete.  Entering main loop.\n");
     while (1)
@@ -356,6 +357,24 @@ void main(void)
             {
                 SerialManager_send(serialMan, "Eco button held 3s - starting calibrations\n");
                 //calibrateTPS(TRUE, 5);
+                if (time<10){
+                    // fans on 
+                    IO_DO_Set(IO_DO_02, TRUE);
+                    IO_DO_Set(IO_DO_03, TRUE);
+                    //drs on 
+                    DRS_open(drs);
+
+                }
+                else if (time>10 && time<20){
+                    DRS_close(drs);
+                }
+                else if (time==30){ {
+                    //fans off 
+                    IO_DO_Set(IO_DO_02, FALSE);
+                    IO_DO_Set(IO_DO_03, FALSE);
+                }
+                time++;
+                }
                 TorqueEncoder_startCalibration(tps, 5);
                 BrakePressureSensor_startCalibration(bps, 5);
                 Light_set(Light_dashEco, 1);
@@ -422,8 +441,8 @@ void main(void)
         }
         else {
             // cooling on in hv
-            IO_DO_Set(IO_DO_02, TRUE);
-            IO_DO_Set(IO_DO_03, TRUE);
+           IO_DO_Set(IO_DO_02, TRUE);
+           IO_DO_Set(IO_DO_03, TRUE);
         }
 
         //Assign motor controls to MCM command message
