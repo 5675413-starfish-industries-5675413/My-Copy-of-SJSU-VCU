@@ -836,9 +836,9 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(POWERLIMIT_getMode(pl));
     canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(POWERLIMIT_getStatus(pl));
     canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(PID_getTotalError(pl->pid));
-    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(PID_getTotalError(pl->pid))) >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(PID_getTotalError(pl->pid)) >> 8;
     canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(PID_getProportional(pl->pid));
-    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(PID_getProportional(pl->pid))) >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(PID_getProportional(pl->pid)) >> 8;
     canMessages[canMessageCount - 1].length = byteNum;
 
     // 512 : Power Limit Status B
@@ -847,12 +847,12 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     canMessages[canMessageCount - 1].id_format = IO_CAN_STD_FRAME;
     canMessages[canMessageCount - 1].id = canMessageID + canMessageCount - 1;
     canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(PID_getIntegral(pl->pid));
-    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(PID_getIntegral(pl->pid))) >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(PID_getIntegral(pl->pid)) >> 8;
     canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(POWERLIMIT_getTorqueCommand(pl));
     canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(POWERLIMIT_getTorqueCommand(pl))) >> 8;
     canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(POWERLIMIT_getTargetPower(pl));
     canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(PID_getOutput(pl->pid));
-    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(PID_getOutput(pl->pid))) >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(PID_getOutput(pl->pid)) >> 8;
     canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(POWERLIMIT_getClampingMethod(pl));
     canMessages[canMessageCount - 1].length = byteNum;
 
