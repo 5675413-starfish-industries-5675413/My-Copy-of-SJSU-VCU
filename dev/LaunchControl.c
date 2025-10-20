@@ -14,33 +14,37 @@
 #include "drs.h"
 extern Sensor Sensor_LCButton;
 
-#define INITIAL_TORQUE 240
+
 
 
 /* Start of Launch Control */
 LaunchControl *LaunchControl_new(bool lcToggle)
 {
     LaunchControl* me = (LaunchControl*)malloc(sizeof(struct _LaunchControl));
-    me->pid = PID_new(50, 10, 0, 0.5, 1);
+    me->Kp = 50;
+    me->Ki = 20;
+    me->Kd = 0;
+    me->pid = PID_new(me->Kp, me->Ki, me->Kd, 0.5, 1);
     PID_updateSetpoint(me->pid, 0.2);
-    //me->pid->totalError = 170;
+
     me->lcToggle = lcToggle;
     me->slipRatio = 0;
     me->lcTorqueCommand = 0;
+    me->initialTorque = 240;
     me->k = 0.6;
     me->maxTorque = 240;
-    me->prevTorque = INITIAL_TORQUE;
-    me->isInitialCurve = FALSE;
+    me->prevTorque = me->initialTorque;
     me->mode = SLIP_CONTROLLER;
     me->state = LC_IDLE;
+    me->phase = LC_PHASE_RAMP;
     return me;
 }
 
 void LaunchControl_reset(LaunchControl *me, MotorController *mcm) {
     me->state = LC_IDLE;
-    me->isInitialCurve = FALSE;
+    me->phase = LC_PHASE_RAMP;
     me->lcTorqueCommand = 0;
-    me->prevTorque = INITIAL_TORQUE;
+    me->prevTorque = me->initialTorque;
     MCM_update_LC_torqueCommand(mcm, me->lcTorqueCommand);
 
     me->pid->totalError = 0;
@@ -71,6 +75,33 @@ void LaunchControl_updateState(LaunchControl *me, TorqueEncoder *tps, BrakePress
     
 }
 
+void LaunchControl_updatePhase(LaunchControl *me, WheelSpeeds *wss) {
+    if (!LaunchControl_isWheelSpeedsNonZero(wss)) {
+        me->phase = LC_PHASE_RAMP;
+        return;
+    }
+
+    if (me->phase == LC_PHASE_NONLINEAR) {
+        if (me->slipRatio < 0.2) {
+            me->phase = LC_PHASE_LINEAR;
+            me->pid->totalError = 0;
+        }
+    }
+    else if (me->phase == LC_PHASE_LINEAR) {
+        if (me->slipRatio > 0.25) {
+            me->phase = LC_PHASE_NONLINEAR;
+        }
+    }
+    else if (me->phase == LC_PHASE_RAMP) {
+        if (me->slipRatio > 0.2) {
+            me->phase = LC_PHASE_NONLINEAR;
+        }
+        else {
+            me->phase = LC_PHASE_LINEAR;
+        }
+    }
+}
+
 void LaunchControl_calculateSlipRatio(LaunchControl *me, WheelSpeeds *wss)
 {
     float avgFrontWheelsRPM = ((WheelSpeeds_getWheelSpeedRPM(wss, FL, TRUE) + 0.5) + (WheelSpeeds_getWheelSpeedRPM(wss, FR, TRUE) + 0.5)) / 2;
@@ -95,40 +126,47 @@ void LaunchControl_calculateCommands(LaunchControl *me, TorqueEncoder *tps, Brak
     }
 
     LaunchControl_updateState(me, tps, bps, mcm);
-
+    
     if (me->state == LC_READY) {
         me->lcTorqueCommand = 0;
         MCM_update_LC_torqueCommand(mcm, me->lcTorqueCommand);
         return;
     }
-
     if (me->state != LC_ACTIVE) {
         return;
     }
+
+    LaunchControl_updatePhase(me, wss);
     
-    if (me->mode == FIRST_ORDER_ONLY) {
-       LaunchControl_calculateTorqueCurve(me, mcm);
-       me->isInitialCurve = TRUE;
-    }
-    else if (me->mode == SLIP_CONTROLLER) {
-        if (LaunchControl_isWheelSpeedsNonZero(wss)) {
-            LaunchControl_calculateSlipRatio(me, wss);
-            PID_computeOutput(me->pid, me->slipRatio);
-            if (me->pid->output > 50) {
-                me->pid->output = 50;
-            }
-            if (me->pid->output < -20) {
-                me->pid->output = -20;
-            }
-            me->lcTorqueCommand = MCM_getCommandedTorque(mcm) + me->pid->output;
-            me->isInitialCurve = FALSE;
+    if (me->mode == SLIP_CONTROLLER) {
+        if (me->phase == LC_PHASE_RAMP) {
+            LaunchControl_calculateTorqueCurve(me, mcm);
         }
         else {
-            LaunchControl_calculateTorqueCurve(me, mcm);
-            me->isInitialCurve = TRUE;
+            LaunchControl_calculatePIDOutput(me);
+            me->lcTorqueCommand = MCM_getFeedbackTorque(mcm) + me->pid->output;
         }
     }
     MCM_update_LC_torqueCommand(mcm, me->lcTorqueCommand);
+}
+
+void LaunchControl_calculatePIDOutput(LaunchControl *me) 
+{
+    if (me->phase == LC_PHASE_NONLINEAR) {
+        PID_updateGainValues(me->pid, me->Kp, 0, me->Kd); //Disable integral in non-linear phase
+    }
+    else {
+        PID_updateGainValues(me->pid, me->Kp, me->Ki, me->Kd);
+    }
+
+    PID_computeOutput(me->pid, me->slipRatio);
+    if (me->pid->output > 20) {
+        me->pid->output = 20;
+    } 
+    else if (me->pid->output < -20) {
+        me->pid->output = -20;
+    }
+
 }
 
 //maybe put this in wheelSpeeds.c ?
@@ -146,13 +184,15 @@ bool LaunchControl_isWheelSpeedsNonZero(WheelSpeeds *wss) {
 
 ubyte1 LaunchControl_getState(LaunchControl *me) { return me->state; }
 
+ubyte1 LaunchControl_getPhase(LaunchControl *me) { return me->phase; }
+
 sbyte2 LaunchControl_getTorqueCommand(LaunchControl *me) { return me->lcTorqueCommand; }
 
 float LaunchControl_getSlipRatio(LaunchControl *me) { return me->slipRatio; }
 
 sbyte2 LaunchControl_getSlipRatioScaled(LaunchControl *me) { return (sbyte2)(me->slipRatio * 1000.0f); }
 
-bool LaunchControl_getInitialCurveStatus(LaunchControl *me) { return me->isInitialCurve; }
+bool LaunchControl_getInitialCurveStatus(LaunchControl *me) { return (me->phase == LC_PHASE_RAMP) ? TRUE : FALSE; }
 
 bool LaunchControl_getActiveStatus(LaunchControl *me) { return (me->state == LC_ACTIVE) ? TRUE : FALSE;  }
 

@@ -20,6 +20,12 @@ typedef enum {
 } LC_Mode;
 
 typedef enum {
+    LC_PHASE_RAMP,
+    LC_PHASE_NONLINEAR,
+    LC_PHASE_LINEAR,
+} LC_Phase;
+
+typedef enum {
     LC_IDLE,
     LC_READY,
     LC_ACTIVE
@@ -28,14 +34,18 @@ typedef enum {
 typedef struct _LaunchControl {
     bool lcToggle;
     PID *pid;
+    sbyte1 Kp;
+    sbyte1 Ki;
+    sbyte1 Kd;
     float slipRatio;
     sbyte2 lcTorqueCommand;
+    float initialTorque;
     float maxTorque;
     float prevTorque;
     float k;
-    bool isInitialCurve;
     LC_State state;
     LC_Mode mode;
+    LC_Phase phase;
 } LaunchControl;
 
 LaunchControl *LaunchControl_new(bool lcToggle);
@@ -51,5 +61,8 @@ float LaunchControl_getSlipRatio(LaunchControl *me);
 sbyte2 LaunchControl_getSlipRatioScaled(LaunchControl *me);
 bool LaunchControl_getInitialCurveStatus(LaunchControl *me);
 float LaunchControl_getPidOutput(LaunchControl *me);
+void LaunchControl_calculatePIDOutput(LaunchControl *me);
+void LaunchControl_updatePhase(LaunchControl *me, WheelSpeeds *wss);
+ubyte1 LaunchControl_getPhase(LaunchControl *me);
 
 #endif
