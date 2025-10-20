@@ -357,7 +357,7 @@ void main(void)
             {
                 SerialManager_send(serialMan, "Eco button held 3s - starting calibrations\n");
                 //calibrateTPS(TRUE, 5);
-                if (time<10){
+                if (time<30){
                     // fans on 
                     IO_DO_Set(IO_DO_02, TRUE);
                     IO_DO_Set(IO_DO_03, TRUE);
@@ -365,10 +365,10 @@ void main(void)
                     DRS_open(drs);
 
                 }
-                else if (time>10 && time<20){
+                else if (time>30 && time<40){
                     DRS_close(drs);
                 }
-                else if (time==30){ {
+                else if (time>30){ {
                     //fans off 
                     IO_DO_Set(IO_DO_02, FALSE);
                     IO_DO_Set(IO_DO_03, FALSE);
@@ -416,7 +416,9 @@ void main(void)
         // CoolingSystem_enactCooling(cs); //This belongs under outputs but it doesn't really matter for cooling
 
         //New Code: Pump, ALWAYS ON
-          if (coolingOnTimer == 0) {
+
+        /*
+        if (coolingOnTimer == 0) {
             if (Sensor_LCButton.sensorValue == TRUE && Sensor_HVILTerminationSense.sensorValue == FALSE) {
                 IO_RTC_StartTime(&coolingOnTimer);
                 coolingOn = ~coolingOn;
@@ -444,6 +446,7 @@ void main(void)
            IO_DO_Set(IO_DO_02, TRUE);
            IO_DO_Set(IO_DO_03, TRUE);
         }
+        */
 
         //Assign motor controls to MCM command message
         //motorController_setCommands(rtds);
