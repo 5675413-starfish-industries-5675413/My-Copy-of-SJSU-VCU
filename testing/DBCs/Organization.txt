@@ -1,0 +1,9 @@
+@Aditiya TODO:
+
+Write a table or some sort of documentation for each CANBUS to tell us what each message in DECIMAL AND HEX is being used.
+And out of the total limit of the CANBUS being used how many available addresses we have. CANBUS availability is on main 
+during declaration. Make it organized so that when people are telling you to add messages you can make sure its added correctly/
+
+
+Note: we need to get a proper dbc off of C185 because we keep just inputing our Control system messages and there might be
+some changes we accidently made on other messages so those might not be as accurate. 
