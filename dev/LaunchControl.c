@@ -25,16 +25,17 @@ LaunchControl *LaunchControl_new(bool lcToggle)
     me->Ki = 20;
     me->Kd = 0;
     me->pid = PID_new(me->Kp, me->Ki, me->Kd, 0.5, 1);
-    PID_updateSetpoint(me->pid, 0.2);
-
+    me->slipRatioTarget = 0.2;
     me->lcToggle = lcToggle;
-    me->slipRatio = 0;
+    me->currentSlipRatio = 0;
+    me->currentSlip = 0;
+    me->slipTarget = 0;
     me->lcTorqueCommand = 0;
     me->initialTorque = 240;
     me->k = 0.6;
     me->maxTorque = 240;
     me->prevTorque = me->initialTorque;
-    me->mode = SLIP_CONTROLLER;
+    me->mode = LC_MODE_SLIP_RATIO;
     me->state = LC_IDLE;
     me->phase = LC_PHASE_RAMP;
     return me;
@@ -82,18 +83,18 @@ void LaunchControl_updatePhase(LaunchControl *me, WheelSpeeds *wss) {
     }
 
     if (me->phase == LC_PHASE_NONLINEAR) {
-        if (me->slipRatio < 0.2) {
+        if (me->currentSlipRatio < 0.2) {
             me->phase = LC_PHASE_LINEAR;
             me->pid->totalError = 0;
         }
     }
     else if (me->phase == LC_PHASE_LINEAR) {
-        if (me->slipRatio > 0.25) {
+        if (me->currentSlipRatio > 0.25) {
             me->phase = LC_PHASE_NONLINEAR;
         }
     }
     else if (me->phase == LC_PHASE_RAMP) {
-        if (me->slipRatio > 0.2) {
+        if (me->currentSlipRatio > 0.2) {
             me->phase = LC_PHASE_NONLINEAR;
         }
         else {
@@ -107,9 +108,17 @@ void LaunchControl_calculateSlipRatio(LaunchControl *me, WheelSpeeds *wss)
     float avgFrontWheelsRPM = ((WheelSpeeds_getWheelSpeedRPM(wss, FL, TRUE) + 0.5) + (WheelSpeeds_getWheelSpeedRPM(wss, FR, TRUE) + 0.5)) / 2;
     float avgRearWheelsRPM = ((WheelSpeeds_getWheelSpeedRPM(wss, RL, TRUE) + 0.5) + (WheelSpeeds_getWheelSpeedRPM(wss, RR, TRUE) + 0.5)) / 2;
     if ((avgFrontWheelsRPM) != 0) {
-        me->slipRatio = (avgRearWheelsRPM / avgFrontWheelsRPM) - 1;
+        me->currentSlipRatio = (avgRearWheelsRPM / avgFrontWheelsRPM) - 1;
     }
 }
+
+void LaunchControl_calculateSlipDifference(LaunchControl *me, WheelSpeeds *wss) 
+{
+    float estimatedVehicleVelocity = WheelSpeeds_getGroundSpeed(wss, 0);
+    me->currentSlip = WheelSpeeds_getFastestRear(wss) - estimatedVehicleVelocity;
+    me->slipTarget = (1 + me->slipRatioTarget) * estimatedVehicleVelocity;
+}
+
 
 void LaunchControl_calculateTorqueCurve(LaunchControl *me, MotorController *mcm) {
     float torque = me->k * me->maxTorque + (1 - me->k) * me->prevTorque;
@@ -138,7 +147,7 @@ void LaunchControl_calculateCommands(LaunchControl *me, TorqueEncoder *tps, Brak
 
     LaunchControl_updatePhase(me, wss);
     
-    if (me->mode == SLIP_CONTROLLER) {
+    if (me->mode == LC_MODE_SLIP_RATIO || me->mode == LC_MODE_SLIP_DIFFERENCE) {
         if (me->phase == LC_PHASE_RAMP) {
             LaunchControl_calculateTorqueCurve(me, mcm);
         }
@@ -159,14 +168,21 @@ void LaunchControl_calculatePIDOutput(LaunchControl *me)
         PID_updateGainValues(me->pid, me->Kp, me->Ki, me->Kd);
     }
 
-    PID_computeOutput(me->pid, me->slipRatio);
+    if (me->mode == LC_MODE_SLIP_RATIO) {
+        PID_updateSetpoint(me->pid, me->slipRatioTarget);
+        PID_computeOutput(me->pid, me->currentSlipRatio);
+    }
+    else if (me->mode == LC_MODE_SLIP_DIFFERENCE) {
+        PID_updateSetpoint(me->pid, me->slipTarget);
+        PID_computeOutput(me->pid, me->currentSlip);
+    }
+
     if (me->pid->output > 20) {
         me->pid->output = 20;
     } 
     else if (me->pid->output < -20) {
         me->pid->output = -20;
     }
-
 }
 
 //maybe put this in wheelSpeeds.c ?
@@ -188,9 +204,9 @@ ubyte1 LaunchControl_getPhase(LaunchControl *me) { return me->phase; }
 
 sbyte2 LaunchControl_getTorqueCommand(LaunchControl *me) { return me->lcTorqueCommand; }
 
-float LaunchControl_getSlipRatio(LaunchControl *me) { return me->slipRatio; }
+float LaunchControl_getSlipRatio(LaunchControl *me) { return me->currentSlipRatio; }
 
-sbyte2 LaunchControl_getSlipRatioScaled(LaunchControl *me) { return (sbyte2)(me->slipRatio * 1000.0f); }
+sbyte2 LaunchControl_getSlipRatioScaled(LaunchControl *me) { return (sbyte2)(me->currentSlipRatio * 1000.0f); }
 
 bool LaunchControl_getInitialCurveStatus(LaunchControl *me) { return (me->phase == LC_PHASE_RAMP) ? TRUE : FALSE; }
 

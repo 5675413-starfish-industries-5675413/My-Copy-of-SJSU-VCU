@@ -15,8 +15,8 @@
 
 
 typedef enum {
-    FIRST_ORDER_ONLY,
-    SLIP_CONTROLLER
+    LC_MODE_SLIP_RATIO,
+    LC_MODE_SLIP_DIFFERENCE
 } LC_Mode;
 
 typedef enum {
@@ -37,7 +37,10 @@ typedef struct _LaunchControl {
     sbyte1 Kp;
     sbyte1 Ki;
     sbyte1 Kd;
-    float slipRatio;
+    float currentSlipRatio;
+    float slipRatioTarget;
+    float currentSlip;
+    float slipTarget;
     sbyte2 lcTorqueCommand;
     float initialTorque;
     float maxTorque;
@@ -64,5 +67,6 @@ float LaunchControl_getPidOutput(LaunchControl *me);
 void LaunchControl_calculatePIDOutput(LaunchControl *me);
 void LaunchControl_updatePhase(LaunchControl *me, WheelSpeeds *wss);
 ubyte1 LaunchControl_getPhase(LaunchControl *me);
+void LaunchControl_calculateSlipDifference(LaunchControl *me, WheelSpeeds *wss);
 
 #endif
