@@ -7,3 +7,10 @@ during declaration. Make it organized so that when people are telling you to add
 
 Note: we need to get a proper dbc off of C185 because we keep just inputing our Control system messages and there might be
 some changes we accidently made on other messages so those might not be as accurate. 
+
+
+Total Num of stacks used/total available can messages used 
+511= <whatever the name is>,  <how manybits used>/56, Where message is coming from and where
+ its going for example MCMfeedback comes from MCM and goes to VCU, so you would write that down 
+....
+520= (this is empty so you just dont put anything here)
