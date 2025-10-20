@@ -248,7 +248,7 @@ void main(void)
     ubyte4 timestamp_mainLoopStart = 0;
     ubyte4 coolingOnTimer = 0;
     ubyte1 coolingOn = 0;
-    ubyte1 time = 0;
+    ubyte4 time = 0;
         //IO_RTC_StartTime(&timestamp_calibStart);
     SerialManager_send(serialMan, "VCU initializations complete.  Entering main loop.\n");
     while (1)
@@ -357,24 +357,15 @@ void main(void)
             {
                 SerialManager_send(serialMan, "Eco button held 3s - starting calibrations\n");
                 //calibrateTPS(TRUE, 5);
-                if (time<30){
-                    // fans on 
+                if(time==0)
+                {
+                    IO_RTC_StartTime(&time);
                     IO_DO_Set(IO_DO_02, TRUE);
                     IO_DO_Set(IO_DO_03, TRUE);
-                    //drs on 
+                    time++;
                     DRS_open(drs);
+                }
 
-                }
-                else if (time>30 && time<40){
-                    DRS_close(drs);
-                }
-                else if (time>30){ {
-                    //fans off 
-                    IO_DO_Set(IO_DO_02, FALSE);
-                    IO_DO_Set(IO_DO_03, FALSE);
-                }
-                time++;
-                }
                 TorqueEncoder_startCalibration(tps, 5);
                 BrakePressureSensor_startCalibration(bps, 5);
                 Light_set(Light_dashEco, 1);
@@ -389,6 +380,13 @@ void main(void)
             }
             timestamp_EcoButton = 0;
         }
+
+        if(IO_RTC_GetTimeUS(time) > 4000000)
+            {
+                IO_DO_Set(IO_DO_02, FALSE);
+                IO_DO_Set(IO_DO_03, FALSE);
+                DRS_close(drs);
+            }
         TorqueEncoder_update(tps);
         //Every cycle: if the calibration was started and hasn't finished, check the values again
         TorqueEncoder_calibrationCycle(tps, &calibrationErrors); //Todo: deal with calibration errors
