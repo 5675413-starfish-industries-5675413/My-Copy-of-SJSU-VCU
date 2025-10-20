@@ -381,12 +381,17 @@ void main(void)
             timestamp_EcoButton = 0;
         }
 
-        if(IO_RTC_GetTimeUS(time) > 4000000)
+        if(Sensor_HVILTerminationSense.sensorValue == FALSE && IO_RTC_GetTimeUS(time) > 4000000)
             {
                 IO_DO_Set(IO_DO_02, FALSE);
                 IO_DO_Set(IO_DO_03, FALSE);
                 DRS_close(drs);
             }
+
+        else if(Sensor_HVILTerminationSense.sensorValue == TRUE){
+            IO_DO_Set(IO_DO_02, TRUE);
+            IO_DO_Set(IO_DO_03, TRUE);
+        }
         TorqueEncoder_update(tps);
         //Every cycle: if the calibration was started and hasn't finished, check the values again
         TorqueEncoder_calibrationCycle(tps, &calibrationErrors); //Todo: deal with calibration errors
