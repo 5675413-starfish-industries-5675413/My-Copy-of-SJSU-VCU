@@ -28,8 +28,8 @@ LaunchControl *LaunchControl_new(bool lcToggle)
     me->slipRatioTarget = 0.2;
     me->lcToggle = lcToggle;
     me->currentSlipRatio = 0;
-    me->currentSlip = 0;
-    me->slipTarget = 0;
+    me->currentVelocityDifference = 0;
+    me->targetVelocityDifference = 0;
     me->lcTorqueCommand = 0;
     me->initialTorque = 240;
     me->k = 0.6;
@@ -115,8 +115,8 @@ void LaunchControl_calculateSlipRatio(LaunchControl *me, WheelSpeeds *wss)
 void LaunchControl_calculateSlipDifference(LaunchControl *me, WheelSpeeds *wss) 
 {
     float estimatedVehicleVelocity = WheelSpeeds_getGroundSpeed(wss, 0);
-    me->currentSlip = WheelSpeeds_getFastestRear(wss) - estimatedVehicleVelocity;
-    me->slipTarget = (1 + me->slipRatioTarget) * estimatedVehicleVelocity;
+    me->currentVelocityDifference = WheelSpeeds_getFastestRear(wss) - estimatedVehicleVelocity;
+    me->targetVelocityDifference = me->slipRatioTarget * estimatedVehicleVelocity;
 }
 
 
@@ -173,8 +173,8 @@ void LaunchControl_calculatePIDOutput(LaunchControl *me)
         PID_computeOutput(me->pid, me->currentSlipRatio);
     }
     else if (me->mode == LC_MODE_SLIP_DIFFERENCE) {
-        PID_updateSetpoint(me->pid, me->slipTarget);
-        PID_computeOutput(me->pid, me->currentSlip);
+        PID_updateSetpoint(me->pid, me->targetVelocityDifference);
+        PID_computeOutput(me->pid, me->currentVelocityDifference);
     }
 
     if (me->pid->output > 20) {

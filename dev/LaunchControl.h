@@ -39,8 +39,8 @@ typedef struct _LaunchControl {
     sbyte1 Kd;
     float currentSlipRatio;
     float slipRatioTarget;
-    float currentSlip;
-    float slipTarget;
+    float currentVelocityDifference;
+    float targetVelocityDifference;
     sbyte2 lcTorqueCommand;
     float initialTorque;
     float maxTorque;
