@@ -14,7 +14,7 @@ typedef struct _Efficiency {
     float timeInCorners_s;  // Time in Corners
     float energySpentInCorners_kWh;  // Energy spent in corners
     float energySpentInStraights_kWh;  // Energy spent in straights
-    float totalEnergyUsed_kWh;  // Total energy used this lap
+    float lapEnergySpent_kWh;  // Total energy used this lap
     float powerLimit_kW; // Power Limit calculated for next lap
     float totalLapDistance_km;  // Accumulated distance this lap
     bool finishedLap;  // Flag for lap completion
@@ -25,4 +25,4 @@ typedef struct _Efficiency {
 Efficiency* EFFICIENCY_new(bool efficiencyToggle);
 void Efficiency_calculateCommands(Efficiency* me, MotorController *mcm, PowerLimit *pl);
 void Efficiency_resetLap(Efficiency* me);
-void Efficiency_completeLap(Efficiency* me, MotorController *mcm);
+void Efficiency_completedLap(Efficiency* me, MotorController *mcm);

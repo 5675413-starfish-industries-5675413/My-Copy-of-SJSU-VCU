@@ -11,23 +11,26 @@
 #include "IO_RTC.h"
 #include "math.h"
 
-// Constants
-#define ENERGY_BUDGET_PER_KM_KWH 0.3f  // 0.3 kWh per km (from algorithm description)
+// event variables
+#define TOTAL_ENERGY_BUDGET_KWH 6.6f  // 80 kWh total energy budget
 #define CYCLE_TIME_S 0.1f  // 100ms cycle time
 
 Efficiency* EFFICIENCY_new(bool efficiencyToggle){
     Efficiency* me = (Efficiency*)malloc(sizeof(Efficiency));
     me->efficiencyToggle = efficiencyToggle;
-    
-    // algorithm variables
-    me->energyBudget_kWh = ENERGY_BUDGET_PER_KM_KWH;  // set actual energy budget
+        
+    // event variables
+    me->energyBudget_kWh = TOTAL_ENERGY_BUDGET_KWH/22;  // set actual energy budget fpr each lap
+
     me->carryOverEnergy_kWh = 0.0f;  // start with no carry-over
+
+    // lap variables (reset at the end of each lap)    
     me->timeInStraights_s = 0.0f;
     me->timeInCorners_s = 0.0f;
-    me->energySpentInCorners_kWh = 0.0f;
-    me->energySpentInStraights_kWh = 0.0f;
-    me->totalEnergyUsed_kWh = 0.0f;
-    me->totalLapDistance_km = 0.0f;
+    me->energySpentInCorners_kWh = 0.0f; 
+    me->energySpentInStraights_kWh = 0.0f; 
+    me->lapEnergySpent_kWh = 0.0f; 
+    me->totalLapDistance_km = 0.0f; 
     me->finishedLap = FALSE;
     return me;
 }
@@ -50,30 +53,26 @@ void Efficiency_calculateCommands(Efficiency* me, MotorController *mcm, PowerLim
         me->energySpentInCorners_kWh += energyThisCycle_kWh;
     }
     
-    me->totalEnergyUsed_kWh = me->energySpentInStraights_kWh + me->energySpentInCorners_kWh;
-    me->carryOverEnergy_kWh = me->energyBudget_kWh - me->totalEnergyUsed_kWh;
-    // convert time from seconds to hours for the calculation
-    float timeInStraights_h = me->timeInStraights_s / 3600.0f;
-    Efficiency_completeLap(me, mcm);
+    me->lapEnergySpent_kWh = me->energySpentInStraights_kWh + me->energySpentInCorners_kWh;
+    
+    // Check if lap is complete
+    Efficiency_completedLap(me, mcm);
     if (me->finishedLap) {
-        // calculate the powerlimit using the algorithm
-        pl->plTargetPower = ((me->energyBudget_kWh + me->carryOverEnergy_kWh) - me->energySpentInCorners_kWh) / timeInStraights_h;
+        // calculate the carryover for just one lap
+        me->carryOverEnergy_kWh = me->energyBudget_kWh - me->lapEnergySpent_kWh;
+        
+        // calculate the power limit for next lap using the algorithm
+        float timeInStraights_h = me->timeInStraights_s / 3600.0f;
+        if (timeInStraights_h > 0.0f) { // safety check division by zero
+            pl->plTargetPower = ((me->energyBudget_kWh + me->carryOverEnergy_kWh) - me->energySpentInCorners_kWh) / timeInStraights_h;
+        }
+        
+        // reset el variablialas! for next lap
         Efficiency_resetLap(me);
     }
-
 }
 
-void Efficiency_resetLap(Efficiency* me){
-    me->timeInStraights_s = 0.0f;
-    me->timeInCorners_s = 0.0f;
-    me->energySpentInCorners_kWh = 0.0f;   
-    me->energySpentInStraights_kWh = 0.0f;
-    me->totalEnergyUsed_kWh = 0.0f;
-    me->totalLapDistance_km = 0.0f;
-    me->finishedLap = FALSE;
-}
-
-void Efficiency_completeLap(Efficiency* me, MotorController *mcm){
+void Efficiency_completedLap(Efficiency* me, MotorController *mcm){
     // accumulate the distance traveled this cycle
     float wheelSpeed_kph = MCM_getGroundSpeedKPH(mcm);
     float distance_this_cycle_km = wheelSpeed_kph * CYCLE_TIME_S / 3600.0f;
@@ -86,3 +85,44 @@ void Efficiency_completeLap(Efficiency* me, MotorController *mcm){
         me->finishedLap = FALSE;
     }
 }
+
+void Efficiency_resetLap(Efficiency* me){
+    me->timeInStraights_s = 0.0f;
+    me->timeInCorners_s = 0.0f;
+    me->energySpentInCorners_kWh = 0.0f;   
+    me->energySpentInStraights_kWh = 0.0f;
+    me->lapEnergySpent_kWh = 0.0f;
+    me->totalLapDistance_km = 0.0f;
+    me->finishedLap = FALSE;
+}
+
+
+
+//getters
+bool Efficiency_getFinishedLap(Efficiency* me){
+    return me->finishedLap;
+}
+
+/*
+pltargetpower should equal:
+(getEnergyBudget_kWh + getCarryOverEnergy_kWh - getEnergySpentInCorners_kWh) / (getTimeInStraights_s/3600.0f)
+
+*/
+float Efficiency_getEnergyBudget_kWh(Efficiency* me){
+    return me->energyBudget_kWh;
+}
+float Efficiency_getCarryOverEnergy_kWh(Efficiency* me){
+    return me->carryOverEnergy_kWh;
+}
+float Efficiency_getEnergySpentInCorners_kWh(Efficiency* me){
+    return me->energySpentInCorners_kWh;
+}
+float Efficiency_getTimeInStraights_s(Efficiency* me){
+    return me->timeInStraights_s;
+}
+
+
+float Efficiency_getLapEnergySpent_kWh(Efficiency* me){
+    return me->lapEnergySpent_kWh;
+}
+
