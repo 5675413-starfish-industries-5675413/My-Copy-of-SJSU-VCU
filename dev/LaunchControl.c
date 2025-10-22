@@ -18,8 +18,7 @@ extern Sensor Sensor_LCButton;
 
 
 /* Start of Launch Control */
-LaunchControl *LaunchControl_new(bool lcToggle)
-{
+LaunchControl *LaunchControl_new(bool lcToggle) {
     LaunchControl* me = (LaunchControl*)malloc(sizeof(struct _LaunchControl));
     me->Kp = 50;
     me->Ki = 20;
@@ -36,13 +35,13 @@ LaunchControl *LaunchControl_new(bool lcToggle)
     me->maxTorque = 240;
     me->prevTorque = me->initialTorque;
     me->mode = LC_MODE_SLIP_RATIO;
-    me->state = LC_IDLE;
+    me->state = LC_STATE_IDLE;
     me->phase = LC_PHASE_RAMP;
     return me;
 }
 
 void LaunchControl_reset(LaunchControl *me, MotorController *mcm) {
-    me->state = LC_IDLE;
+    me->state = LC_STATE_IDLE;
     me->phase = LC_PHASE_RAMP;
     me->lcTorqueCommand = 0;
     me->prevTorque = me->initialTorque;
@@ -52,31 +51,30 @@ void LaunchControl_reset(LaunchControl *me, MotorController *mcm) {
     me->pid->previousError = 0;
 }
 
-void LaunchControl_updateState(LaunchControl *me, TorqueEncoder *tps, BrakePressureSensor *bps, MotorController *mcm) 
-{
-    if (me->state == LC_IDLE && Sensor_LCButton.sensorValue == TRUE && MCM_getGroundSpeedKPH(mcm) < 1 && bps->percent < 0.05) {
-        me->state = LC_READY;
+void LaunchControl_updateState(LaunchControl *me, TorqueEncoder *tps, BrakePressureSensor *bps, MotorController *mcm) {
+    if (me->state == LC_STATE_IDLE && Sensor_LCButton.sensorValue == TRUE && MCM_getGroundSpeedKPH(mcm) < 1 && bps->percent < 0.05) {
+        me->state = LC_STATE_READY;
     }
 
-    if (me->state == LC_READY && Sensor_LCButton.sensorValue == FALSE) {
+    if (me->state == LC_STATE_READY && Sensor_LCButton.sensorValue == FALSE) {
         if (tps->tps0_percent > .90 && bps->percent < 0.05) {
-            me->state = LC_ACTIVE;
+            me->state = LC_STATE_ACTIVE;
         }
         else {
-            me->state = LC_IDLE;
+            me->state = LC_STATE_IDLE;
             LaunchControl_reset(me, mcm);
         }
     }
 
-    if (me->state == LC_ACTIVE && (tps->tps0_percent < .90 || bps->percent > 0.05)) {
-        me->state = LC_IDLE;
+    if (me->state == LC_STATE_ACTIVE && (tps->tps0_percent < .90 || bps->percent > 0.05)) {
+        me->state = LC_STATE_IDLE;
         LaunchControl_reset(me, mcm);
     }
-    MCM_update_LC_engagedStatus(mcm, (me->state != LC_IDLE));
-    
+    MCM_update_LC_engagedStatus(mcm, (me->state != LC_STATE_IDLE));
 }
 
 void LaunchControl_updatePhase(LaunchControl *me, WheelSpeeds *wss) {
+    //Use preset torque curve during intial part of launch when wheel speeds are not reading
     if (!WheelSpeeds_isWheelSpeedsNonZero(wss)) {
         me->phase = LC_PHASE_RAMP;
         return;
@@ -142,17 +140,17 @@ void LaunchControl_calculateCommands(LaunchControl *me, TorqueEncoder *tps, Brak
     LaunchControl_updateState(me, tps, bps, mcm);
 
     switch(me->state) {
-        case LC_IDLE:
+        case LC_STATE_IDLE:
             //Do nothing
             break;
 
-        case LC_READY:
+        case LC_STATE_READY:
             //During ready state, driver is able to press throttle without requesting any torque
             me->lcTorqueCommand = 0;
             MCM_update_LC_torqueCommand(mcm, me->lcTorqueCommand);
             break;
 
-        case LC_ACTIVE:
+        case LC_STATE_ACTIVE:
             LaunchControl_updatePhase(me, wss);
             if (me->phase == LC_PHASE_RAMP) {
                 LaunchControl_applyTorqueCurve(me, mcm);
@@ -205,7 +203,7 @@ sbyte2 LaunchControl_getSlipRatioScaled(LaunchControl *me) { return (sbyte2)(me-
 
 bool LaunchControl_getInitialCurveStatus(LaunchControl *me) { return (me->phase == LC_PHASE_RAMP) ? TRUE : FALSE; }
 
-bool LaunchControl_getActiveStatus(LaunchControl *me) { return (me->state == LC_ACTIVE) ? TRUE : FALSE;  }
+bool LaunchControl_getActiveStatus(LaunchControl *me) { return (me->state == LC_STATE_ACTIVE) ? TRUE : FALSE;  }
 
 float LaunchControl_getPidOutput(LaunchControl *me) { return me->pid->output; }
 

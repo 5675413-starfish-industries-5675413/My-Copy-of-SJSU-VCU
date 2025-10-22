@@ -26,9 +26,9 @@ typedef enum {
 } LC_Phase;
 
 typedef enum {
-    LC_IDLE,
-    LC_READY,
-    LC_ACTIVE
+    LC_STATE_IDLE,
+    LC_STATE_READY,
+    LC_STATE_ACTIVE
 } LC_State;
 
 typedef struct _LaunchControl {
