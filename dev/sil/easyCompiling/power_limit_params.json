@@ -94,6 +94,25 @@
           "gain": 10
         }
       }
+    },
+    {
+      "name": "test",
+      "description": "For SIL testing purposes",
+      "parameters": {
+        "plTargetPower": 40,
+        "plMode": 1,
+        "plThresholdDiscrepancy": 15,
+        "plInitializationThreshold": 0,
+        "clampingMethod": 0,
+        "plAlwaysOn": true,
+        "pid": {
+          "Kp": 10,
+          "Ki": 0,
+          "Kd": 0,
+          "saturation": 231,
+          "gain": 10
+        }
+      }
     }
   ],
   "notes": {
