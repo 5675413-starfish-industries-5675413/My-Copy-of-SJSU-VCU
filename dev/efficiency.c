@@ -74,7 +74,7 @@ void Efficiency_calculateCommands(Efficiency* me, MotorController *mcm, PowerLim
 
 void Efficiency_completedLap(Efficiency* me, MotorController *mcm){
     // accumulate the distance traveled this cycle
-    float wheelSpeed_kph = MCM_getGroundSpeedKPH(mcm);
+    float wheelSpeed_kph = MCM_getGroundSpeedKPH(mcm); // later switch to wheelspeeds.c
     float distance_this_cycle_km = wheelSpeed_kph * CYCLE_TIME_S / 3600.0f;
     me->totalLapDistance_km += distance_this_cycle_km;
     if (me->totalLapDistance_km > 1.0f) { // if accumulated distance is greater than 1 km, then we have completed a lap
