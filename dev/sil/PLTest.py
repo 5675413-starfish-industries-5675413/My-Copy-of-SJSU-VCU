@@ -7,6 +7,8 @@ Tests for the Power Limit module using Software-in-the-Loop (SIL) testing.
 import pytest
 import os
 import json
+import math
+import csv
 
 # Import FFI bindings (this loads the DLL and defines all C interfaces)
 from pl_exported_functions import ffi, lib
@@ -27,6 +29,11 @@ def set_tps_percent(tps, percent):
     """Set TPS percentages directly (0.0 to 1.0)"""
     lib.TEST_TPS_setBoth_percent(tps, percent)
     lib.TEST_TPS_setTravelPercent(tps)
+    
+def calculate_power(mcm0, pl):
+    angular_speed = lib.TEST_MCM_getMotorRPM(mcm0) * 2 * math.pi / 60
+    power = lib.TEST_getPLTorqueCommand(pl)/10 * angular_speed
+    return power
 
 # -------- fixtures (new objects per test) --------
 @pytest.fixture
@@ -66,9 +73,9 @@ def test_one_step_runs_parameterized(pl, mcm0, tps, config):
     
     # Configure Motor Controller Parameters
     lib.TEST_MCM_setCommandedTorque(mcm0)
-    lib.TEST_MCM_setRPM(mcm0, 3000)
-    lib.TEST_MCM_setDCVoltage(mcm0, 700)
-    lib.TEST_MCM_setDCCurrent(mcm0, 50)
+    lib.TEST_MCM_setRPM(mcm0, 1800)
+    lib.TEST_MCM_setDCVoltage(mcm0, 800)
+    lib.TEST_MCM_setDCCurrent(mcm0, 100)
     lib.MCM_calculateCommands(mcm0, tps, ffi.NULL)
     
     # Configure PL Knob Sensor (must be set for getPLMode() to work!)
@@ -100,6 +107,7 @@ def test_one_step_runs_parameterized(pl, mcm0, tps, config):
     print("\n=== DEBUG: After PowerLimit_calculateCommand ===")
     print(f"PL Status (after): {lib.TEST_getPLStatus(pl)}")
     print(f"PL TorqueCommand: {lib.TEST_getPLTorqueCommand(pl)}")
+    print(f"MCM Power: {calculate_power(mcm0, pl)*0.9}kW") # 0.9 is to calculate electrical power not mechanical power
     
     # Verify PL is active and producing a torque command
     assert lib.TEST_getPLStatus(pl) == True, "PowerLimit should be active"
@@ -147,6 +155,7 @@ def test_one_step_runs(pl, mcm0, tps):
     print("\n=== DEBUG: After PowerLimit_calculateCommand ===")
     print(f"PL Status (after): {lib.TEST_getPLStatus(pl)}")
     print(f"PL TorqueCommand: {lib.TEST_getPLTorqueCommand(pl)}")
+        
     
     # Verify PL is active and producing a torque command
     assert lib.TEST_getPLStatus(pl) == True, "PowerLimit should be active"
@@ -287,6 +296,6 @@ def test_plstatus(pl, mcm0, tps):
     lib.TEST_setPLStatus(pl, True)
 
     assert lib.TEST_getPLStatus(pl) == True, "PowerLimit should be active"
-        
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
