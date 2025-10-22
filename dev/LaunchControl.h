@@ -69,5 +69,8 @@ void LaunchControl_updatePhase(LaunchControl *me, WheelSpeeds *wss);
 ubyte1 LaunchControl_getPhase(LaunchControl *me);
 void LaunchControl_updateSlipDifference(LaunchControl *me, WheelSpeeds *wss);
 void LaunchControl_updateFilterStatus(LaunchControl *me, MotorController *mcm);
+bool LaunchControl_getFilterStatus(LaunchControl *me);
+sbyte2 LaunchControl_getVelocityDifferenceTarget(LaunchControl *me);
+sbyte2 LaunchControl_getCurrentVelocityDifference(LaunchControl *me);
 
 #endif

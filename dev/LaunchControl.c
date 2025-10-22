@@ -215,11 +215,16 @@ float LaunchControl_getSlipRatio(LaunchControl *me) { return me->currentSlipRati
 
 sbyte2 LaunchControl_getSlipRatioScaled(LaunchControl *me) { return (sbyte2)(me->currentSlipRatio * 1000.0f); }
 
-bool LaunchControl_getInitialCurveStatus(LaunchControl *me) { return (me->phase == LC_PHASE_RAMP) ? TRUE : FALSE; }
+sbyte2 LaunchControl_getVelocityDifferenceTarget(LaunchControl *me) { return me->targetVelocityDifference; }
 
-bool LaunchControl_getActiveStatus(LaunchControl *me) { return (me->state == LC_STATE_ACTIVE) ? TRUE : FALSE;  }
+sbyte2 LaunchControl_getCurrentVelocityDifference(LaunchControl *me) { return me->currentVelocityDifference; }
 
-float LaunchControl_getPidOutput(LaunchControl *me) { return me->pid->output; }
+bool LaunchControl_getInitialCurveStatus(LaunchControl *me) { return me->phase == LC_PHASE_RAMP; }
+
+bool LaunchControl_getActiveStatus(LaunchControl *me) { return me->state == LC_STATE_ACTIVE; }
+
+bool LaunchControl_getFilterStatus(LaunchControl *me) { return me->useFilter; }
+
 
 
 
