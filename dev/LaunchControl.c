@@ -103,12 +103,14 @@ void LaunchControl_updatePhase(LaunchControl *me, WheelSpeeds *wss) {
     }
 }
 
-void LaunchControl_updateSlipRatio(LaunchControl *me, WheelSpeeds *wss)
-{
-    float avgFrontWheelsRPM = ((WheelSpeeds_getWheelSpeedRPM(wss, FL, TRUE) + 0.5) + (WheelSpeeds_getWheelSpeedRPM(wss, FR, TRUE) + 0.5)) / 2;
-    float avgRearWheelsRPM = ((WheelSpeeds_getWheelSpeedRPM(wss, RL, TRUE) + 0.5) + (WheelSpeeds_getWheelSpeedRPM(wss, RR, TRUE) + 0.5)) / 2;
+void LaunchControl_updateSlipRatio(LaunchControl *me, WheelSpeeds *wss) {
+    float rearLeftRPM = WheelSpeeds_getWheelSpeedRPM(wss, RL, TRUE) + 0.5f;
+    float rearRightRPM = WheelSpeeds_getWheelSpeedRPM(wss, RR, TRUE) + 0.5f;
+    float fastestRearWheelsRPM = (rearLeftRPM > rearRightRPM) ? rearLeftRPM : rearRightRPM;
+
+    float avgFrontWheelsRPM = ((WheelSpeeds_getWheelSpeedRPM(wss, FL, TRUE) + 0.5f) + (WheelSpeeds_getWheelSpeedRPM(wss, FR, TRUE) + 0.5f)) / 2.0f;
     if ((avgFrontWheelsRPM) != 0) {
-        me->currentSlipRatio = (avgRearWheelsRPM / avgFrontWheelsRPM) - 1;
+        me->currentSlipRatio = (fastestRearWheelsRPM / avgFrontWheelsRPM) - 1.0f;
     }
 }
 
