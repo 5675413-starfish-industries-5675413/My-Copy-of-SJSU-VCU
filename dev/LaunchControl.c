@@ -87,24 +87,27 @@ void LaunchControl_updatePhase(LaunchControl *me, WheelSpeeds *wss) {
         return;
     }
 
-    if (me->phase == LC_PHASE_NONLINEAR) {
-        if (me->currentSlipRatio < 0.2) {
-            me->phase = LC_PHASE_LINEAR;
-            me->pid->totalError = 0;
-        }
-    }
-    else if (me->phase == LC_PHASE_LINEAR) {
-        if (me->currentSlipRatio > 0.25) {
-            me->phase = LC_PHASE_NONLINEAR;
-        }
-    }
-    else if (me->phase == LC_PHASE_RAMP) {
+    if (me->phase == LC_PHASE_RAMP) {
         if (me->currentSlipRatio > 0.2) {
             me->phase = LC_PHASE_NONLINEAR;
         }
         else {
             me->phase = LC_PHASE_LINEAR;
         }
+        return;
+    }
+    if (me->phase == LC_PHASE_NONLINEAR) {
+        if (me->currentSlipRatio < 0.2) {
+            me->phase = LC_PHASE_LINEAR;
+            me->pid->totalError = 0;
+        }
+        return;
+    }
+    if (me->phase == LC_PHASE_LINEAR) {
+        if (me->currentSlipRatio > 0.25) {
+            me->phase = LC_PHASE_NONLINEAR;
+        }
+        return;
     }
 }
 
