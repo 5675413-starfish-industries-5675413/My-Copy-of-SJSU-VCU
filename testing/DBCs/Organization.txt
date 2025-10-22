@@ -1,0 +1,16 @@
+@Aditiya TODO:
+
+Write a table or some sort of documentation for each CANBUS to tell us what each message in DECIMAL AND HEX is being used.
+And out of the total limit of the CANBUS being used how many available addresses we have. CANBUS availability is on main 
+during declaration. Make it organized so that when people are telling you to add messages you can make sure its added correctly/
+
+
+Note: we need to get a proper dbc off of C185 because we keep just inputing our Control system messages and there might be
+some changes we accidently made on other messages so those might not be as accurate. 
+
+
+Total Num of stacks used/total available can messages used 
+511= <whatever the name is>,  <how manybits used>/56, Where message is coming from and where
+ its going for example MCMfeedback comes from MCM and goes to VCU, so you would write that down 
+....
+520= (this is empty so you just dont put anything here)

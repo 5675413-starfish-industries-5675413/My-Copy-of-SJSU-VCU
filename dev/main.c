@@ -248,7 +248,7 @@ void main(void)
     ubyte4 timestamp_mainLoopStart = 0;
     ubyte4 coolingOnTimer = 0;
     ubyte1 coolingOn = 0;
-    ubyte1 time = 0;
+    ubyte4 time = 0;
         //IO_RTC_StartTime(&timestamp_calibStart);
     SerialManager_send(serialMan, "VCU initializations complete.  Entering main loop.\n");
     while (1)
@@ -357,24 +357,15 @@ void main(void)
             {
                 SerialManager_send(serialMan, "Eco button held 3s - starting calibrations\n");
                 //calibrateTPS(TRUE, 5);
-                if (time<10){
-                    // fans on 
+                if(time==0)
+                {
+                    IO_RTC_StartTime(&time);
                     IO_DO_Set(IO_DO_02, TRUE);
                     IO_DO_Set(IO_DO_03, TRUE);
-                    //drs on 
+                    time++;
                     DRS_open(drs);
+                }
 
-                }
-                else if (time>10 && time<20){
-                    DRS_close(drs);
-                }
-                else if (time==30){ {
-                    //fans off 
-                    IO_DO_Set(IO_DO_02, FALSE);
-                    IO_DO_Set(IO_DO_03, FALSE);
-                }
-                time++;
-                }
                 TorqueEncoder_startCalibration(tps, 5);
                 BrakePressureSensor_startCalibration(bps, 5);
                 Light_set(Light_dashEco, 1);
@@ -388,6 +379,18 @@ void main(void)
                 SerialManager_send(serialMan, "Eco mode requested\n");
             }
             timestamp_EcoButton = 0;
+        }
+
+        if(Sensor_HVILTerminationSense.sensorValue == FALSE && IO_RTC_GetTimeUS(time) > 4000000)
+            {
+                IO_DO_Set(IO_DO_02, FALSE);
+                IO_DO_Set(IO_DO_03, FALSE);
+                DRS_close(drs);
+            }
+
+        else if(Sensor_HVILTerminationSense.sensorValue == TRUE){
+            IO_DO_Set(IO_DO_02, TRUE);
+            IO_DO_Set(IO_DO_03, TRUE);
         }
         TorqueEncoder_update(tps);
         //Every cycle: if the calibration was started and hasn't finished, check the values again
@@ -416,7 +419,9 @@ void main(void)
         // CoolingSystem_enactCooling(cs); //This belongs under outputs but it doesn't really matter for cooling
 
         //New Code: Pump, ALWAYS ON
-          if (coolingOnTimer == 0) {
+
+        /*
+        if (coolingOnTimer == 0) {
             if (Sensor_LCButton.sensorValue == TRUE && Sensor_HVILTerminationSense.sensorValue == FALSE) {
                 IO_RTC_StartTime(&coolingOnTimer);
                 coolingOn = ~coolingOn;
@@ -444,6 +449,7 @@ void main(void)
            IO_DO_Set(IO_DO_02, TRUE);
            IO_DO_Set(IO_DO_03, TRUE);
         }
+        */
 
         //Assign motor controls to MCM command message
         //motorController_setCommands(rtds);
