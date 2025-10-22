@@ -560,7 +560,7 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     canMessages[canMessageCount - 1].data[byteNum++] = bps->bps0_calibMax >> 8;
     canMessages[canMessageCount - 1].length = byteNum;
 
-    //503: WSS mm/s non-filtered output
+    //503: WSS mm/s unfiltered output
     canMessageCount++;
     byteNum = 0;
     canMessages[canMessageCount - 1].id_format = IO_CAN_STD_FRAME;
@@ -575,7 +575,7 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     canMessages[canMessageCount - 1].data[byteNum++] = ((ubyte2)(WheelSpeeds_getWheelSpeedMPS(wss, RR, FALSE) + 0.5)) >> 8;
     canMessages[canMessageCount - 1].length = byteNum;
 
-    //504: WSS RPM non-filtered output
+    //504: WSS RPM unfiltered output
     canMessageCount++;
     byteNum = 0;
     canMessages[canMessageCount - 1].id_format = IO_CAN_STD_FRAME;
@@ -721,7 +721,7 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     canMessages[canMessageCount - 1].data[byteNum++] = 0;
     canMessages[canMessageCount - 1].length = byteNum;
 
-    //50A: Ground Speed
+    //50A: Ground Speed 
     canMessageCount++;
     byteNum = 0;
     canMessages[canMessageCount - 1].id = canMessageID + canMessageCount - 1;
@@ -869,6 +869,16 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(PID_getTotalError(lc->pid)) >> 8;
     canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(PID_getOutput(lc->pid));
     canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(PID_getOutput(lc->pid))) >> 8;
+    canMessages[canMessageCount - 1].length = byteNum;
+
+    // 514 : Launch Control Status C
+    canMessageCount++;
+    byteNum = 0;
+    canMessages[canMessageCount - 1].id_format = IO_CAN_STD_FRAME;
+    canMessages[canMessageCount - 1].id = canMessageID + canMessageCount - 1;
+    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(LaunchControl_getState(lc));
+    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(LaunchControl_getPhase(lc));
+    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(LaunchControl_getFilterStatus(lc));
     canMessages[canMessageCount - 1].length = byteNum;
 
     CanManager_send(me, CAN0_HIPRI, canMessages, canMessageCount); 
