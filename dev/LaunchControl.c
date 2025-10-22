@@ -79,7 +79,7 @@ void LaunchControl_updateState(LaunchControl *me, TorqueEncoder *tps, BrakePress
 
 void LaunchControl_updatePhase(LaunchControl *me, WheelSpeeds *wss) {
     //Use preset torque curve during intial part of launch when wheel speeds are not reading
-    if (!WheelSpeeds_isWheelSpeedsNonZero(wss)) {
+    if (!WheelSpeeds_isWheelSpeedsNonZero(wss, FALSE)) {
         me->phase = LC_PHASE_RAMP;
         return;
     }
@@ -106,11 +106,8 @@ void LaunchControl_updatePhase(LaunchControl *me, WheelSpeeds *wss) {
 }
 
 void LaunchControl_updateSlipRatio(LaunchControl *me, WheelSpeeds *wss) {
-    float rearLeftRPM = WheelSpeeds_getWheelSpeedRPM(wss, RL, TRUE) + 0.5f;
-    float rearRightRPM = WheelSpeeds_getWheelSpeedRPM(wss, RR, TRUE) + 0.5f;
-    float fastestRearWheelsRPM = (rearLeftRPM > rearRightRPM) ? rearLeftRPM : rearRightRPM;
-
-    float avgFrontWheelsRPM = ((WheelSpeeds_getWheelSpeedRPM(wss, FL, TRUE) + 0.5f) + (WheelSpeeds_getWheelSpeedRPM(wss, FR, TRUE) + 0.5f)) / 2.0f;
+    float fastestRearWheelsRPM = WheelSpeeds_getFastestRearRPM(wss, FALSE);
+    float avgFrontWheelsRPM = WheelSpeeds_getGroundSpeedRPM(wss, 0, FALSE);
     if ((avgFrontWheelsRPM) != 0) {
         me->currentSlipRatio = (fastestRearWheelsRPM / avgFrontWheelsRPM) - 1.0f;
     }
@@ -118,8 +115,8 @@ void LaunchControl_updateSlipRatio(LaunchControl *me, WheelSpeeds *wss) {
 
 void LaunchControl_updateVelocityDifference(LaunchControl *me, WheelSpeeds *wss) 
 {
-    float estimatedVehicleVelocity = WheelSpeeds_getGroundSpeed(wss, 0);
-    me->currentVelocityDifference = WheelSpeeds_getFastestRear(wss) - estimatedVehicleVelocity;
+    float estimatedVehicleVelocity = WheelSpeeds_getGroundSpeedMPS(wss, 0, FALSE);
+    me->currentVelocityDifference = WheelSpeeds_getFastestRearMPS(wss, FALSE) - estimatedVehicleVelocity;
     me->targetVelocityDifference = me->slipRatioTarget * estimatedVehicleVelocity;
 }
 
