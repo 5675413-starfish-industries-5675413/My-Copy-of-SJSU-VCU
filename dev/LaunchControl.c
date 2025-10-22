@@ -14,10 +14,11 @@
 #include "drs.h"
 extern Sensor Sensor_LCButton;
 
+//Exit and entry thresholds
+#define LC_MAX_BRAKE_THRESHOLD_PERCENT 0.05f
+#define LC_MAX_INITIAL_SPEED_THRESHOLD_KPH 1.0f
+#define LC_MIN_THROTTLE_THRESHOLD_PERCENT 0.90f
 
-
-
-/* Start of Launch Control */
 LaunchControl *LaunchControl_new(bool lcToggle) {
     LaunchControl* me = (LaunchControl*)malloc(sizeof(struct _LaunchControl));
     me->Kp = 50;
@@ -52,21 +53,24 @@ void LaunchControl_reset(LaunchControl *me, MotorController *mcm) {
 }
 
 void LaunchControl_updateState(LaunchControl *me, TorqueEncoder *tps, BrakePressureSensor *bps, MotorController *mcm) {
-    if (me->state == LC_STATE_IDLE && Sensor_LCButton.sensorValue == TRUE && MCM_getGroundSpeedKPH(mcm) < 1 && bps->percent < 0.05) {
+    //Enters ready state if LC button is held, and the vehicle is near standstill and driver is not braking
+    if (me->state == LC_STATE_IDLE && Sensor_LCButton.sensorValue == TRUE && 
+        MCM_getGroundSpeedKPH(mcm) < LC_MAX_INITIAL_SPEED_THRESHOLD_KPH && bps->percent <= LC_MAX_BRAKE_THRESHOLD_PERCENT) {
         me->state = LC_STATE_READY;
     }
-
+    //While in ready state, the driver should press throttle fully. Then, releasing the LC button will activate Launch Control
     if (me->state == LC_STATE_READY && Sensor_LCButton.sensorValue == FALSE) {
-        if (tps->tps0_percent > .90 && bps->percent < 0.05) {
+        if (tps->tps0_percent > LC_MIN_THROTTLE_THRESHOLD_PERCENT && bps->percent < LC_MAX_BRAKE_THRESHOLD_PERCENT) {
             me->state = LC_STATE_ACTIVE;
         }
         else {
+            //When the LC button is released, if the driver is not pressing throttle fully or is braking, Launch Control is aborted
             me->state = LC_STATE_IDLE;
             LaunchControl_reset(me, mcm);
         }
     }
-
-    if (me->state == LC_STATE_ACTIVE && (tps->tps0_percent < .90 || bps->percent > 0.05)) {
+    //During active Launch Control, exit if driver lifts off throttle or brakes
+    if (me->state == LC_STATE_ACTIVE && (tps->tps0_percent < LC_MIN_THROTTLE_THRESHOLD_PERCENT || bps->percent > LC_MAX_BRAKE_THRESHOLD_PERCENT)) {
         me->state = LC_STATE_IDLE;
         LaunchControl_reset(me, mcm);
     }
