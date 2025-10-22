@@ -19,6 +19,8 @@ extern Sensor Sensor_LCButton;
 #define LC_MAX_INITIAL_SPEED_THRESHOLD_KPH 1.0f
 #define LC_MIN_THROTTLE_THRESHOLD_PERCENT 0.90f
 
+#define LC_MIN_FILTER_THRESHOLD_RPM 1000.0f //PLACEHOLDER
+
 LaunchControl *LaunchControl_new(bool lcToggle) {
     LaunchControl* me = (LaunchControl*)malloc(sizeof(struct _LaunchControl));
     me->Kp = 50;
@@ -35,6 +37,7 @@ LaunchControl *LaunchControl_new(bool lcToggle) {
     me->k = 0.6;
     me->maxTorque = 240;
     me->prevTorque = me->initialTorque;
+    me->useFilter = FALSE;
     me->mode = LC_MODE_SLIP_RATIO;
     me->state = LC_STATE_IDLE;
     me->phase = LC_PHASE_RAMP;
@@ -79,7 +82,7 @@ void LaunchControl_updateState(LaunchControl *me, TorqueEncoder *tps, BrakePress
 
 void LaunchControl_updatePhase(LaunchControl *me, WheelSpeeds *wss) {
     //Use preset torque curve during intial part of launch when wheel speeds are not reading
-    if (!WheelSpeeds_isWheelSpeedsNonZero(wss, FALSE)) {
+    if (!WheelSpeeds_isWheelSpeedsNonZero(wss, me->useFilter)) {
         me->phase = LC_PHASE_RAMP;
         return;
     }
@@ -106,8 +109,8 @@ void LaunchControl_updatePhase(LaunchControl *me, WheelSpeeds *wss) {
 }
 
 void LaunchControl_updateSlipRatio(LaunchControl *me, WheelSpeeds *wss) {
-    float fastestRearWheelsRPM = WheelSpeeds_getFastestRearRPM(wss, FALSE);
-    float avgFrontWheelsRPM = WheelSpeeds_getGroundSpeedRPM(wss, 0, FALSE);
+    float fastestRearWheelsRPM = WheelSpeeds_getFastestRearRPM(wss, me->useFilter);
+    float avgFrontWheelsRPM = WheelSpeeds_getGroundSpeedRPM(wss, 0, me->useFilter);
     if ((avgFrontWheelsRPM) != 0) {
         me->currentSlipRatio = (fastestRearWheelsRPM / avgFrontWheelsRPM) - 1.0f;
     }
@@ -115,8 +118,8 @@ void LaunchControl_updateSlipRatio(LaunchControl *me, WheelSpeeds *wss) {
 
 void LaunchControl_updateVelocityDifference(LaunchControl *me, WheelSpeeds *wss) 
 {
-    float estimatedVehicleVelocity = WheelSpeeds_getGroundSpeedMPS(wss, 0, FALSE);
-    me->currentVelocityDifference = WheelSpeeds_getFastestRearMPS(wss, FALSE) - estimatedVehicleVelocity;
+    float estimatedVehicleVelocity = WheelSpeeds_getGroundSpeedMPS(wss, 0, me->useFilter);
+    me->currentVelocityDifference = WheelSpeeds_getFastestRearMPS(wss, me->useFilter) - estimatedVehicleVelocity;
     me->targetVelocityDifference = me->slipRatioTarget * estimatedVehicleVelocity;
 }
 
@@ -152,6 +155,7 @@ void LaunchControl_calculateCommands(LaunchControl *me, TorqueEncoder *tps, Brak
             break;
 
         case LC_STATE_ACTIVE:
+            LaunchControl_updateFilterStatus(me, mcm);
             LaunchControl_updatePhase(me, wss);
             if (me->phase == LC_PHASE_RAMP) {
                 LaunchControl_applyTorqueCurve(me, mcm);
@@ -162,6 +166,15 @@ void LaunchControl_calculateCommands(LaunchControl *me, TorqueEncoder *tps, Brak
             }
             MCM_update_LC_torqueCommand(mcm, me->lcTorqueCommand);
             break;
+    }
+}
+
+void LaunchControl_updateFilterStatus(LaunchControl *me, MotorController *mcm) {
+    if (MCM_getMotorRPM(mcm) > LC_MIN_FILTER_THRESHOLD_RPM) {
+        me->useFilter = TRUE;
+    }
+    else {
+        me->useFilter = FALSE;
     }
 }
 

@@ -46,6 +46,7 @@ typedef struct _LaunchControl {
     float maxTorque;
     float prevTorque;
     float k;
+    bool useFilter;
     LC_State state;
     LC_Mode mode;
     LC_Phase phase;
@@ -67,5 +68,6 @@ void LaunchControl_calculatePIDOutput(LaunchControl *me);
 void LaunchControl_updatePhase(LaunchControl *me, WheelSpeeds *wss);
 ubyte1 LaunchControl_getPhase(LaunchControl *me);
 void LaunchControl_updateSlipDifference(LaunchControl *me, WheelSpeeds *wss);
+void LaunchControl_updateFilterStatus(LaunchControl *me, MotorController *mcm);
 
 #endif
