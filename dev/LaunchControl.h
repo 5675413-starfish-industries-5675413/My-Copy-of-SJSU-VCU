@@ -54,8 +54,8 @@ typedef struct _LaunchControl {
 LaunchControl *LaunchControl_new(bool lcToggle);
 void LaunchControl_reset(LaunchControl *me, MotorController *mcm);
 void LaunchControl_updateState(LaunchControl *me, TorqueEncoder *tps, BrakePressureSensor *bps, MotorController *mcm);
-void LaunchControl_calculateSlipRatio(LaunchControl *me, WheelSpeeds *wss);
-void LaunchControl_calculateTorqueCurve(LaunchControl *me, MotorController *mcm);
+void LaunchControl_updateSlipRatio(LaunchControl *me, WheelSpeeds *wss);
+void LaunchControl_applyTorqueCurve(LaunchControl *me, MotorController *mcm);
 void LaunchControl_calculateCommands(LaunchControl *me, TorqueEncoder *tps, BrakePressureSensor *bps, MotorController *mcm, WheelSpeeds *wss);
 bool LaunchControl_isWheelSpeedsNonZero(WheelSpeeds *wss);
 ubyte1 LaunchControl_getState(LaunchControl *me);
@@ -67,6 +67,6 @@ float LaunchControl_getPidOutput(LaunchControl *me);
 void LaunchControl_calculatePIDOutput(LaunchControl *me);
 void LaunchControl_updatePhase(LaunchControl *me, WheelSpeeds *wss);
 ubyte1 LaunchControl_getPhase(LaunchControl *me);
-void LaunchControl_calculateSlipDifference(LaunchControl *me, WheelSpeeds *wss);
+void LaunchControl_updateSlipDifference(LaunchControl *me, WheelSpeeds *wss);
 
 #endif

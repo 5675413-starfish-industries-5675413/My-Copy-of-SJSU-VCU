@@ -103,7 +103,7 @@ void LaunchControl_updatePhase(LaunchControl *me, WheelSpeeds *wss) {
     }
 }
 
-void LaunchControl_calculateSlipRatio(LaunchControl *me, WheelSpeeds *wss)
+void LaunchControl_updateSlipRatio(LaunchControl *me, WheelSpeeds *wss)
 {
     float avgFrontWheelsRPM = ((WheelSpeeds_getWheelSpeedRPM(wss, FL, TRUE) + 0.5) + (WheelSpeeds_getWheelSpeedRPM(wss, FR, TRUE) + 0.5)) / 2;
     float avgRearWheelsRPM = ((WheelSpeeds_getWheelSpeedRPM(wss, RL, TRUE) + 0.5) + (WheelSpeeds_getWheelSpeedRPM(wss, RR, TRUE) + 0.5)) / 2;
@@ -112,7 +112,7 @@ void LaunchControl_calculateSlipRatio(LaunchControl *me, WheelSpeeds *wss)
     }
 }
 
-void LaunchControl_calculateSlipDifference(LaunchControl *me, WheelSpeeds *wss) 
+void LaunchControl_updateVelocityDifference(LaunchControl *me, WheelSpeeds *wss) 
 {
     float estimatedVehicleVelocity = WheelSpeeds_getGroundSpeed(wss, 0);
     me->currentVelocityDifference = WheelSpeeds_getFastestRear(wss) - estimatedVehicleVelocity;
@@ -120,7 +120,7 @@ void LaunchControl_calculateSlipDifference(LaunchControl *me, WheelSpeeds *wss)
 }
 
 
-void LaunchControl_calculateTorqueCurve(LaunchControl *me, MotorController *mcm) {
+void LaunchControl_applyTorqueCurve(LaunchControl *me, MotorController *mcm) {
     float torque = me->k * me->maxTorque + (1 - me->k) * me->prevTorque;
     me->lcTorqueCommand = (sbyte2) torque;
     me->prevTorque = me->lcTorqueCommand;
@@ -129,8 +129,8 @@ void LaunchControl_calculateTorqueCurve(LaunchControl *me, MotorController *mcm)
 void LaunchControl_calculateCommands(LaunchControl *me, TorqueEncoder *tps, BrakePressureSensor *bps, MotorController *mcm, WheelSpeeds *wss)
 {
     //Always monnitor slip ratio and velocity difference
-    LaunchControl_calculateSlipRatio(me, wss);
-    LaunchControl_calculateSlipDifference(me, wss);
+    LaunchControl_updateSlipRatio(me, wss);
+    LaunchControl_updateVelocityDifference(me, wss);
 
     //Exit if Launch Control is not enabled
     if (!me->lcToggle) { 
@@ -153,7 +153,7 @@ void LaunchControl_calculateCommands(LaunchControl *me, TorqueEncoder *tps, Brak
         case LC_ACTIVE:
             LaunchControl_updatePhase(me, wss);
             if (me->phase == LC_PHASE_RAMP) {
-                LaunchControl_calculateTorqueCurve(me, mcm);
+                LaunchControl_applyTorqueCurve(me, mcm);
             }
             else {
                 LaunchControl_calculatePIDOutput(me);
