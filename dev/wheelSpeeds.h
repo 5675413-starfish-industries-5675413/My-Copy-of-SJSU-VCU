@@ -16,13 +16,15 @@ typedef struct _WheelSpeeds WheelSpeeds;
 
 WheelSpeeds* WheelSpeeds_new(float4 tireDiameterInches_F, float4 tireDiameterInches_R, ubyte1 pulsesPerRotation_F, ubyte1 pulsesPerRotation_R);
 void WheelSpeeds_update(WheelSpeeds* me, bool interpolate);
-float4 WheelSpeeds_getWheelSpeed(WheelSpeeds* me, Wheel corner);
-float4 WheelSpeeds_getWheelSpeedRPM(WheelSpeeds* me, Wheel corner, bool interpolate);
-float4 WheelSpeeds_getSlowestFront(WheelSpeeds* me);
-float4 WheelSpeeds_getFastestRear(WheelSpeeds* me);
-float4 WheelSpeeds_getGroundSpeed(WheelSpeeds* me, ubyte1 tire_config);
-float4 WheelSpeeds_getGroundSpeedKPH(WheelSpeeds *me, ubyte1 tire_config);
-bool WheelSpeeds_isWheelSpeedsNonZero(WheelSpeeds *me);
+float4 WheelSpeeds_getWheelSpeedMPS(WheelSpeeds *me, Wheel corner, bool filter);
+float4 WheelSpeeds_getWheelSpeedRPM(WheelSpeeds *me, Wheel corner, bool filter);
+float4 WheelSpeeds_getSlowestFrontMPS(WheelSpeeds *me, bool filter);
+float4 WheelSpeeds_getFastestRearMPS(WheelSpeeds *me, bool filter);
+float4 WheelSpeeds_getFastestRearRPM(WheelSpeeds *me, bool filter);
+float4 WheelSpeeds_getGroundSpeedMPS(WheelSpeeds *me, ubyte1 tire_config, bool filter);
+float4 WheelSpeeds_getGroundSpeedKPH(WheelSpeeds *me, ubyte1 tire_config, bool filter);
+float4 WheelSpeeds_getGroundSpeedRPM(WheelSpeeds *me, ubyte1 tire_config, bool filter);
+bool WheelSpeeds_isWheelSpeedsNonZero(WheelSpeeds *me, bool filter);
 void WSS_parseCanMessage(WheelSpeeds *me, IO_CAN_DATA_FRAME *wssCanMessage);
 
 #endif //  _WHEELSPEEDS_H
