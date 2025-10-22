@@ -57,7 +57,6 @@ void LaunchControl_updateState(LaunchControl *me, TorqueEncoder *tps, BrakePress
 void LaunchControl_updateSlipRatio(LaunchControl *me, WheelSpeeds *wss);
 void LaunchControl_applyTorqueCurve(LaunchControl *me, MotorController *mcm);
 void LaunchControl_calculateCommands(LaunchControl *me, TorqueEncoder *tps, BrakePressureSensor *bps, MotorController *mcm, WheelSpeeds *wss);
-bool LaunchControl_isWheelSpeedsNonZero(WheelSpeeds *wss);
 ubyte1 LaunchControl_getState(LaunchControl *me);
 sbyte2 LaunchControl_getTorqueCommand(LaunchControl *me);
 float LaunchControl_getSlipRatio(LaunchControl *me);

@@ -77,7 +77,7 @@ void LaunchControl_updateState(LaunchControl *me, TorqueEncoder *tps, BrakePress
 }
 
 void LaunchControl_updatePhase(LaunchControl *me, WheelSpeeds *wss) {
-    if (!LaunchControl_isWheelSpeedsNonZero(wss)) {
+    if (!WheelSpeeds_isWheelSpeedsNonZero(wss)) {
         me->phase = LC_PHASE_RAMP;
         return;
     }
@@ -191,18 +191,6 @@ void LaunchControl_calculatePIDOutput(LaunchControl *me)
         me->pid->output = -20;
     }
 }
-
-//maybe put this in wheelSpeeds.c ?
-bool LaunchControl_isWheelSpeedsNonZero(WheelSpeeds *wss) {
-    if (WheelSpeeds_getWheelSpeedRPM(wss, FL, TRUE) != 0 
-        && WheelSpeeds_getWheelSpeedRPM(wss, FR, TRUE) != 0 
-        && WheelSpeeds_getWheelSpeedRPM(wss, RL, TRUE) != 0 
-        && WheelSpeeds_getWheelSpeedRPM(wss, RR, TRUE) != 0) {
-            return TRUE;
-        }
-    return FALSE;
-}
-
 
 
 ubyte1 LaunchControl_getState(LaunchControl *me) { return me->state; }

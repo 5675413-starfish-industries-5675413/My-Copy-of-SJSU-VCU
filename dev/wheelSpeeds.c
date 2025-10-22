@@ -196,6 +196,10 @@ float4 WheelSpeeds_getGroundSpeedKPH(WheelSpeeds *me, ubyte1 tire_config)
     return (WheelSpeeds_getGroundSpeed(me, tire_config) * 3.6); //m/s to kph
 }
 
+bool WheelSpeeds_isWheelSpeedsNonZero(WheelSpeeds *me) {
+    return (me->speed_FL != 0 && me->speed_FR != 0 && me->speed_RL != 0 && me->speed_FL != 0);
+}
+
 void WSS_parseCanMessage(WheelSpeeds *me, IO_CAN_DATA_FRAME *wssCanMessage) {
     switch (wssCanMessage->id) {
         case 0x705:
