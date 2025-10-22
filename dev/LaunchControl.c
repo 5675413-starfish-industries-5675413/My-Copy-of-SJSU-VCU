@@ -128,35 +128,40 @@ void LaunchControl_calculateTorqueCurve(LaunchControl *me, MotorController *mcm)
 
 void LaunchControl_calculateCommands(LaunchControl *me, TorqueEncoder *tps, BrakePressureSensor *bps, MotorController *mcm, WheelSpeeds *wss)
 {
+    //Always monnitor slip ratio and velocity difference
     LaunchControl_calculateSlipRatio(me, wss);
+    LaunchControl_calculateSlipDifference(me, wss);
 
-    if(!me->lcToggle) {
-        return;
+    //Exit if Launch Control is not enabled
+    if (!me->lcToggle) { 
+        return; 
     }
 
     LaunchControl_updateState(me, tps, bps, mcm);
-    
-    if (me->state == LC_READY) {
-        me->lcTorqueCommand = 0;
-        MCM_update_LC_torqueCommand(mcm, me->lcTorqueCommand);
-        return;
-    }
-    if (me->state != LC_ACTIVE) {
-        return;
-    }
 
-    LaunchControl_updatePhase(me, wss);
-    
-    if (me->mode == LC_MODE_SLIP_RATIO || me->mode == LC_MODE_SLIP_DIFFERENCE) {
-        if (me->phase == LC_PHASE_RAMP) {
-            LaunchControl_calculateTorqueCurve(me, mcm);
-        }
-        else {
-            LaunchControl_calculatePIDOutput(me);
-            me->lcTorqueCommand = MCM_getFeedbackTorque(mcm) + me->pid->output;
-        }
+    switch(me->state) {
+        case LC_IDLE:
+            //Do nothing
+            break;
+
+        case LC_READY:
+            //During ready state, driver is able to press throttle without requesting any torque
+            me->lcTorqueCommand = 0;
+            MCM_update_LC_torqueCommand(mcm, me->lcTorqueCommand);
+            break;
+
+        case LC_ACTIVE:
+            LaunchControl_updatePhase(me, wss);
+            if (me->phase == LC_PHASE_RAMP) {
+                LaunchControl_calculateTorqueCurve(me, mcm);
+            }
+            else {
+                LaunchControl_calculatePIDOutput(me);
+                me->lcTorqueCommand = MCM_getFeedbackTorque(mcm) + me->pid->output;
+            }
+            MCM_update_LC_torqueCommand(mcm, me->lcTorqueCommand);
+            break;
     }
-    MCM_update_LC_torqueCommand(mcm, me->lcTorqueCommand);
 }
 
 void LaunchControl_calculatePIDOutput(LaunchControl *me) 
