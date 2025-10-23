@@ -363,8 +363,7 @@ BO_ 1289 MCM_RTD_HVIL: 8 VCU
  SG_ HVIL_Active : 0|16@1+ (1,0) [0|20] "" VCU
  SG_ MCM_Override_Enabled : 16|8@1+ (1,0) [0|1] "" VCU
 
-BO_ 1290 Ground_Speed: 8 mcm
- SG_ speedKph : 0|16@1+ (1,0) [0|200] "km/h" mcm
+BO_ 1290 EMPTY: 8 mcm
 
 BO_ 1291 VCU_LC_Status_A: 8 VCU
  SG_ VCU_LaunchControl_TorqueCommand_Nm : 0|16@1- (1,0) [-32768|32767] "Nm" VCU
@@ -372,11 +371,12 @@ BO_ 1291 VCU_LC_Status_A: 8 VCU
  SG_ VCU_LaunchControl_VelocityDifferenceTarget_MPS : 32|16@1+ (1,0) [-32768|32767] "MPS" VCU
  SG_ VCU_LaunchControl_CurrentVelocityDifference_MPS : 48|16@1+ (1,0) [-32768|32767] "MPS" VCU
 
-BO_ 1292 VCU_LC_Staus_C_SAS: 8 DAQ
+BO_ 1292 VCU_LC_Staus_C_SAS_KPH: 8 DAQ
  SG_ Steering_Angle : 0|16@1- (1,0) [-100|100] "Degrees" VCU
  SG_ VCU_LaunchControl_State : 0|8@1- (1,0) [0|255] "" VCU
  SG_ VCU_LaunchControl_Phase : 8|8@1- (1,0) [0|255] "" VCU
  SG_ VCU_LaunchControl_Filter_Status : 16|8@1- (1,0) [0|255] "" VCU
+ SG_ SpeedKph : 24|16@1- (1,0) [0|200] "km/h" mcm
 
 BO_ 1294 VCU_BMS_Debug_1: 8 VCU
  SG_ VCU_BMS_FaultFlags0 : 0|8@1+ (1,0) [0|255] "" VCU

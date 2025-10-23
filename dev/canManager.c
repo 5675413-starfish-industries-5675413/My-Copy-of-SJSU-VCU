@@ -761,8 +761,8 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(LaunchControl_getState(lc));
     canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(LaunchControl_getPhase(lc));
     canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(LaunchControl_getFilterStatus(lc));
-    canMessages[canMessageCount - 1].data[byteNum++] = 0;
-    canMessages[canMessageCount - 1].data[byteNum++] = 0;
+    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)(MCM_getGroundSpeedKPH(mcm));
+    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)(MCM_getGroundSpeedKPH(mcm)) >> 8;
     canMessages[canMessageCount - 1].data[byteNum++] = 0;
     canMessages[canMessageCount - 1].length = byteNum;
 
