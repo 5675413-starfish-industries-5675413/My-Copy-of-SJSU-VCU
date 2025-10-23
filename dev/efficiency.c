@@ -13,7 +13,7 @@
 
 // event variables
 #define TOTAL_ENERGY_BUDGET_KWH 6.6f  // 80 kWh total energy budget
-#define CYCLE_TIME_S 0.1f  // 100ms cycle time
+#define CYCLE_TIME_S 0.01f  // 10ms cycle time
 
 Efficiency* EFFICIENCY_new(bool efficiencyToggle){
     Efficiency* me = (Efficiency*)malloc(sizeof(Efficiency));
