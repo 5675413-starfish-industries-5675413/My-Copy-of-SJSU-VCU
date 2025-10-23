@@ -19,12 +19,9 @@ typedef enum { ENABLED, DISABLED, UNKNOWN } Status;
 //1 = CCW = FORWARD (for our car)
 typedef enum { CLOCKWISE, COUNTERCLOCKWISE, REVERSE, FORWARD, _0, _1 } Direction;
 
-// Regen mode
-typedef enum { REGENMODE_OFF = 0, REGENMODE_FORMULAE, REGENMODE_HYBRID, REGENMODE_TESLA, REGENMODE_FIXED } RegenMode;
-
 typedef struct _MotorController MotorController;
 
-MotorController* MotorController_new(SerialManager* sm, ubyte2 canMessageBaseID, Direction initialDirection, sbyte2 torqueMaxInDNm, sbyte1 minRegenSpeedKPH, sbyte1 regenRampdownStartSpeed);
+MotorController* MotorController_new(SerialManager* sm, ubyte2 canMessageBaseID, Direction initialDirection, sbyte2 torqueMaxInDNm);
 
 //----------------------------------------------------------------------------
 // Command Functions
@@ -56,10 +53,6 @@ ubyte4 MCM_commands_getTimeSinceLastCommandSent(MotorController* me);
 //Allow other object access to the private struct
 //Note: only added as needed, not necessarily comprehensive
 void MCM_setMaxTorqueDNm(MotorController* mcm, ubyte2 torque);
-void MCM_setRegen_torqueLimitDNm(MotorController* mcm, ubyte2 torqueLimit);
-void MCM_setRegen_torqueAtZeroPedalDNm(MotorController* mcm, ubyte2 torqueZero);
-void MCM_setRegen_percentBPSForMaxRegen(MotorController* mcm, float4 percentBPS);
-void MCM_set_Regen_percentAPPSForCoasting(MotorController* mcm, float4 percentAPPS);
 
 // Testing functions for closed-loop testing
 void MCM_incrementVoltageForTesting(MotorController* me, sbyte4 increment);
@@ -67,10 +60,6 @@ void MCM_incrementCurrentForTesting(MotorController* me, sbyte4 increment);
 void MCM_incrementRPMForTesting(MotorController* me, sbyte4 increment);
 
 ubyte2 MCM_getMaxTorqueDNm(MotorController* mcm);
-ubyte2 MCM_get_Regen_torqueLimitDNm(MotorController* mcm);
-ubyte2 MCM_get_Regen_torqueAtZeroPedalDNm(MotorController* mcm);
-float4 MCM_get_Regen_percentBPSForMaxRegen(MotorController* mcm);
-float4 MCM_get_Regen_percentAPPSForCoasting(MotorController* mcm);
 
 //----------------------------------------------------------------------------
 // Update Functions (CAN Inputs)
@@ -90,6 +79,10 @@ void MCM_update_LC_engagedStatus(MotorController *me, bool newState);
 bool MCM_get_LC_engagedStatus(MotorController *me);
 sbyte2 MCM_get_LC_torqueCommand(MotorController *me);
 
+void MCM_set_Regen_torqueCommand(MotorController *me, sbyte2 regenTorqueCommand);
+void MCM_set_Regen_activeStatus(MotorController *me, bool newState);
+sbyte2 MCM_get_Regen_torqueCommand(MotorController *me);
+ubyte1 MCM_get_Regen_activeStatus(MotorController *me);
 
 void MCM_update_PL_setTorqueCommand(MotorController *me, sbyte2 torqueCommand);
 void MCM_set_PL_updateStatus(MotorController *me, bool newState);
@@ -116,20 +109,11 @@ sbyte2 MCM_getTemp(MotorController* me);
 sbyte2 MCM_getMotorTemp(MotorController* me);
 
 sbyte4 MCM_getGroundSpeedKPH(MotorController* me);
-sbyte1 MCM_getRegenMinSpeed(MotorController* me);
-sbyte1 MCM_getRegenRampdownStartSpeed(MotorController* me);
-
-ubyte1 MCM_getRegenMode(MotorController* me);
-sbyte2 MCM_getRegenTorqueLimitDNm(MotorController* me);
-sbyte2 MCM_getRegenTorqueAtZeroPedalDNm(MotorController* me);
-sbyte2 MCM_getRegenBPSForMaxRegenZeroToFF(MotorController* me);
-sbyte2 MCM_getRegenAPPSForMaxCoastingZeroToFF(MotorController* me);
 
 //----------------------------------------------------------------------------
 //Inter-object functions
 //----------------------------------------------------------------------------
 // void MCM_readTCSSettings(MotorController* me, Sensor* TCSSwitchUp, Sensor* TCSSwitchDown, Sensor* TCSPot);
-void MCM_setRegenMode(MotorController *me, RegenMode regenMode);
 void MCM_calculateCommands(MotorController *mcm, TorqueEncoder *tps, BrakePressureSensor *bps);
 
 void MCM_relayControl(MotorController* mcm, Sensor* HVILTermSense);

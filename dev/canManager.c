@@ -19,6 +19,7 @@
 #include "powerLimit.h"
 #include "drs.h"
 #include "PID.h"
+#include "regen.h"
 
 
 struct _CanManager {
@@ -490,7 +491,7 @@ void canOutput_sendSensorMessages(CanManager* me)
 //----------------------------------------------------------------------------
 // 
 //----------------------------------------------------------------------------
-void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressureSensor* bps, MotorController* mcm, InstrumentCluster* ic, BatteryManagementSystem* bms, WheelSpeeds* wss, SafetyChecker* sc, LaunchControl* lc, PowerLimit *pl, DRS *drs)
+void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressureSensor* bps, MotorController* mcm, InstrumentCluster* ic, BatteryManagementSystem* bms, WheelSpeeds* wss, SafetyChecker* sc, LaunchControl* lc, PowerLimit *pl, DRS *drs, Regen *regen)
 {
     IO_CAN_DATA_FRAME canMessages[me->can0_write_messageLimit];
     ubyte1 errorCount;
@@ -696,14 +697,14 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     byteNum = 0;
     canMessages[canMessageCount - 1].id = canMessageID + canMessageCount - 1;
     canMessages[canMessageCount - 1].id_format = IO_CAN_STD_FRAME;
-    canMessages[canMessageCount - 1].data[byteNum++] = MCM_getRegenMode(mcm);
+    canMessages[canMessageCount - 1].data[byteNum++] = MCM_get_Regen_torqueCommand(mcm);
+    canMessages[canMessageCount - 1].data[byteNum++] = MCM_get_Regen_torqueCommand(mcm) >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] = Regen_getMode(regen);
+    canMessages[canMessageCount - 1].data[byteNum++] = Regen_getMode(regen) >> 8;
     canMessages[canMessageCount - 1].data[byteNum++] = 0;
-    canMessages[canMessageCount - 1].data[byteNum++] = MCM_getMaxTorqueDNm(mcm)/10;
-    canMessages[canMessageCount - 1].data[byteNum++] = MCM_getRegenTorqueLimitDNm(mcm)/10;
-    canMessages[canMessageCount - 1].data[byteNum++] = MCM_getRegenTorqueAtZeroPedalDNm(mcm)/10;
     canMessages[canMessageCount - 1].data[byteNum++] = 0;
-    canMessages[canMessageCount - 1].data[byteNum++] = MCM_getRegenAPPSForMaxCoastingZeroToFF(mcm);
-    canMessages[canMessageCount - 1].data[byteNum++] = MCM_getRegenBPSForMaxRegenZeroToFF(mcm);
+    canMessages[canMessageCount - 1].data[byteNum++] = 0;
+    canMessages[canMessageCount - 1].data[byteNum++] = 0;
     canMessages[canMessageCount - 1].length = byteNum;
 
     //509: MCM RTD Status
