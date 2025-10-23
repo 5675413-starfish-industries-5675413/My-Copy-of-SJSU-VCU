@@ -57,7 +57,8 @@ void PowerLimit_entryConditions(PowerLimit* me, MotorController *mcm ){
             PowerLimit_PIDReset(me);
         }
 
-    else{
+    else
+    {
         if (me->plAlwaysOn == FALSE)
         { // if PL is not always on, only turn on if power is above threshold and off if below
             if (current_power_kw > me->plInitializationThreshold) {
@@ -66,7 +67,8 @@ void PowerLimit_entryConditions(PowerLimit* me, MotorController *mcm ){
                 me->plStatus = FALSE;
                 PowerLimit_PIDReset(me);
             }
-        } else 
+        }
+        else 
         { // if PL is always on, only turn on if power is above threshold and never turn off
             if (me->plStatus == FALSE && current_power_kw > me->plInitializationThreshold) {
                 me->plStatus = TRUE;
@@ -88,26 +90,31 @@ void PowerLimit_updatePLPower(PowerLimit* me){
                     if(previousTargetPower != 20)
                         {PowerLimit_PIDReset(me);}
                     me->plTargetPower = 20;
+                    me->plToggle = TRUE;
                     break;
                 case PL_MODE_30:
                     if(previousTargetPower != 30)
                         {PowerLimit_PIDReset(me);}
                     me->plTargetPower = 30;
+                    me->plToggle = TRUE;
                     break;
                 case PL_MODE_40:
                     if(previousTargetPower != 40)
                         {PowerLimit_PIDReset(me);}
                     me->plTargetPower = 40;
+                    me->plToggle = TRUE;
                     break;
                 case PL_MODE_50:
                     if(previousTargetPower != 50)
                         {PowerLimit_PIDReset(me);}
                     me->plTargetPower = 50;
+                    me->plToggle = TRUE;
                     break;
                 case PL_MODE_60:
                     if(previousTargetPower != 60)
                         {PowerLimit_PIDReset(me);}
                     me->plTargetPower = 60;
+                    me->plToggle = TRUE;
                     break;
                 default:
                     break;
