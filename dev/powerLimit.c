@@ -28,7 +28,7 @@ PowerLimit* POWERLIMIT_new(bool plToggle){
     me->plMode = 2; // 1 = Torque PID, 2 = Power PID, 3 = Torque+Power PID
     me->plStatus = FALSE; // FALSE = Off, TRUE = On
     me->plTorqueCommand = 0; // Torque command in deciNewton-meters
-    me->plTargetPower = 60;// HERE IS WHERE YOU CHANGE POWERLIMIT (units = kW)
+    me->plTargetPower = 80;// HERE IS WHERE YOU CHANGE POWERLIMIT (units = kW)
     me->plThresholdDiscrepancy = 5; // Threshold discrepancy in kW
     me->plInitializationThreshold = 0; // Initialization threshold in kW
     me->clampingMethod = 4; // Clamping methods 0 (none), 4 (power), 6 (tq)
