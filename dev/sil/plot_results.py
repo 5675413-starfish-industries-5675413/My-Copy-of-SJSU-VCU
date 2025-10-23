@@ -10,7 +10,7 @@ import os
 
 # Get script directory
 script_dir = os.path.dirname(os.path.abspath(__file__))
-csv_path = os.path.join(script_dir, "test_results_output.csv")
+csv_path = os.path.join(script_dir, "output/test_results_output.csv")
 
 # Read CSV data
 print(f"Reading data from: {csv_path}")
@@ -61,7 +61,7 @@ ax4.grid(True, alpha=0.3)
 plt.tight_layout()
 
 # Save figure
-output_path = os.path.join(script_dir, "test_results_plot.png")
+output_path = os.path.join(script_dir, "output/test_results_plot.png")
 plt.savefig(output_path, dpi=150, bbox_inches='tight')
 print(f"\nPlot saved to: {output_path}")
 

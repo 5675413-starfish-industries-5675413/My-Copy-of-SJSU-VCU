@@ -14,7 +14,7 @@ ffi = FFI()
 
 # Get absolute path to DLL
 script_dir = os.path.dirname(os.path.abspath(__file__))
-lib_path = os.path.join(script_dir, "libpl_sil.dll")
+lib_path = os.path.join(script_dir, "dll", "libpl_sil.dll")
 
 # Define C interface
 ffi.cdef(r"""
@@ -99,5 +99,6 @@ except OSError as e:
         lib = ffi.dlopen(lib_path)
     except Exception as e2:
         print(f"ctypes also failed: {e2}")
-        sys.exit(1)
+        # Instead of sys.exit(), raise an exception that pytest can handle
+        raise ImportError(f"Failed to load DLL {lib_path}: {e2}") from e2
 

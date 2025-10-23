@@ -56,7 +56,7 @@ def tps(request):
 
 @pytest.fixture
 def pl(request):
-    p = lib.POWERLIMIT_new(True)
+    p = lib.POWERLIMIT_new(False)
     assert p != ffi.NULL
     return p
 
@@ -69,11 +69,11 @@ def test_one_step_runs_parameterized(pl, mcm0, tps, config):
     pid = params['pid']
     
     # Set TPS to 100%
-    set_tps_percent(tps, 1.0)
+    set_tps_percent(tps, 0.987)
     
     # Configure Motor Controller Parameters
     lib.TEST_MCM_setCommandedTorque(mcm0)
-    lib.TEST_MCM_setRPM(mcm0, 1800)
+    lib.TEST_MCM_setRPM(mcm0, 1812)
     lib.TEST_MCM_setDCVoltage(mcm0, 800)
     lib.TEST_MCM_setDCCurrent(mcm0, 100)
     lib.MCM_calculateCommands(mcm0, tps, ffi.NULL)
@@ -86,7 +86,7 @@ def test_one_step_runs_parameterized(pl, mcm0, tps, config):
     lib.TEST_setPLAlwaysOn(pl, params['plAlwaysOn'])
     lib.TEST_setPID(pl, pid['Kp'], pid['Ki'], pid['Kd'], pid['saturation'], pid['gain'])
     lib.TEST_setPLMode(pl, params['plMode'])
-    lib.TEST_setPLStatus(pl, True)
+    lib.TEST_setPLStatus(pl, False)
     lib.TEST_setPLTorqueCommand(pl, 0)
     lib.TEST_setPLTargetPower(pl, params['plTargetPower'])
     lib.TEST_setPLThresholdDiscrepancy(pl, params['plThresholdDiscrepancy'])
@@ -95,7 +95,7 @@ def test_one_step_runs_parameterized(pl, mcm0, tps, config):
     
     # Print values before PL calculation
     print("\n=== DEBUG: Before PowerLimit_calculateCommand ===")
-    print(f"TPS0: {lib.TEST_getTPS0_percent(tps):.2f}\nTPS1: {lib.TEST_getTPS1_percent(tps):.2f}\nTravel: {lib.TEST_getTravelPercent(tps):.2f}")
+    print(f"TPS0: {lib.TEST_getTPS0_percent(tps):.4f}\nTPS1: {lib.TEST_getTPS1_percent(tps):.4f}\nTravel: {lib.TEST_getTravelPercent(tps):.4f}")
     print(f"MCM RPM: {lib.TEST_MCM_getMotorRPM(mcm0)}\nVoltage: {lib.TEST_MCM_getDCVoltage(mcm0)}V\nCurrent: {lib.TEST_MCM_getDCCurrent(mcm0)}A")
     print(f"MCM appsTorque: {lib.TEST_MCM_getAppsTorque(mcm0)}")
     print(f"PL Status (before): {lib.TEST_getPLStatus(pl)}\nMode: {lib.TEST_getPLMode(pl)}\nAlwaysOn: {lib.TEST_getPLAlwaysOn(pl)}")
@@ -107,7 +107,7 @@ def test_one_step_runs_parameterized(pl, mcm0, tps, config):
     print("\n=== DEBUG: After PowerLimit_calculateCommand ===")
     print(f"PL Status (after): {lib.TEST_getPLStatus(pl)}")
     print(f"PL TorqueCommand: {lib.TEST_getPLTorqueCommand(pl)}")
-    print(f"MCM Power: {calculate_power(mcm0, pl)*0.9}kW") # 0.9 is to calculate electrical power not mechanical power
+    print(f"MCM Power: {(calculate_power(mcm0, pl)*0.9345):.0f}kW") # 0.9 is to calculate electrical power not mechanical power
     
     # Verify PL is active and producing a torque command
     assert lib.TEST_getPLStatus(pl) == True, "PowerLimit should be active"
