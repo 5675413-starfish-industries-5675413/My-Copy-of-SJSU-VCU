@@ -16,7 +16,7 @@
 
 typedef enum {
     LC_MODE_SLIP_RATIO,
-    LC_MODE_SLIP_DIFFERENCE
+    LC_MODE_VELOCITY_DIFFERENCE
 } LC_Mode;
 
 typedef enum {

@@ -194,7 +194,7 @@ void LaunchControl_calculatePIDOutput(LaunchControl *me)
         PID_updateSetpoint(me->pid, me->slipRatioTarget);
         PID_computeOutput(me->pid, me->currentSlipRatio);
     }
-    else if (me->mode == LC_MODE_SLIP_DIFFERENCE) {
+    else if (me->mode == LC_MODE_VELOCITY_DIFFERENCE) {
         PID_updateSetpoint(me->pid, me->targetVelocityDifference);
         PID_computeOutput(me->pid, me->currentVelocityDifference);
     }
