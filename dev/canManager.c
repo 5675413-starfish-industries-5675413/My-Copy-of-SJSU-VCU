@@ -19,6 +19,7 @@
 #include "powerLimit.h"
 #include "drs.h"
 #include "PID.h"
+#include "efficiency.h"
 
 
 struct _CanManager {
@@ -490,7 +491,7 @@ void canOutput_sendSensorMessages(CanManager* me)
 //----------------------------------------------------------------------------
 // 
 //----------------------------------------------------------------------------
-void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressureSensor* bps, MotorController* mcm, InstrumentCluster* ic, BatteryManagementSystem* bms, WheelSpeeds* wss, SafetyChecker* sc, LaunchControl* lc, PowerLimit *pl, DRS *drs)
+void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressureSensor* bps, MotorController* mcm, InstrumentCluster* ic, BatteryManagementSystem* bms, WheelSpeeds* wss, SafetyChecker* sc, LaunchControl* lc, PowerLimit *pl, DRS *drs, Efficiency *eff)
 {
     IO_CAN_DATA_FRAME canMessages[me->can0_write_messageLimit];
     ubyte1 errorCount;
@@ -869,6 +870,36 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(PID_getTotalError(lc->pid)) >> 8;
     canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(PID_getOutput(lc->pid));
     canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(PID_getOutput(lc->pid))) >> 8;
+    canMessages[canMessageCount - 1].length = byteNum;
+
+    // 514: Efficiency Status A
+    canMessageCount++;
+    byteNum = 0;
+    canMessages[canMessageCount - 1].id_format = IO_CAN_STD_FRAME;
+    canMessages[canMessageCount - 1].id = canMessageID + canMessageCount - 1;
+    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)(Efficiency_getLapCounter(eff));
+    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)(Efficiency_getLapCounter(eff)) >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(Efficiency_getEnergySpentInCorners_kWh(eff) * 1000); // Convert to Wh
+    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(Efficiency_getEnergySpentInCorners_kWh(eff) * 1000)) >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(Efficiency_getLapEnergySpent_kWh(eff) * 1000); // Convert to Wh
+    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(Efficiency_getLapEnergySpent_kWh(eff) * 1000)) >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(Efficiency_getFinishedLap(eff) ? 1 : 0);
+    canMessages[canMessageCount - 1].data[byteNum++] = 0; // Reserved
+    canMessages[canMessageCount - 1].length = byteNum;
+    
+    // 515: Efficiency Status B
+    canMessageCount++;
+    byteNum = 0;
+    canMessages[canMessageCount - 1].id_format = IO_CAN_STD_FRAME;
+    canMessages[canMessageCount - 1].id = canMessageID + canMessageCount - 1;
+    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(Efficiency_getTimeInStraights_s(eff) * 10); // Convert to 0.1s units
+    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(Efficiency_getTimeInStraights_s(eff) * 10)) >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(Efficiency_getEnergySpentInStraights_kWh(eff) * 1000); // Convert to Wh
+    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(Efficiency_getEnergySpentInStraights_kWh(eff) * 1000)) >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(Efficiency_getTotalLapDistance_km(eff) * 100); // Convert to 0.01km units
+    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(Efficiency_getTotalLapDistance_km(eff) * 100)) >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] = 0; // Reserved
+    canMessages[canMessageCount - 1].data[byteNum++] = 0; // Reserved
     canMessages[canMessageCount - 1].length = byteNum;
 
     CanManager_send(me, CAN0_HIPRI, canMessages, canMessageCount); 

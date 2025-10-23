@@ -22,9 +22,10 @@ typedef enum { CLOCKWISE, COUNTERCLOCKWISE, REVERSE, FORWARD, _0, _1 } Direction
 // Regen mode
 typedef enum { REGENMODE_OFF = 0, REGENMODE_FORMULAE, REGENMODE_HYBRID, REGENMODE_TESLA, REGENMODE_FIXED } RegenMode;
 
+typedef enum { ACCEL, ENDURANCE} Event;
 typedef struct _MotorController MotorController;
 
-MotorController* MotorController_new(SerialManager* sm, ubyte2 canMessageBaseID, Direction initialDirection, sbyte2 torqueMaxInDNm, sbyte1 minRegenSpeedKPH, sbyte1 regenRampdownStartSpeed);
+MotorController* MotorController_new(SerialManager* sm, ubyte2 canMessageBaseID, Direction initialDirection, sbyte2 torqueMaxInDNm, sbyte1 minRegenSpeedKPH, sbyte1 regenRampdownStartSpeed, Event currentEvent);
 
 //----------------------------------------------------------------------------
 // Command Functions

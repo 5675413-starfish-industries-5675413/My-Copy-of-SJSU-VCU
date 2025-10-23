@@ -52,6 +52,7 @@
 #include "drs.h"
 #include "powerLimit.h"
 #include "PID.h"
+#include "efficiency.h"
 
 //Application Database, needed for TTC-Downloader
 APDB appl_db =
@@ -214,7 +215,7 @@ void main(void)
     ReadyToDriveSound *rtds = RTDS_new();
     BatteryManagementSystem *bms = BMS_new(serialMan, BMS_BASE_ADDRESS);
     // 240 Nm
-    MotorController *mcm0 = MotorController_new(serialMan, 0xA0, FORWARD, 2400, 5, 10); //CAN addr, direction, torque limit x10 (100 = 10Nm)
+    MotorController *mcm0 = MotorController_new(serialMan, 0xA0, FORWARD, 2400, 5, 10, ENDURANCE); //CAN addr, direction, torque limit x10 (100 = 10Nm)
     // 75 Nm
     InstrumentCluster *ic0 = InstrumentCluster_new(serialMan, 0x702);
     TorqueEncoder *tps = TorqueEncoder_new(bench);
@@ -224,7 +225,8 @@ void main(void)
     CoolingSystem *cs = CoolingSystem_new(serialMan);
     LaunchControl *lc = LaunchControl_new(FALSE);
     DRS *drs = DRS_new();
-    PowerLimit *pl = POWERLIMIT_new(TRUE);
+    PowerLimit *pl = POWERLIMIT_new(FALSE);
+    Efficiency *eff = EFFICIENCY_new(FALSE);
 //---------------------------------------------------------------------------------------------------------
     //----------------------------------------------------------------------------
     // TODO: Additional Initial Power-up functions
@@ -474,6 +476,7 @@ void main(void)
         // MCM_incrementRPMForTesting(mcm0, 100);        // 100 RPM increments
         LaunchControl_calculateCommands(lc, tps, bps, mcm0, wss);
         // PowerLimit_updatePLPower(pl);
+        Efficiency_calculateCommands(eff, mcm0, pl);
         PowerLimit_calculateCommands(pl, mcm0, tps);
         MCM_calculateCommands(mcm0, tps, bps);
 
@@ -504,7 +507,7 @@ void main(void)
         //canOutput_sendMCUControl(mcm0, FALSE);
 
         //Send debug data
-        canOutput_sendDebugMessage(canMan, tps, bps, mcm0, ic0, bms, wss, sc, lc, pl, drs);
+        canOutput_sendDebugMessage(canMan, tps, bps, mcm0, ic0, bms, wss, sc, lc, pl, drs, eff);
         canOutput_sendDebugMessage1(canMan, mcm0, tps);
         //canOutput_sendSensorMessages();
         //canOutput_sendStatusMessages(mcm0);
