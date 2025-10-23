@@ -151,7 +151,7 @@ float4 WheelSpeeds_getSlowestFrontMPS(WheelSpeeds *me, bool filter)
 float4 WheelSpeeds_getFastestRearMPS(WheelSpeeds *me, bool filter)
 {
 	float4 speed_RL = WheelSpeeds_getWheelSpeedMPS(me, RL, filter);
-	float4 speed_RR = WheelSpeeds_getWheelSpeedMPS(me, RL, filter);
+	float4 speed_RR = WheelSpeeds_getWheelSpeedMPS(me, RR, filter);
     return (speed_RL > speed_RR) ? speed_RL : speed_RR;
 }
 
@@ -218,7 +218,7 @@ bool WheelSpeeds_isWheelSpeedsNonZero(WheelSpeeds *me, bool filter) {
     return (speed_FL != 0 && speed_FR != 0 && speed_RL != 0 && speed_RR != 0);
 }
 
-void WSS_parseCanMessage(WheelSpeeds *me, IO_CAN_DATA_FRAME *wssCanMessage) {
+void WheelSpeeds_parseCanMessage(WheelSpeeds *me, IO_CAN_DATA_FRAME *wssCanMessage) {
     switch (wssCanMessage->id) {
         case 0x705:
             Sensor_WSS_FL.heldSensorValue = ((ubyte2)wssCanMessage->data[0] << 8 | wssCanMessage->data[1]);

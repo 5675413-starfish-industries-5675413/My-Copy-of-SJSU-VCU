@@ -439,7 +439,7 @@ void CanManager_read(CanManager* me, CanChannel channel, MotorController* mcm, I
             IC_parseCanMessage(ic, mcm, &canMessages[currMessage]);
             break;
         case 0x705:
-            WSS_parseCanMessage(wss, &canMessages[currMessage]);
+            WheelSpeeds_parseCanMessage(wss, &canMessages[currMessage]);
             break;
             
 

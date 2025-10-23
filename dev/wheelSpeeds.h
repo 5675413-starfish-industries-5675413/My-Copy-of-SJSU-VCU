@@ -25,6 +25,6 @@ float4 WheelSpeeds_getGroundSpeedMPS(WheelSpeeds *me, ubyte1 tire_config, bool f
 float4 WheelSpeeds_getGroundSpeedKPH(WheelSpeeds *me, ubyte1 tire_config, bool filter);
 float4 WheelSpeeds_getGroundSpeedRPM(WheelSpeeds *me, ubyte1 tire_config, bool filter);
 bool WheelSpeeds_isWheelSpeedsNonZero(WheelSpeeds *me, bool filter);
-void WSS_parseCanMessage(WheelSpeeds *me, IO_CAN_DATA_FRAME *wssCanMessage);
+void WheelSpeeds_parseCanMessage(WheelSpeeds *me, IO_CAN_DATA_FRAME *wssCanMessage);
 
 #endif //  _WHEELSPEEDS_H
