@@ -116,7 +116,7 @@ void PowerLimit_updatePLPower(PowerLimit* me){
 }
 
 void PowerLimit_calculateCommands(PowerLimit *me, MotorController *mcm, TorqueEncoder *tps){
-    PowerLimit_updatePLPower(me);
+    // PowerLimit_updatePLPower(me); // uncomment for rotary switch
     if(me->plToggle){
         //PowerLimit_updatePLPower(me); // uncomment for rotary switch
         PowerLimit_setPLInitializationThreshold(me);

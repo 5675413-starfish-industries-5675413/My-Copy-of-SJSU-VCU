@@ -137,7 +137,7 @@ struct _MotorController
 
     sbyte2 lcTorqueCommand;
     bool lcEngaged;
-
+    Event currentEvent;
     sbyte2 plTorqueCommand;
     bool plActive;
 
@@ -148,7 +148,7 @@ struct _MotorController
 
 };
 
-MotorController *MotorController_new(SerialManager *sm, ubyte2 canMessageBaseID, Direction initialDirection, sbyte2 torqueMaxInDNm, sbyte1 minRegenSpeedKPH, sbyte1 regenRampdownStartSpeed)
+MotorController *MotorController_new(SerialManager *sm, ubyte2 canMessageBaseID, Direction initialDirection, sbyte2 torqueMaxInDNm, sbyte1 minRegenSpeedKPH, sbyte1 regenRampdownStartSpeed, Event currentEvent)
 {
     MotorController *me = (MotorController *)malloc(sizeof(struct _MotorController));
     me->serialMan = sm;
@@ -175,7 +175,7 @@ MotorController *MotorController_new(SerialManager *sm, ubyte2 canMessageBaseID,
     me->regen_percentAPPSForCoasting = 0;
     me->regen_minimumSpeedKPH = minRegenSpeedKPH;       //Assigned by main
     me->regen_SpeedRampStart = regenRampdownStartSpeed; //Assigned by main
-
+    me->currentEvent = currentEvent;
     //me->faultHistory = { 0,0,0,0,0,0,0,0 };  //Todo: read from eeprom instead of defaulting to 0
 
     me->startupStage = 0; //Off
@@ -864,7 +864,7 @@ sbyte2 MCM_getMotorTemp(MotorController *me)
 
 sbyte4 MCM_getGroundSpeedKPH(MotorController *me)
 {   
-    sbyte4 FD_Ratio = 3.55; //divide # of rear teeth by number of front teeth
+    sbyte4 FD_Ratio = (me->currentEvent == ACCEL) ? 3.2 : 2.7; //divide # of rear teeth by number of front teeth
     sbyte4 Revolutions = 60; //this converts the rpm to rotations per hour
     //tireCirc does PI * Diameter_Tire because otherwise it doesn't work
     //for 16s set tireCirc to 1.295 for 18s set tireCirc to 1.395 

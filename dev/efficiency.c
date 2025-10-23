@@ -21,6 +21,7 @@ Efficiency* EFFICIENCY_new(bool efficiencyToggle){
         
     // event variables
     me->energyBudget_kWh = TOTAL_ENERGY_BUDGET_KWH/22;  // set actual energy budget fpr each lap
+    me->lapCounter = 1;
 
     me->carryOverEnergy_kWh = 0.0f;  // start with no carry-over
 
@@ -78,6 +79,7 @@ void Efficiency_completedLap(Efficiency* me, MotorController *mcm){
     float distance_this_cycle_km = wheelSpeed_kph * CYCLE_TIME_S / 3600.0f;
     me->totalLapDistance_km += distance_this_cycle_km;
     if (me->totalLapDistance_km > 1.0f) { // if accumulated distance is greater than 1 km, then we have completed a lap
+        me->lapCounter++;
         me->finishedLap = TRUE;
 
     }
@@ -102,6 +104,10 @@ void Efficiency_resetLap(Efficiency* me){
 bool Efficiency_getFinishedLap(Efficiency* me){
     return me->finishedLap;
 }
+ubyte2 Efficiency_getLapCounter(Efficiency* me){
+    return me->lapCounter;
+}
+
 
 /*
 pltargetpower should equal:
@@ -120,7 +126,9 @@ float Efficiency_getEnergySpentInCorners_kWh(Efficiency* me){
 float Efficiency_getTimeInStraights_s(Efficiency* me){
     return me->timeInStraights_s;
 }
-
+float Efficiency_getTotalLapDistance_km(Efficiency* me){
+    return me->totalLapDistance_km;
+}
 
 float Efficiency_getLapEnergySpent_kWh(Efficiency* me){
     return me->lapEnergySpent_kWh;
