@@ -31,16 +31,10 @@ Regen* Regen_new(bool regenToggle)
 
 void Regen_calculateCommands(Regen* me, MotorController * mcm, TorqueEncoder *tps, BrakePressureSensor *bps)
 {
-    if (me->regenToggle == FALSE) { 
+    if (me->regenToggle == FALSE || MCM_getGroundSpeedKPH(mcm) < MIN_REGEN_SPEED_KPH) { 
         MCM_set_Regen_activeStatus(mcm, FALSE);
         return; 
-    }
-    MCM_set_Regen_activeStatus(mcm, TRUE);   
-
-    if (MCM_getGroundSpeedKPH(mcm) < MIN_REGEN_SPEED_KPH) {     // no regen under 5kph rule
-        MCM_set_Regen_activeStatus(mcm, FALSE);        
-        return;
-    }
+    }   
 
     if (MCM_getDCCurrent(mcm) < -72) {      // saftey check stopping at -72A over 1 consecutive second
         me->tick++;
@@ -52,6 +46,8 @@ void Regen_calculateCommands(Regen* me, MotorController * mcm, TorqueEncoder *tp
         MCM_set_Regen_activeStatus(mcm, FALSE);
         return;
     }
+    
+    MCM_set_Regen_activeStatus(mcm, TRUE);
     
 /*
     // Regen mode is now set based on battery voltage to preserve overvoltage fault 
