@@ -14,7 +14,10 @@
 #include "readyToDriveSound.h"
 #include "serial.h"
 
+
 #include "canManager.h"
+
+
 
 extern Sensor Sensor_BenchTPS0;
 extern Sensor Sensor_BenchTPS1;
@@ -133,8 +136,7 @@ struct _MotorController
     //};
 
     sbyte2 lcTorqueCommand;
-    bool launchControlReadyStatus;
-    bool launchControlActiveStatus;
+    bool lcEngaged;
 
     sbyte2 plTorqueCommand;
     bool plActive;
@@ -183,8 +185,7 @@ MotorController *MotorController_new(SerialManager *sm, ubyte2 canMessageBaseID,
     me->motor_temp = 99;
 
     me->lcTorqueCommand = 0;
-    me->launchControlReadyStatus = FALSE;
-    me->launchControlActiveStatus = FALSE;
+    me->lcEngaged = FALSE;
 
     me-> plTorqueCommand = 0;
     me-> plActive = FALSE;
@@ -210,7 +211,7 @@ void MCM_setRegenMode(MotorController *me, RegenMode regenMode)
     {
     case REGENMODE_FORMULAE: //Position 1 = Coasting mode (Formula E mode)
         me->regen_mode = 1;
-        me->regen_torqueLimitDNm = me->torqueMaximumDNm * 0.5;
+        me->regen_torqueLimitDNm = 500;//me->torqueMaximumDNm * 0.5;
         me->regen_torqueAtZeroPedalDNm = 0;
         me->regen_percentAPPSForCoasting = 0;
         me->regen_percentBPSForMaxRegen = .3; //zero to one.. 1 = 100%
@@ -218,7 +219,7 @@ void MCM_setRegenMode(MotorController *me, RegenMode regenMode)
 
     case REGENMODE_HYBRID: //Position 2 = light "engine braking" (Hybrid mode)
         me->regen_mode = 2;
-        me->regen_torqueLimitDNm = me->torqueMaximumDNm * 0.5;
+        me->regen_torqueLimitDNm = 500;//me->torqueMaximumDNm * 0.5;
         me->regen_torqueAtZeroPedalDNm = me->regen_torqueLimitDNm * 0.3;
         me->regen_percentAPPSForCoasting = .2;
         me->regen_percentBPSForMaxRegen = .3; //zero to one.. 1 = 100%
@@ -226,7 +227,7 @@ void MCM_setRegenMode(MotorController *me, RegenMode regenMode)
 
     case REGENMODE_TESLA: //Position 3 = One pedal driving (Tesla mode)
         me->regen_mode = 3;
-        me->regen_torqueLimitDNm = me->torqueMaximumDNm * .5;
+        me->regen_torqueLimitDNm = 500;//me->torqueMaximumDNm * .5;
         me->regen_torqueAtZeroPedalDNm = me->regen_torqueLimitDNm;
         me->regen_percentAPPSForCoasting = .1;
         me->regen_percentBPSForMaxRegen = 0;
@@ -301,32 +302,36 @@ void MCM_calculateCommands(MotorController *me, TorqueEncoder *tps, BrakePressur
 
     TorqueEncoder_getOutputPercent(tps, &appsOutputPercent);
     
+    me->regen_torqueLimitDNm = 750;
+    if (me->motorRPM > 2400){
+        me->regen_torqueLimitDNm = -0.022 * (me->motorRPM-2400)+750; //No regen above 2400 RPM
+    }
+    //----------------------------------------------------------------------------
     me->appsTorque = me->torqueMaximumDNm * appsOutputPercent;
-    //me->appsTorque = me->torqueMaximumDNm * getPercent(appsOutputPercent, me->regen_percentAPPSForCoasting, 1, TRUE) - me->regen_torqueAtZeroPedalDNm * getPercent(appsOutputPercent, me->regen_percentAPPSForCoasting, 0, TRUE);
-    //bpsTorque = 0 - (me->regen_torqueLimitDNm - me->regen_torqueAtZeroPedalDNm) * getPercent(bps->percent, 0, me->regen_percentBPSForMaxRegen, TRUE);
+    // me->appsTorque = me->torqueMaximumDNm * getPercent(appsOutputPercent, me->regen_percentAPPSForCoasting, 1, TRUE) - me->regen_torqueAtZeroPedalDNm * getPercent(appsOutputPercent, me->regen_percentAPPSForCoasting, 0, TRUE);
+    // bpsTorque = 0 - (me->regen_torqueLimitDNm - me->regen_torqueAtZeroPedalDNm) * getPercent(bps->percent, 0, me->regen_percentBPSForMaxRegen, TRUE);
 
     /** MOTOR TORQUE COMMAND LOGIC **/
     // abstraction might be warranted for the below logic
 
     torqueOutput = me->appsTorque + bpsTorque;
 
-    if(me->launchControlActiveStatus == TRUE && me->lcTorqueCommand < me->appsTorque && me->lcTorqueCommand > 0)
+    if(me->lcEngaged == TRUE && me->lcTorqueCommand < torqueOutput)
     {
         torqueOutput = me->lcTorqueCommand;
     } 
-    if (me->launchControlReadyStatus == TRUE) {
-        torqueOutput = 0;
-    }
-    if(me->plActive == TRUE && me->plTorqueCommand < me->appsTorque)
+    if(me->plActive == TRUE && me->plTorqueCommand < torqueOutput)
     {
-        me->launchControlActiveStatus == FALSE;
-        torqueOutput = me->plTorqueCommand + bpsTorque;
+        me->lcEngaged = FALSE;
+        torqueOutput = me->plTorqueCommand;
     }
+  
     //Safety Check. torqueOutput Should never rise above 231
     if(torqueOutput > 2310 || torqueOutput < 0) //attempt to fix issue of -3000
     {
-        torqueOutput = me->appsTorque+bpsTorque;
+        torqueOutput = me->appsTorque;
     }
+    
     MCM_commands_setTorqueDNm(me, torqueOutput);
 
     //Causes MCM relay to be driven after 30 seconds with TTC60?
@@ -724,41 +729,29 @@ void MCM_updateInverterStatus(MotorController *me, Status newState)
     me->inverterStatus = newState;
 }
 
-
-//------------------------------Launch Control--------------------------------
-
-/** Converts Nm input to DNm in MCM struct */
+//-------------------------------Launch Control-------------------------------
 void MCM_update_LC_torqueCommand(MotorController *me, sbyte2 lcTorqueCommand)
 {
-    me->lcTorqueCommand = lcTorqueCommand * 10;
+    me->lcTorqueCommand = lcTorqueCommand * 10; //Nm -> Dm
 }
 
-sbyte2 MCM_get_LC_torqueCommand(MotorController *me)
+void MCM_update_LC_engagedStatus(MotorController *me, bool newState)
 {
+    me->lcEngaged = newState;
+}
+
+bool MCM_get_LC_engagedStatus(MotorController *me) {
+    return me->lcEngaged;
+}
+
+sbyte2 MCM_get_LC_torqueCommand(MotorController *me) {
     return me->lcTorqueCommand;
-}
-
-void MCM_update_LC_readyStatus(MotorController *me, bool newState)
-{
-    me->launchControlReadyStatus = newState;
-}
-bool MCM_get_LC_readyStatus(MotorController *me)
-{
-    return me->launchControlReadyStatus;
-}
-void MCM_update_LC_activeStatus(MotorController *me, bool newState)
-{
-    me->launchControlActiveStatus = newState;
-}
-bool MCM_get_LC_activeStatus(MotorController *me)
-{
-    return me->launchControlActiveStatus;
 }
 
 //----------------------------------------------------PL-------------------------------
 void MCM_update_PL_setTorqueCommand(MotorController *me, sbyte2 torqueCommand)
 {
-    me->plTorqueCommand = torqueCommand;
+    me->plTorqueCommand = torqueCommand * 10;
 }
 
 sbyte2 MCM_get_PL_torqueCommand(MotorController *me)
@@ -842,8 +835,11 @@ sbyte4 MCM_getPower(MotorController *me)
     if (me->DC_Voltage <= 0 || me->DC_Current <= 0) {
         return 0;
     }
+    else if (me->DC_Voltage > 1000 || me->DC_Current > 1000) {
+        return 0;
+    }
     else {
-        return ((me->DC_Voltage) * (me->DC_Current));
+        return ((me->DC_Voltage) *(me->DC_Current));
     }
 }
 
@@ -874,7 +870,7 @@ sbyte4 MCM_getGroundSpeedKPH(MotorController *me)
     //for 16s set tireCirc to 1.295 for 18s set tireCirc to 1.395 
     //sbyte4 PI = 3.141592653589; 
     //sbyte4 Diameter_Tire = 0.4;
-    sbyte4 tireCirc = 1.395; //the actual average tire circumference in meters
+    sbyte4 tireCirc = 1.295; //the actual average tire circumference in meters
     sbyte4 KPH_Unit_Conversion = 1000.0;
     sbyte4 groundKPH = ((me->motorRPM/FD_Ratio) * Revolutions * tireCirc) / KPH_Unit_Conversion; 
 

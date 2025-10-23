@@ -138,6 +138,8 @@ void main(void)
     ubyte4 timestamp_startTime = 0;
     ubyte4 timestamp_EcoButton = 0;
     ubyte1 calibrationErrors; //NOT USED
+    ubyte1 tick =0;
+
 
     /*******************************************/
     /*        Low Level Initializations        */
@@ -212,9 +214,8 @@ void main(void)
     ReadyToDriveSound *rtds = RTDS_new();
     BatteryManagementSystem *bms = BMS_new(serialMan, BMS_BASE_ADDRESS);
     // 240 Nm
-    //MotorController *mcm0 = MotorController_new(serialMan, 0xA0, FORWARD, 2400, 5, 10); //CAN addr, direction, torque limit x10 (100 = 10Nm)
+    MotorController *mcm0 = MotorController_new(serialMan, 0xA0, FORWARD, 2400, 5, 10); //CAN addr, direction, torque limit x10 (100 = 10Nm)
     // 75 Nm
-    MotorController *mcm0 = MotorController_new(serialMan, 0xA0, FORWARD, 2310, 5, 10); //CAN addr, direction, torque limit x10 (100 = 10Nm)
     InstrumentCluster *ic0 = InstrumentCluster_new(serialMan, 0x702);
     TorqueEncoder *tps = TorqueEncoder_new(bench);
     BrakePressureSensor *bps = BrakePressureSensor_new();
@@ -222,7 +223,6 @@ void main(void)
     SafetyChecker *sc = SafetyChecker_new(serialMan, 320, 32); //Must match amp limits
     CoolingSystem *cs = CoolingSystem_new(serialMan);
     LaunchControl *lc = LaunchControl_new(FALSE);
-
     DRS *drs = DRS_new();
     PowerLimit *pl = POWERLIMIT_new(TRUE);
 //---------------------------------------------------------------------------------------------------------
@@ -273,32 +273,32 @@ void main(void)
 
         //Pull messages from CAN FIFO and update our object representations.
         //Also echoes can0 messages to can1 for DAQ.
-        CanManager_read(canMan, CAN0_HIPRI, mcm0, ic0, bms, sc);
-        if (Sensor_TestButton.sensorValue == TRUE ) {
-            // TODO rewire Sensor_TestButton 
-            lc->buttonDebug |= 0x02;
-        }
-        else {
-            lc->buttonDebug &= ~0x02;
-        }
-        if (Sensor_DRSButton.sensorValue == TRUE ) { // mark gives 02
-            lc->buttonDebug |= 0x01;
-        }
-        else {
-            lc->buttonDebug &= ~0x01;
-        }
-        if (Sensor_EcoButton.sensorValue == TRUE ) { // cal gives 04
-           lc->buttonDebug |= 0x04;
-        }
-        else {
-            lc->buttonDebug &= ~0x04;
-        }
-        if (Sensor_LCButton.sensorValue == TRUE) { //drs gives 08
-          lc->buttonDebug |= 0x08;
-        }
-        else {
-            lc->buttonDebug &= ~0x08;
-        }
+        CanManager_read(canMan, CAN0_HIPRI, mcm0, ic0, bms, sc, wss);
+        // if (Sensor_TestButton.sensorValue == TRUE ) {
+        //     // TODO rewire Sensor_TestButton 
+        //     lc->buttonDebug |= 0x02;
+        // }
+        // else {
+        //     lc->buttonDebug &= ~0x02;
+        // }
+        // if (Sensor_DRSButton.sensorValue == TRUE ) { // mark gives 02
+        //     lc->buttonDebug |= 0x01;
+        // }
+        // else {
+        //     lc->buttonDebug &= ~0x01;
+        // }
+        // if (Sensor_EcoButton.sensorValue == TRUE ) { // cal gives 04
+        //    lc->buttonDebug |= 0x04;
+        // }
+        // else {
+        //     lc->buttonDebug &= ~0x04;
+        // }
+        // if (Sensor_LCButton.sensorValue == TRUE) { //drs gives 08
+        //   lc->buttonDebug |= 0x08;
+        // }
+        // else {
+        //     lc->buttonDebug &= ~0x08;
+        // }
 
         /*switch (CanManager_getReadStatus(canMan, CAN0_HIPRI))
         {
@@ -322,13 +322,21 @@ void main(void)
         //if (IO_RTC_GetTimeUS(timestamp_calibStart) < (ubyte4)5000000)
 
         //SensorValue TRUE and FALSE are reversed due to Pull Up Resistor
-
         //No regen below 5kph
+        if (MCM_getDCCurrent(mcm0) < -72)
+        {
+            tick++;
+        }
+        else {
+            tick = 0;
+        }
+        
         sbyte4 groundSpeedKPH = MCM_getGroundSpeedKPH(mcm0);
-        if (groundSpeedKPH < 15)
+        if (groundSpeedKPH < 15 || tick>=10)
         {
             MCM_setRegenMode(mcm0, REGENMODE_OFF);
         } else {
+            MCM_setRegenMode(mcm0, REGENMODE_FORMULAE);
             // Regen mode is now set based on battery voltage to preserve overvoltage fault 
             // if(BMS_getPackVoltage(bms) >= 38500 * 10){ 
             //     MCM_setRegenMode(mcm0, REGENMODE_FORMULAE); 
@@ -401,13 +409,6 @@ void main(void)
             }
         }
 
-        if (Sensor_LCButton.sensorValue == TRUE) {
-            lc->fakeLCButtonStatus = TRUE;
-        }
-        else
-        {
-            lc->fakeLCButtonStatus = FALSE;
-        }
         
         if (Sensor_HVILTerminationSense.sensorValue == FALSE) {
             if (coolingOn == 0) {
@@ -428,7 +429,8 @@ void main(void)
         //Assign motor controls to MCM command message
         //motorController_setCommands(rtds);
         //DOES NOT set inverter command or rtds flag
-        //MCM_setRegenMode(mcm0, REGENMODE_FORMULAE); // TODO: Read regen mode from DCU CAN message - Issue #96
+        //if (mcm0->regen_mode != REGENMODE_OFF)
+       // MCM_setRegenMode(mcm0, REGENMODE_FORMULAE); // TODO: Read regen mode from DCU CAN message - Issue #96
         // MCM_readTCSSettings(mcm0, &Sensor_TCSSwitchUp, &Sensor_TCSSwitchDown, &Sensor_TCSKnob);
         //---------------------------------------------------------------------------------------------------------
         // input the power limit calculation here from mcm 
@@ -445,8 +447,9 @@ void main(void)
         // MCM_incrementVoltageForTesting(mcm0, 5);      // 5V increments
         // MCM_incrementCurrentForTesting(mcm0, 5);      // 5A increments  
         // MCM_incrementRPMForTesting(mcm0, 100);        // 100 RPM increments
-        LaunchControl_calculateCommands(lc, mcm0, wss, tps, bps);
-        PowerLimit_calculateCommand(pl, mcm0, tps);
+        LaunchControl_calculateCommands(lc, tps, bps, mcm0, wss);
+        // PowerLimit_updatePLPower(pl);
+        PowerLimit_calculateCommands(pl, mcm0, tps);
         MCM_calculateCommands(mcm0, tps, bps);
 
         SafetyChecker_update(sc, mcm0, bms, tps, bps, &Sensor_HVILTerminationSense, &Sensor_LVBattery);

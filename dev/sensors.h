@@ -115,11 +115,11 @@ typedef enum
 // Power Limiting Mode from rotary switch
 typedef enum {
     PL_MODE_OFF,
+    PL_MODE_20,
     PL_MODE_30,
     PL_MODE_40,
     PL_MODE_50,
-    PL_MODE_60,
-    PL_MODE_80
+    PL_MODE_60
 } PLMode;
 
 
