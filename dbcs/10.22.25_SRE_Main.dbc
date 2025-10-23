@@ -366,17 +366,17 @@ BO_ 1289 MCM_RTD_HVIL: 8 VCU
 BO_ 1290 Ground_Speed: 8 mcm
  SG_ speedKph : 0|16@1+ (1,0) [0|200] "km/h" mcm
 
-BO_ 1291 VCU_Launch_Control_Status_A: 8 VCU
+BO_ 1291 VCU_LC_Status_A: 8 VCU
  SG_ VCU_LaunchControl_TorqueCommand_Nm : 0|16@1- (1,0) [-32768|32767] "Nm" VCU
  SG_ VCU_LaunchControl_SlipRatioScaled : 16|16@1- (1,0) [-32768|32767] "" VCU
  SG_ VCU_LaunchControl_VelocityDifferenceTarget_MPS : 32|16@1+ (1,0) [-32768|32767] "MPS" VCU
  SG_ VCU_LaunchControl_CurrentVelocityDifference_MPS : 48|16@1+ (1,0) [-32768|32767] "MPS" VCU
 
-BO_ 1292 DRS_SAS: 8 DAQ
+BO_ 1292 VCU_LC_Staus_C_SAS: 8 DAQ
  SG_ Steering_Angle : 0|16@1- (1,0) [-100|100] "Degrees" VCU
- SG_ DRS_Enable : 16|8@1+ (1,0) [0|1] "Enable" VCU
- SG_ DRS_Mode : 24|8@1+ (1,0) [0|3] "Selection" VCU
-  SG_ flap_DRS : 32|8@1+ (1,0) [0|1] "State" VCU
+ SG_ VCU_LaunchControl_State : 0|8@1- (1,0) [0|255] "" VCU
+ SG_ VCU_LaunchControl_Phase : 8|8@1- (1,0) [0|255] "" VCU
+ SG_ VCU_LaunchControl_Filter_Status : 16|8@1- (1,0) [0|255] "" VCU
 
 BO_ 1294 VCU_BMS_Debug_1: 8 VCU
  SG_ VCU_BMS_FaultFlags0 : 0|8@1+ (1,0) [0|255] "" VCU
@@ -409,16 +409,11 @@ BO_ 1298 VCU_Power_Limit_Status_BMsg: 8 VCU
  SG_ VCU_POWERLIMIT_PID_getOutput : 40|16@1- (1,0) [-32768|32767] "" VCU
  SG_ VCU_POWERLIMIT_getClampingMethod_W : 56|8@1+ (1,0) [0|255] "W" VCU
 
-BO_ 1299 VCU_Launch_Control_Status_B: 8 VCU
+BO_ 1299 VCU_LC_Status_B: 8 VCU
  SG_ VCU_LaunchControl_PID_Proportional : 0|16@1- (1,0) [-32768|32767] "" VCU
  SG_ VCU_LaunchControl_PID_Integral : 16|16@1- (1,0) [-32768|32767] "" VCU
  SG_ VCU_LaunchControl_PID_TotalError : 32|16@1- (1,0) [-32768|32767] "" VCU
  SG_ VCU_LaunchControl_PID_Output : 48|16@1- (1,0) [-32768|32767] "" VCU
-
-BO_ 1299 VCU_Launch_Control_Status_C: 3 VCU
- SG_ VCU_LaunchControl_State : 0|8@1- (1,0) [0|255] "" VCU
- SG_ VCU_LaunchControl_Phase : 8|8@1- (1,0) [0|255] "" VCU
- SG_ VCU_LaunchControl_Filter_Status : 16|8@1- (1,0) [0|255] "" VCU
 
 BO_ 1536 BMS_State_Command: 2 VCU
  SG_ BMS_State_Request : 0|8@1+ (1,0) [0|4] "" Vector__XXX
