@@ -16,9 +16,9 @@
 #define ADC_RESOLUTION_COUNT    1023.0f    // 10-bit resolution to adc count
 #define ADC_VOLT_RANGE             5.0f    // 5 volt range
 // Backcalc: Sensor Vals
-#define MAX_RATED_PRESSURE         2000    // PSI
+#define MAX_RATED_PRESSURE         2000.0f    // PSI
 #define MIN_V                      0.5f    // 0.5 V
-#define V_RANGE                       4    // 4.5V - 0.5V
+#define V_RANGE                       4.0f   // 4.5V - 0.5V
 
     /*  
     float4 adcToVolts_10Bit_5V(ubyte2 counts)
@@ -66,15 +66,10 @@ BrakePressureSensor *BrakePressureSensor_new(void)
     me->bps0_calibMax = 2290;
     me->calibrated = TRUE;
 
+
     return me;
 }
-
-//Updates all values based on sensor readings, safety checks, etc
- void BrakePressureSensor_update(BrakePressureSensor *me, bool bench)
-{
-    me->bps0_value = me->bps0->sensorValue;
-    me->bps1_value = me->bps1->sensorValue;
-
+void BrakePressureSensor_setPSI(BrakePressureSensor *me){
     // backcalc: ADC counts to volts (10-bit, 5 V)
     me->bps0_V = me->bps0_value / ADC_RESOLUTION_COUNT * ADC_VOLT_RANGE;
     me->bps1_V = me->bps1_value / ADC_RESOLUTION_COUNT * ADC_VOLT_RANGE;
@@ -82,6 +77,14 @@ BrakePressureSensor *BrakePressureSensor_new(void)
     // backcalc: volt to Pressure (PSI)    y={x-0.5}/{4}*2000
     me->bps0_Pressure = MAX_RATED_PRESSURE * (me->bps0_V - MIN_V) / V_RANGE;
     me->bps1_Pressure = MAX_RATED_PRESSURE * (me->bps1_V - MIN_V) / V_RANGE;
+}
+
+
+//Updates all values based on sensor readings, safety checks, etc
+ void BrakePressureSensor_update(BrakePressureSensor *me, bool bench)
+{
+    me->bps0_value = me->bps0->sensorValue;
+    me->bps1_value = me->bps1->sensorValue;
 
     //This function runs before the calibration cycle function.  If calibration is currently
     //running, then set the percentage to zero for safety purposes.

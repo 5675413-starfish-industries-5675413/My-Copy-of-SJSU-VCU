@@ -70,18 +70,20 @@ void Regen_calculateCommands(Regen *me, MotorController *mcm, TorqueEncoder *tps
     if (MCM_getMotorRPM(mcm) > 2400){
         me->torqueLimitDNm = -0.022 * (MCM_getMotorRPM(mcm)-2400) + 750; //No regen above 2400 RPM
     }
+    me->appsTorque=0;
 
     // Shinika's APPS implementation: 
-    me->appsTorque = MCM_getMaxTorqueDNm(mcm) * getPercent(appsOutputPercent, me->percentAPPSForCoasting, 1, TRUE) 
-                    - me->torqueAtZeroPedalDNm * getPercent(appsOutputPercent, me->percentAPPSForCoasting, 0, TRUE);
+    //me->appsTorque = MCM_getMaxTorqueDNm(mcm) * getPercent(appsOutputPercent, me->percentAPPSForCoasting, 1, TRUE) 
+                    //- me->torqueAtZeroPedalDNm * getPercent(appsOutputPercent, me->percentAPPSForCoasting, 0, TRUE);
 
     // Shinika's BPS implementation: 
     // me->bpsTorque  = 0 - (me->torqueLimitDNm - me->torqueAtZeroPedalDNm) * getPercent(bps->percent, 0, me->percentBPSForMaxRegen, TRUE);
 
     // Prop Valve Regen Implementation:
-    me->bpsTorque = ((bps->bps0_Pressure-bps->bps1_Pressure / MPa_TO_PSI) * me->padMu * REAR_PISTON_AREA * (ROTOR_DIAMETER / 1000)) / GEAR_RATIO;
+    BrakePressureSensor_setPSI(bps);
+    me->bpsTorque = ((bps->bps0_Pressure-bps->bps1_Pressure / MPa_TO_PSI) * me->padMu * REAR_PISTON_AREA * (ROTOR_DIAMETER / 1000.0)) / GEAR_RATIO;
 
-    me->regenTorqueCommand = me->appsTorque + me->bpsTorque;
+    me->regenTorqueCommand = 0 - (sbyte2)(me->bpsTorque);
 
     MCM_set_Regen_torqueCommand(mcm, me->regenTorqueCommand);
 }

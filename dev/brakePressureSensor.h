@@ -50,5 +50,6 @@ void BrakePressureSensor_loadCalibrationFromEEPROM(BrakePressureSensor *me);
 void BrakePressureSensor_startCalibration(BrakePressureSensor *me, ubyte1 secondsToRun);
 void BrakePressureSensor_calibrationCycle(BrakePressureSensor *me, ubyte1 *errorCount);
 void BrakePressureSensor_getPedalTravel(BrakePressureSensor *me, ubyte1 *errorCount, float4 *pedalPercent);
+void BrakePressureSensor_setPSI(BrakePressureSensor *me);
 
 #endif //  _BRAKEPRESSURESENSOR_H
