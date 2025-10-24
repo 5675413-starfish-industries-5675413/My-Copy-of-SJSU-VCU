@@ -9,8 +9,7 @@
 
 #include "IO_Driver.h" //Includes datatypes, constants, etc - should be included in every c file
 #include "motorController.h"
-#include "regen.h"
-#include "bms.h"
+#include "sensors.h"
 
 // maybe also include sensors for prop valve
 
@@ -31,6 +30,7 @@ typedef struct _Regen {
     float4 percentAPPSForCoasting; //Tuneable value.  Amount of accel pedal required to exit regen.  Value between zero and one.
     sbyte1 minimumSpeedKPH;        //Assigned by main
     sbyte1 SpeedRampStart;
+    float4 padMu;
     sbyte1 tick;
 } Regen;
 

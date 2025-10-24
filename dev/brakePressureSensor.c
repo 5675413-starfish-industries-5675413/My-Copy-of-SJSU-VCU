@@ -12,10 +12,26 @@
 /*****************************************************************************
 * Brake Pressure Sensor (BPS) functions
 ****************************************************************************/
+// Backcalc: ADC Vals
+#define ADC_RESOLUTION_COUNT    1023.0f    // 10-bit resolution to adc count
+#define ADC_VOLT_RANGE             5.0f    // 5 volt range
+// Backcalc: Sensor Vals
+#define MAX_RATED_PRESSURE         2000    // PSI
+#define MIN_V                      0.5f    // 0.5 V
+#define V_RANGE                       4    // 4.5V - 0.5V
+
+    /*  
+    float4 adcToVolts_10Bit_5V(ubyte2 counts)
+    {
+        return ((float4)counts / ADC_10BIT_RESOLUTION_COUNT) * ADC_5V_RANGE;
+    }
+    float4 adcToVolts_10Bit_5V(ubyte2 counts);
+*/
+
 
 // TODO: #94 Make this CAN configurable and store in EEPROM
 // This value is used for controlling the brake light and triggering the TPS-BPS implausibility fault
-#define BRAKES_ON_PERCENT .08
+#define BRAKES_ON_PERCENT   .08
 
 BrakePressureSensor *BrakePressureSensor_new(void)
 {
@@ -50,9 +66,6 @@ BrakePressureSensor *BrakePressureSensor_new(void)
     me->bps0_calibMax = 2290;
     me->calibrated = TRUE;
 
-
-    
-
     return me;
 }
 
@@ -61,6 +74,14 @@ BrakePressureSensor *BrakePressureSensor_new(void)
 {
     me->bps0_value = me->bps0->sensorValue;
     me->bps1_value = me->bps1->sensorValue;
+
+    // backcalc: ADC counts to volts (10-bit, 5 V)
+    me->bps0_V = me->bps0_value / ADC_RESOLUTION_COUNT * ADC_VOLT_RANGE;
+    me->bps1_V = me->bps1_value / ADC_RESOLUTION_COUNT * ADC_VOLT_RANGE;
+
+    // backcalc: volt to Pressure (PSI)    y={x-0.5}/{4}*2000
+    me->bps0_Pressure = MAX_RATED_PRESSURE * (me->bps0_V - MIN_V) / V_RANGE;
+    me->bps1_Pressure = MAX_RATED_PRESSURE * (me->bps1_V - MIN_V) / V_RANGE;
 
     //This function runs before the calibration cycle function.  If calibration is currently
     //running, then set the percentage to zero for safety purposes.

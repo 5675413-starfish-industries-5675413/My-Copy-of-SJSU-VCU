@@ -1,11 +1,15 @@
 #include "IO_Driver.h" //Includes datatypes, constants, etc - should be included in every c file
 #include "motorController.h"
+#include "sensors.h"
 #include "regen.h"
-#include "bms.h"
 
+#define MIN_REGEN_SPEED_KPH           5
+#define REGEN_RAMPDOWN_START_SPEED   10
+#define GEAR_RATIO                    2.7f
+#define MPa_TO_PSI                  145.038f
+#define REAR_PISTON_AREA            791.73f     // (mm^2)
+#define ROTOR_DIAMETER              148.34f     // (mm)
 
-#define MIN_REGEN_SPEED_KPH 5
-#define REGEN_RAMPDOWN_START_SPEED 10
 
 Regen* Regen_new(bool regenToggle)
 {
@@ -20,6 +24,7 @@ Regen* Regen_new(bool regenToggle)
     me->torqueAtZeroPedalDNm = 0;
     me->percentBPSForMaxRegen = 0; //zero to one.. 1 = 100%
     me->percentAPPSForCoasting = 0;
+    me->padMu = 0.5;
     me->minimumSpeedKPH = MIN_REGEN_SPEED_KPH;       //Assigned by main
     me->SpeedRampStart = REGEN_RAMPDOWN_START_SPEED; //Assigned by main
     me->tick = 0;
@@ -29,7 +34,7 @@ Regen* Regen_new(bool regenToggle)
     return me;
 }
 
-void Regen_calculateCommands(Regen* me, MotorController * mcm, TorqueEncoder *tps, BrakePressureSensor *bps)
+void Regen_calculateCommands(Regen *me, MotorController *mcm, TorqueEncoder *tps, BrakePressureSensor *bps)
 {
     if (me->regenToggle == FALSE) { 
         MCM_set_Regen_activeStatus(mcm, FALSE);
@@ -78,16 +83,7 @@ void Regen_calculateCommands(Regen* me, MotorController * mcm, TorqueEncoder *tp
     // me->bpsTorque  = 0 - (me->torqueLimitDNm - me->torqueAtZeroPedalDNm) * getPercent(bps->percent, 0, me->percentBPSForMaxRegen, TRUE);
 
     // Prop Valve Regen Implementation:
-    me->bpsTorque = 1/2.7f ;//* (bps->Sensor_BPS0-bps->Sensor_BPS1 / 145.038f) * 0.5f * 791.73f * (148.34f / 1000.0f);
-    //               ^                ^                 ^          ^       ^          ^          ^
-    //               |                |                 |          |       |          |          |
-    // gear ratio ----                |                 |          |       |          |          |
-    // prop valve pressure ------------                 |          |       |          |          |
-    // (PSI -> mPa) -------------------------------------          |       |          |          |
-    // pad Mu ------------------------------------------------------       |          |          |
-    // rear piston area (in mm^2) ------------------------------------------          |          |
-    // rotor diameter (in mm) ---------------------------------------------------------          |
-    // (mm -> m) ---------------------------------------------------------------------------------
+    me->bpsTorque = ((bps->bps0_Pressure-bps->bps1_Pressure / MPa_TO_PSI) * me->padMu * REAR_PISTON_AREA * (ROTOR_DIAMETER / 1000)) / GEAR_RATIO;
 
     me->regenTorqueCommand = me->appsTorque + me->bpsTorque;
 
