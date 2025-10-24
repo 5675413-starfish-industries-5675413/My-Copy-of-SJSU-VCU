@@ -1,10 +1,13 @@
+#ifndef EFFICIENCY_H
+#define EFFICIENCY_H
+
 #include "IO_Driver.h" //Includes datatypes, constants, etc - should be included in every c file
 #include "motorController.h"
 #include "PID.h"
 #include "math.h"
 #include "powerLimit.h"
 
-typedef struct _Efficiency {
+typedef struct {
     bool efficiencyToggle;
     
     // Energy Budget Algorithm Variables
@@ -33,3 +36,5 @@ float Efficiency_getCarryOverEnergy_kWh(Efficiency* me);
 float Efficiency_getEnergySpentInCorners_kWh(Efficiency* me);
 float Efficiency_getTimeInStraights_s(Efficiency* me);
 float Efficiency_getLapEnergySpent_kWh(Efficiency* me);
+float Efficiency_getTotalLapDistance_km(Efficiency* me);
+#endif // EFFICIENCY_H

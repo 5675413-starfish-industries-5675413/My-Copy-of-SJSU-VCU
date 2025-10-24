@@ -894,10 +894,10 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     canMessages[canMessageCount - 1].id = canMessageID + canMessageCount - 1;
     canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(Efficiency_getTimeInStraights_s(eff) * 10); // Convert to 0.1s units
     canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(Efficiency_getTimeInStraights_s(eff) * 10)) >> 8;
-    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(Efficiency_getEnergySpentInStraights_kWh(eff) * 1000); // Convert to Wh
-    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(Efficiency_getEnergySpentInStraights_kWh(eff) * 1000)) >> 8;
     canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(Efficiency_getTotalLapDistance_km(eff) * 100); // Convert to 0.01km units
     canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(Efficiency_getTotalLapDistance_km(eff) * 100)) >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] = 0; // Reserved
+    canMessages[canMessageCount - 1].data[byteNum++] = 0; // Reserved
     canMessages[canMessageCount - 1].data[byteNum++] = 0; // Reserved
     canMessages[canMessageCount - 1].data[byteNum++] = 0; // Reserved
     canMessages[canMessageCount - 1].length = byteNum;
