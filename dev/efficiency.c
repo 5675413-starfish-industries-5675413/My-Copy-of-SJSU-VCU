@@ -104,7 +104,7 @@ void Efficiency_resetLap(Efficiency* me){
 bool Efficiency_getFinishedLap(Efficiency* me){
     return me->finishedLap;
 }
-ubyte2 Efficiency_getLapCounter(Efficiency* me){
+ubyte1 Efficiency_getLapCounter(Efficiency* me){
     return me->lapCounter;
 }
 
