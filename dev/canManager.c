@@ -679,7 +679,7 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     else //if (Sensor_LVBattery.sensorValue < 14340)
         LVBatterySOC = .9 + .1 * getPercent(Sensor_LVBattery.sensorValue, 13300, 14340, FALSE);
     Sensor_LVBattery.sensorValue = Sensor_LVBattery.sensorValue + 0.46;
-    //507: Offset needed
+    //507: RegenTQ+LV battery 
     canMessageCount++;
     byteNum = 0;
     canMessages[canMessageCount - 1].id = canMessageID + canMessageCount - 1;
@@ -687,10 +687,10 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)Sensor_LVBattery.sensorValue;
     canMessages[canMessageCount - 1].data[byteNum++] = Sensor_LVBattery.sensorValue >> 8;
     canMessages[canMessageCount - 1].data[byteNum++] = (sbyte1)(100 * LVBatterySOC);
-    canMessages[canMessageCount - 1].data[byteNum++] = 0;
-    canMessages[canMessageCount - 1].data[byteNum++] = 0;
-    canMessages[canMessageCount - 1].data[byteNum++] = 0;
-    canMessages[canMessageCount - 1].data[byteNum++] = 0;
+    canMessages[canMessageCount - 1].data[byteNum++] = Regen_get_torqueCommand(regen);
+    canMessages[canMessageCount - 1].data[byteNum++] = Regen_get_torqueCommand(regen) >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(Efficiency_getTimeInStraights_s(eff) * 10); // Convert to 0.1s units
+    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(Efficiency_getTimeInStraights_s(eff) * 10)) >> 8;
     canMessages[canMessageCount - 1].data[byteNum++] = 0;
     canMessages[canMessageCount - 1].length = byteNum;
 
@@ -873,21 +873,7 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(PID_getOutput(lc->pid));
     canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(PID_getOutput(lc->pid))) >> 8;
     canMessages[canMessageCount - 1].length = byteNum;
-    
-    // 515: Efficiency Status B
-    canMessageCount++;
-    byteNum = 0;
-    canMessages[canMessageCount - 1].id_format = IO_CAN_STD_FRAME;
-    canMessages[canMessageCount - 1].id = canMessageID + canMessageCount - 1;
-    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(Efficiency_getTimeInStraights_s(eff) * 10); // Convert to 0.1s units
-    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(Efficiency_getTimeInStraights_s(eff) * 10)) >> 8;
-    canMessages[canMessageCount - 1].data[byteNum++] = 0;
-    canMessages[canMessageCount - 1].data[byteNum++] = 0;
-    canMessages[canMessageCount - 1].data[byteNum++] = 0; // Reserved
-    canMessages[canMessageCount - 1].data[byteNum++] = 0; // Reserved
-    canMessages[canMessageCount - 1].data[byteNum++] = 0; // Reserved
-    canMessages[canMessageCount - 1].data[byteNum++] = 0; // Reserved
-    canMessages[canMessageCount - 1].length = byteNum;
+
 
     CanManager_send(me, CAN0_HIPRI, canMessages, canMessageCount); 
 

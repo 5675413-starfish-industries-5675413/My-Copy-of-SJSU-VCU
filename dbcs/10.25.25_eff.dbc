@@ -28,6 +28,11 @@ BS_:
 
 BU_: DBG VCU BMS MCM DCU DAQ S2C
 
+BO_ 1287 Low_Voltage: 8 DAQ
+ SG_ Voltage : 0|16@1+ (0.001,0) [0|20] "V" VCU
+ SG_ VCU_RegenTq : 16|16@1- (1,0) [-32768|32767] "nM" VCU
+ SG_ VCU_Effiency_TimeinStriahgts : 16|16@1- (1,0) [-32768|32767] "t" VCU
+
 CM_ BU_ VCU "The vehicle control unit";
 CM_ BU_ MCM "The motor controller of the car";
 CM_ BU_ BMS "The battery management system";
