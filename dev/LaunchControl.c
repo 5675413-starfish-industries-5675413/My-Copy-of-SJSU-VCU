@@ -158,7 +158,7 @@ void LaunchControl_calculateCommands(LaunchControl *me, TorqueEncoder *tps, Brak
             break;
 
         case LC_STATE_ACTIVE:
-            //LaunchControl_updateFilterStatus(me, mcm);
+            LaunchControl_updateFilterStatus(me, mcm);
             LaunchControl_updatePhase(me, wss);
             if (me->phase == LC_PHASE_RAMP) {
                 LaunchControl_applyTorqueCurve(me, mcm);
