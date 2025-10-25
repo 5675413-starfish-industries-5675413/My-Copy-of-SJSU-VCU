@@ -21,6 +21,7 @@
 #include "PID.h"
 #include "regen.h"
 #include "efficiency.h"
+#include "brakePressureSensor.h"
 
 
 struct _CanManager {
@@ -698,12 +699,10 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     byteNum = 0;
     canMessages[canMessageCount - 1].id = canMessageID + canMessageCount - 1;
     canMessages[canMessageCount - 1].id_format = IO_CAN_STD_FRAME;
-    canMessages[canMessageCount - 1].data[byteNum++] = MCM_get_Regen_torqueCommand(mcm);
-    canMessages[canMessageCount - 1].data[byteNum++] = MCM_get_Regen_torqueCommand(mcm) >> 8;
-    canMessages[canMessageCount - 1].data[byteNum++] = BrakePressureSensor_getBPS0_mV(bps);
-    canMessages[canMessageCount - 1].data[byteNum++] = BrakePressureSensor_getBPS0_mV(bps) >> 8;
-    canMessages[canMessageCount - 1].data[byteNum++] = BrakePressureSensor_getBPS1_mV(bps);
-    canMessages[canMessageCount - 1].data[byteNum++] = BrakePressureSensor_getBPS1_mV(bps) >> 24;
+    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)(BrakePressureSensor_getBPS0_mV(bps));
+    canMessages[canMessageCount - 1].data[byteNum++] = ((ubyte2)(BrakePressureSensor_getBPS0_mV(bps))) >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)(BrakePressureSensor_getBPS1_mV(bps));
+    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)(BrakePressureSensor_getBPS1_mV(bps)) >> 8;
     canMessages[canMessageCount - 1].data[byteNum++] = BrakePressureSensor_getBPS0_Pressure(bps);
     canMessages[canMessageCount - 1].data[byteNum++] = BrakePressureSensor_getBPS0_Pressure(bps) >> 8;
     canMessages[canMessageCount - 1].data[byteNum++] = BrakePressureSensor_getBPS1_Pressure(bps);
