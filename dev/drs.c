@@ -66,10 +66,11 @@ void DRS_update(DRS *me, MotorController *mcm, TorqueEncoder *tps, BrakePressure
                 DRS_open(me);           
                 break;
             case MANUAL:
-                if(Sensor_DRSButton.sensorValue == TRUE) {
+                if(Sensor_DRSButton.sensorValue == TRUE && me->drsFlap==0) {
                     me->buttonPressed = TRUE;
                     DRS_open(me);
-                } else if(me->drsFlap==1 && Sensor_DRSButton.sensorValue == TRUE){
+                }
+                if(me->drsFlap==1 && Sensor_DRSButton.sensorValue == TRUE){
                     me->buttonPressed = FALSE;
                     DRS_close(me);
                 }
