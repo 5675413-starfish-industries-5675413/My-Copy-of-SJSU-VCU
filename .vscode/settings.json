@@ -20,7 +20,8 @@
     "stdlib.h": "c",
     "cooling.h": "c",
     "initializations.h": "c",
-    "sensors.h": "c"
+    "sensors.h": "c",
+    "brakepressuresensor.h": "c"
   },
   "C_Cpp.copilotHover": "disabled",
   "github.copilot.advanced": {}
