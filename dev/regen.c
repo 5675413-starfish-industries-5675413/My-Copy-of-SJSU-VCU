@@ -34,7 +34,7 @@ Regen* Regen_new(bool regenToggle)
     me->SpeedRampStart = REGEN_RAMPDOWN_START_SPEED; //Assigned by main
     me->tick = 0;
 
-    Regen_updateMode(me);
+    Regen_updateSettings(me);
 
     return me;
 }
@@ -87,7 +87,6 @@ void Regen_calculateCommands(Regen *me, MotorController *mcm, TorqueEncoder *tps
         // Shinika's APPS implementation:
         me->appsTorque = MCM_getMaxTorqueDNm(mcm) * getPercent(appsOutputPercent, me->percentAPPSForCoasting, 1, TRUE)
                        - me->torqueAtZeroPedalDNm * getPercent(appsOutputPercent, me->percentAPPSForCoasting, 0, TRUE);
-
     } 
     else if (me->mode == REGENMODE_FORMULAE &&  me->appsTorque > 0) {
         MCM_set_Regen_torqueCommand(mcm, me->appsTorque); // redundancy: no bps if throttle is pressed (might happen due to noise in sensors)
@@ -100,7 +99,7 @@ void Regen_calculateCommands(Regen *me, MotorController *mcm, TorqueEncoder *tps
     BrakePressureSensor_setPSI(bps);
     me->bpsTorqueNm = (((bps->bps0_PSI-bps->bps1_PSI) * PSI_TO_N_PER_mm_SQUARED) * me->padMu * REAR_PISTON_AREA * (ROTOR_RADIUS * mm_TO_m)) / GEAR_RATIO;
 
-    me->regenTorqueCommand = me->appsTorque - (sbyte2)(me->bpsTorqueNm);
+    me->regenTorqueCommand = (me->appsTorque/10) - (sbyte2)(me->bpsTorqueNm);
 
     if (me->regenTorqueCommand >= 231) {
         MCM_set_Regen_torqueCommand(mcm, 231);
@@ -113,7 +112,7 @@ void Regen_calculateCommands(Regen *me, MotorController *mcm, TorqueEncoder *tps
     }
 }
 
-void Regen_updateMode(Regen* me)
+void Regen_updateSettings(Regen* me)
 {
     switch (me->mode)
     {

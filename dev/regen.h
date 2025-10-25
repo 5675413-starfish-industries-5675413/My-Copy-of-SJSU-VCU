@@ -40,7 +40,7 @@ Regen* Regen_new(bool regenToggle);
 
 /** SETTER FUNCTIONS **/
 void Regen_calculateCommands(Regen* me, MotorController * mcm, TorqueEncoder *tps, BrakePressureSensor *bps);
-void Regen_updateMode(Regen* me);
+void Regen_updateSettings(Regen* me);
 
 /** GETTER FUNCTIONS **/
 sbyte2 Regen_get_torqueCommand(Regen *me);
