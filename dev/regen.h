@@ -10,6 +10,7 @@
 #include "IO_Driver.h" //Includes datatypes, constants, etc - should be included in every c file
 #include "motorController.h"
 #include "sensors.h"
+#include "mathFunctions.h"
 
 // maybe also include sensors for prop valve
 
