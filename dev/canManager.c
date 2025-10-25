@@ -702,11 +702,11 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)(BrakePressureSensor_getBPS0_mV(bps));
     canMessages[canMessageCount - 1].data[byteNum++] = ((ubyte2)(BrakePressureSensor_getBPS0_mV(bps))) >> 8;
     canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)(BrakePressureSensor_getBPS1_mV(bps));
-    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)(BrakePressureSensor_getBPS1_mV(bps)) >> 8;
-    canMessages[canMessageCount - 1].data[byteNum++] = BrakePressureSensor_getBPS0_Pressure(bps);
-    canMessages[canMessageCount - 1].data[byteNum++] = BrakePressureSensor_getBPS0_Pressure(bps) >> 8;
-    canMessages[canMessageCount - 1].data[byteNum++] = BrakePressureSensor_getBPS1_Pressure(bps);
-    canMessages[canMessageCount - 1].data[byteNum++] = BrakePressureSensor_getBPS1_Pressure(bps) >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] = ((ubyte2)(BrakePressureSensor_getBPS1_mV(bps))) >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)(BrakePressureSensor_getBPS0_Pressure(bps));
+    canMessages[canMessageCount - 1].data[byteNum++] = ((ubyte2)(BrakePressureSensor_getBPS0_Pressure(bps))) >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)(BrakePressureSensor_getBPS1_Pressure(bps));
+    canMessages[canMessageCount - 1].data[byteNum++] = ((ubyte2)(BrakePressureSensor_getBPS1_Pressure(bps))) >> 8;
     canMessages[canMessageCount - 1].length = byteNum;
 
     //509: MCM RTD Status

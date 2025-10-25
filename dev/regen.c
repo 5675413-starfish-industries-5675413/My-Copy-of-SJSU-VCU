@@ -11,7 +11,7 @@
 
 // Pressure Formula Constants
 #define GEAR_RATIO                      2.7f
-#define PSI_TO_N_PER_mm_SQUARED    0.006895f
+#define PSI_TO_MPa                 0.006895f
 #define mm_TO_m                       0.001f
 #define REAR_PISTON_AREA         4 * 791.73f    // mm^2  //this is nolan this number should be 4x
 #define ROTOR_RADIUS                  74.17f    // mm
@@ -98,7 +98,7 @@ void Regen_calculateCommands(Regen *me, MotorController *mcm, TorqueEncoder *tps
 
     // Prop Valve Regen Implementation:
    
-    me->bpsTorqueNm = (((bps->bps0_PSI-bps->bps1_PSI) * PSI_TO_N_PER_mm_SQUARED) * me->padMu * REAR_PISTON_AREA * (ROTOR_RADIUS * mm_TO_m)) / GEAR_RATIO;
+    me->bpsTorqueNm = (((bps->bps0_PSI-bps->bps1_PSI) * PSI_TO_MPa) * me->padMu * REAR_PISTON_AREA * (ROTOR_RADIUS * mm_TO_m)) / GEAR_RATIO;
 
     me->regenTorqueCommand = (me->appsTorque/10) - (sbyte2)(me->bpsTorqueNm);
 
