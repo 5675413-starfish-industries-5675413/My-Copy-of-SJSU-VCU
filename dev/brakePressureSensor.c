@@ -80,8 +80,6 @@ BrakePressureSensor *BrakePressureSensor_new(void)
 
 void BrakePressureSensor_setPSI(BrakePressureSensor *me){
     // backcalc: ADC counts to volts (10-bit, 5 V)
-    me->bps0_V = me->bps0_value / ADC_RESOLUTION_COUNT * ADC_VOLT_RANGE;     // front: 0.487-4.487
-    me->bps1_V = me->bps1_value / ADC_RESOLUTION_COUNT * ADC_VOLT_RANGE;     // rear:  0.495-4.495
     me->bps0_V = me->bps0_value / ADC_RESOLUTION_COUNT * ADC_VOLT_RANGE - 2.5;     // front: 0.487-4.487
     me->bps1_V = me->bps1_value / ADC_RESOLUTION_COUNT * ADC_VOLT_RANGE - 2.5;     // rear:  0.495-4.495
 
