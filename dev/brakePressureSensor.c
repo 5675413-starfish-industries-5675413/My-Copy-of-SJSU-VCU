@@ -76,8 +76,8 @@ void BrakePressureSensor_setPSI(BrakePressureSensor *me){
     me->bps1_V = me->bps1_value / ADC_RESOLUTION_COUNT * ADC_VOLT_RANGE;     // rear:  0.495-4.495
 
     // backcalc: volt to Pressure (PSI)    y={x-0.5}/{4}*2000
-    me->bps0_Pressure = MAX_RATED_PRESSURE * (me->bps0_V - MIN_V) / V_RANGE; // 0-2000 
-    me->bps1_Pressure = MAX_RATED_PRESSURE * (me->bps1_V - MIN_V) / V_RANGE; //
+    me->bps0_PSI = MAX_RATED_PRESSURE * (me->bps0_V - MIN_V) / V_RANGE; // 0-2000 
+    me->bps1_PSI = MAX_RATED_PRESSURE * (me->bps1_V - MIN_V) / V_RANGE; //
 }
 
 //Updates all values based on sensor readings, safety checks, etc
@@ -290,8 +290,8 @@ ubyte2 BrakePressureSensor_getBPS1_mV(BrakePressureSensor *me) {
     return 1000 * me->bps1_V;
 }
 ubyte2 BrakePressureSensor_getBPS0_Pressure(BrakePressureSensor *me) {
-    return me->bps0_Pressure;
+    return me->bps0_PSI;
 }
 ubyte2 BrakePressureSensor_getBPS1_Pressure(BrakePressureSensor *me) {
-    return me->bps1_Pressure;
+    return me->bps1_PSI;
 }
