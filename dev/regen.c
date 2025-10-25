@@ -41,6 +41,7 @@ Regen* Regen_new(bool regenToggle)
 
 void Regen_calculateCommands(Regen *me, MotorController *mcm, TorqueEncoder *tps, BrakePressureSensor *bps)
 {
+     BrakePressureSensor_setPSI(bps);
     if (me->regenToggle == FALSE) {
         MCM_set_Regen_activeStatus(mcm, FALSE);
         return;
@@ -96,7 +97,7 @@ void Regen_calculateCommands(Regen *me, MotorController *mcm, TorqueEncoder *tps
     // me->bpsTorqueDnm = 0 - (me->torqueLimitDNm - me->torqueAtZeroPedalDNm) * getPercent(bps->percent, 0, me->percentBPSForMaxRegen, TRUE);
 
     // Prop Valve Regen Implementation:
-    BrakePressureSensor_setPSI(bps);
+   
     me->bpsTorqueNm = (((bps->bps0_PSI-bps->bps1_PSI) * PSI_TO_N_PER_mm_SQUARED) * me->padMu * REAR_PISTON_AREA * (ROTOR_RADIUS * mm_TO_m)) / GEAR_RATIO;
 
     me->regenTorqueCommand = (me->appsTorque/10) - (sbyte2)(me->bpsTorqueNm);
