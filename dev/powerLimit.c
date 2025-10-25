@@ -28,7 +28,7 @@ PowerLimit* POWERLIMIT_new(bool plToggle){
     me->plMode = 2; // 1 = Torque PID, 2 = Power PID, 3 = Torque+Power PID
     me->plStatus = FALSE; // FALSE = Off, TRUE = On
     me->plTorqueCommand = 0; // Torque command in deciNewton-meters
-    me->plTargetPower = 60;// HERE IS WHERE YOU CHANGE POWERLIMIT (units = kW)
+    me->plTargetPower = 80;// HERE IS WHERE YOU CHANGE POWERLIMIT (units = kW)
     me->plThresholdDiscrepancy = 5; // Threshold discrepancy in kW
     me->plInitializationThreshold = 0; // Initialization threshold in kW
     me->clampingMethod = 4; // Clamping methods 0 (none), 4 (power), 6 (tq)
@@ -57,7 +57,8 @@ void PowerLimit_entryConditions(PowerLimit* me, MotorController *mcm ){
             PowerLimit_PIDReset(me);
         }
 
-    else{
+    else
+    {
         if (me->plAlwaysOn == FALSE)
         { // if PL is not always on, only turn on if power is above threshold and off if below
             if (current_power_kw > me->plInitializationThreshold) {
@@ -66,7 +67,8 @@ void PowerLimit_entryConditions(PowerLimit* me, MotorController *mcm ){
                 me->plStatus = FALSE;
                 PowerLimit_PIDReset(me);
             }
-        } else 
+        }
+        else 
         { // if PL is always on, only turn on if power is above threshold and never turn off
             if (me->plStatus == FALSE && current_power_kw > me->plInitializationThreshold) {
                 me->plStatus = TRUE;
@@ -79,24 +81,40 @@ void PowerLimit_entryConditions(PowerLimit* me, MotorController *mcm ){
 /** COMPUTATIONS **/
 void PowerLimit_updatePLPower(PowerLimit* me){
     PLMode plModeFromRotary = getPLMode();
+    ubyte1 previousTargetPower = me->plTargetPower;
             switch (plModeFromRotary){
                 case PL_MODE_OFF:
                     me->plToggle = FALSE; // Default to 40kW when off match the struct value
                     break;
                 case PL_MODE_20:
+                    if(previousTargetPower != 20)
+                        {PowerLimit_PIDReset(me);}
                     me->plTargetPower = 20;
+                    me->plToggle = TRUE;
                     break;
                 case PL_MODE_30:
+                    if(previousTargetPower != 30)
+                        {PowerLimit_PIDReset(me);}
                     me->plTargetPower = 30;
+                    me->plToggle = TRUE;
                     break;
                 case PL_MODE_40:
+                    if(previousTargetPower != 40)
+                        {PowerLimit_PIDReset(me);}
                     me->plTargetPower = 40;
+                    me->plToggle = TRUE;
                     break;
                 case PL_MODE_50:
+                    if(previousTargetPower != 50)
+                        {PowerLimit_PIDReset(me);}
                     me->plTargetPower = 50;
+                    me->plToggle = TRUE;
                     break;
                 case PL_MODE_60:
+                    if(previousTargetPower != 60)
+                        {PowerLimit_PIDReset(me);}
                     me->plTargetPower = 60;
+                    me->plToggle = TRUE;
                     break;
                 default:
                     break;
@@ -105,6 +123,7 @@ void PowerLimit_updatePLPower(PowerLimit* me){
 }
 
 void PowerLimit_calculateCommands(PowerLimit *me, MotorController *mcm, TorqueEncoder *tps){
+    // PowerLimit_updatePLPower(me); // uncomment for rotary switch
     if(me->plToggle){
         //PowerLimit_updatePLPower(me); // uncomment for rotary switch
         PowerLimit_setPLInitializationThreshold(me);

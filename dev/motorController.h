@@ -20,8 +20,9 @@ typedef enum { ENABLED, DISABLED, UNKNOWN } Status;
 typedef enum { CLOCKWISE, COUNTERCLOCKWISE, REVERSE, FORWARD, _0, _1 } Direction;
 
 typedef struct _MotorController MotorController;
+typedef enum { ACCEL, ENDURANCE} Event;
 
-MotorController* MotorController_new(SerialManager* sm, ubyte2 canMessageBaseID, Direction initialDirection, sbyte2 torqueMaxInDNm);
+MotorController* MotorController_new(SerialManager* sm, ubyte2 canMessageBaseID, Direction initialDirection, sbyte2 torqueMaxInDNm, Event currentEvent);
 
 //----------------------------------------------------------------------------
 // Command Functions
