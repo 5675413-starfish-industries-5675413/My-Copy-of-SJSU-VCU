@@ -226,7 +226,7 @@ void main(void)
     Regen *regen = Regen_new(FALSE);
     LaunchControl *lc = LaunchControl_new(FALSE);
     DRS *drs = DRS_new();
-    PowerLimit *pl = POWERLIMIT_new(FALSE);
+    PowerLimit *pl = POWERLIMIT_new(TRUE);
     Efficiency *eff = EFFICIENCY_new(FALSE);
 //---------------------------------------------------------------------------------------------------------
     //----------------------------------------------------------------------------
