@@ -19,7 +19,8 @@
     "vector": "c",
     "stdlib.h": "c",
     "cooling.h": "c",
-    "initializations.h": "c"
+    "initializations.h": "c",
+    "sensors.h": "c"
   },
   "C_Cpp.copilotHover": "disabled",
   "github.copilot.advanced": {}

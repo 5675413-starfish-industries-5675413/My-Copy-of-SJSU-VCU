@@ -3,13 +3,16 @@
 #include "sensors.h"
 #include "regen.h"
 
-#define MIN_REGEN_SPEED_KPH           5
-#define REGEN_RAMPDOWN_START_SPEED   10
-#define GEAR_RATIO                    2.7f
-#define MPa_TO_PSI                  145.038f
-#define REAR_PISTON_AREA            791.73f     // (mm^2)
-#define ROTOR_DIAMETER              148.34f     // (mm)
+// Rules & Saftey Features
+#define MIN_REGEN_SPEED_KPH                5
+#define REGEN_RAMPDOWN_START_SPEED        10
 
+// Pressure Formula Constants
+#define GEAR_RATIO                     2.70f
+#define MPa_TO_PSI                   145.04f
+#define m_TO_mm                      1000.0f
+#define REAR_PISTON_AREA             791.73f    // mm^2
+#define ROTOR_DIAMETER               148.34f    // mm
 
 Regen* Regen_new(bool regenToggle)
 {
@@ -81,7 +84,7 @@ void Regen_calculateCommands(Regen *me, MotorController *mcm, TorqueEncoder *tps
 
     // Prop Valve Regen Implementation:
     BrakePressureSensor_setPSI(bps);
-    me->bpsTorque = ((bps->bps0_Pressure-bps->bps1_Pressure / MPa_TO_PSI) * me->padMu * REAR_PISTON_AREA * (ROTOR_DIAMETER / 1000.0)) / GEAR_RATIO;
+    me->bpsTorque = ((bps->bps0_Pressure-bps->bps1_Pressure) / MPa_TO_PSI * me->padMu * REAR_PISTON_AREA * (ROTOR_DIAMETER / m_TO_mm)) / GEAR_RATIO;
 
     me->regenTorqueCommand = 0 - (sbyte2)(me->bpsTorque);
 
@@ -137,15 +140,4 @@ void Regen_updateMode(Regen* me)
     }
 }
 
-/*
-ALL THE SHIT WE NEED GETTERS FOR
-- PropValveSensorIn
-- PropValveSensorOut
-ig would be chill:
-- pad mu
-*/
 
-sbyte2 Regen_getMode(Regen *me)
-{
-    return me->mode;
-}

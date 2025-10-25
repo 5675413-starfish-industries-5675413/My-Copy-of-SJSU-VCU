@@ -42,7 +42,6 @@ void Regen_calculateCommands(Regen* me, MotorController * mcm, TorqueEncoder *tp
 void Regen_updateMode(Regen* me);
 
 /** GETTER FUNCTIONS **/
-sbyte2 Regen_getMode(Regen *me);
 
 
 #endif //_REGEN_H

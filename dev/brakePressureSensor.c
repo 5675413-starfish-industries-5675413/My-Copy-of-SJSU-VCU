@@ -16,9 +16,9 @@
 #define ADC_RESOLUTION_COUNT    1023.0f    // 10-bit resolution to adc count
 #define ADC_VOLT_RANGE             5.0f    // 5 volt range
 // Backcalc: Sensor Vals
-#define MAX_RATED_PRESSURE         2000.0f    // PSI
+#define MAX_RATED_PRESSURE      2000.0f    // PSI
 #define MIN_V                      0.5f    // 0.5 V
-#define V_RANGE                       4.0f   // 4.5V - 0.5V
+#define V_RANGE                    4.0f    // 4.5V - 0.5V
 
     /*  
     float4 adcToVolts_10Bit_5V(ubyte2 counts)
@@ -69,16 +69,16 @@ BrakePressureSensor *BrakePressureSensor_new(void)
 
     return me;
 }
+
 void BrakePressureSensor_setPSI(BrakePressureSensor *me){
     // backcalc: ADC counts to volts (10-bit, 5 V)
-    me->bps0_V = me->bps0_value / ADC_RESOLUTION_COUNT * ADC_VOLT_RANGE;
-    me->bps1_V = me->bps1_value / ADC_RESOLUTION_COUNT * ADC_VOLT_RANGE;
+    me->bps0_V = me->bps0_value / ADC_RESOLUTION_COUNT * ADC_VOLT_RANGE;     // front: 0.487-4.487
+    me->bps1_V = me->bps1_value / ADC_RESOLUTION_COUNT * ADC_VOLT_RANGE;     // rear:  0.495-4.495
 
     // backcalc: volt to Pressure (PSI)    y={x-0.5}/{4}*2000
-    me->bps0_Pressure = MAX_RATED_PRESSURE * (me->bps0_V - MIN_V) / V_RANGE;
-    me->bps1_Pressure = MAX_RATED_PRESSURE * (me->bps1_V - MIN_V) / V_RANGE;
+    me->bps0_Pressure = MAX_RATED_PRESSURE * (me->bps0_V - MIN_V) / V_RANGE; // 0-2000 
+    me->bps1_Pressure = MAX_RATED_PRESSURE * (me->bps1_V - MIN_V) / V_RANGE; //
 }
-
 
 //Updates all values based on sensor readings, safety checks, etc
  void BrakePressureSensor_update(BrakePressureSensor *me, bool bench)
@@ -281,4 +281,17 @@ void BrakePressureSensor_getPedalTravel(BrakePressureSensor *me, ubyte1 *errorCo
     //    {
     //return (TPS0PedalPercent + TPS1PedalPercent) / 2;
     //    }
+}
+
+ubyte2 BrakePressureSensor_getBPS0_mV(BrakePressureSensor *me) {
+    return 1000 * me->bps0_V;
+}
+ubyte2 BrakePressureSensor_getBPS1_mV(BrakePressureSensor *me) {
+    return 1000 * me->bps1_V;
+}
+ubyte2 BrakePressureSensor_getBPS0_Pressure(BrakePressureSensor *me) {
+    return me->bps0_Pressure;
+}
+ubyte2 BrakePressureSensor_getBPS1_Pressure(BrakePressureSensor *me) {
+    return me->bps1_Pressure;
 }
