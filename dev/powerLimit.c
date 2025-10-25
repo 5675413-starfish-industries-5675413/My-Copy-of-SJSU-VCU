@@ -24,11 +24,11 @@
 PowerLimit* POWERLIMIT_new(bool plToggle){
     PowerLimit* me = (PowerLimit*)malloc(sizeof(PowerLimit));
     me->plToggle=plToggle;
-    me->pid = PID_new(10, 0, 0, 231,10); // PID tuning
+    me->pid = PID_new(10, 10, 0, 231,10); // PID tuning
     me->plMode = 2; // 1 = Torque PID, 2 = Power PID, 3 = Torque+Power PID
     me->plStatus = FALSE; // FALSE = Off, TRUE = On
     me->plTorqueCommand = 0; // Torque command in deciNewton-meters
-    me->plTargetPower = 80;// HERE IS WHERE YOU CHANGE POWERLIMIT (units = kW)
+    me->plTargetPower = 40;// HERE IS WHERE YOU CHANGE POWERLIMIT (units = kW)
     me->plThresholdDiscrepancy = 5; // Threshold discrepancy in kW
     me->plInitializationThreshold = 0; // Initialization threshold in kW
     me->clampingMethod = 4; // Clamping methods 0 (none), 4 (power), 6 (tq)
@@ -87,33 +87,33 @@ void PowerLimit_updatePLPower(PowerLimit* me){
                     me->plToggle = FALSE; // Default to 40kW when off match the struct value
                     break;
                 case PL_MODE_20:
-                    if(previousTargetPower != 20)
-                        {PowerLimit_PIDReset(me);}
-                    me->plTargetPower = 20;
-                    me->plToggle = TRUE;
-                    break;
-                case PL_MODE_30:
                     if(previousTargetPower != 30)
                         {PowerLimit_PIDReset(me);}
                     me->plTargetPower = 30;
                     me->plToggle = TRUE;
                     break;
-                case PL_MODE_40:
+                case PL_MODE_30:
                     if(previousTargetPower != 40)
                         {PowerLimit_PIDReset(me);}
                     me->plTargetPower = 40;
                     me->plToggle = TRUE;
                     break;
-                case PL_MODE_50:
+                case PL_MODE_40:
                     if(previousTargetPower != 50)
                         {PowerLimit_PIDReset(me);}
                     me->plTargetPower = 50;
                     me->plToggle = TRUE;
                     break;
-                case PL_MODE_60:
+                case PL_MODE_50:
                     if(previousTargetPower != 60)
                         {PowerLimit_PIDReset(me);}
                     me->plTargetPower = 60;
+                    me->plToggle = TRUE;
+                    break;
+                case PL_MODE_60:
+                    if(previousTargetPower != 70)
+                        {PowerLimit_PIDReset(me);}
+                    me->plTargetPower = 70;
                     me->plToggle = TRUE;
                     break;
                 default:
