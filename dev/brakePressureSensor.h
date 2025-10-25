@@ -19,12 +19,16 @@ typedef struct _BrakePressureSensor
     bool bps0_reverse;
     ubyte2 bps0_value;
     float4 bps0_percent;
+    float4 bps0_V;
+    ubyte2 bps0_Pressure;
 
     ubyte2 bps1_calibMin;
     ubyte2 bps1_calibMax;
     bool bps1_reverse; 
     ubyte2 bps1_value;
     float4 bps1_percent;
+    float4 bps1_V;
+    ubyte2 bps1_Pressure;
     
 
     bool runCalibration;
@@ -46,5 +50,10 @@ void BrakePressureSensor_loadCalibrationFromEEPROM(BrakePressureSensor *me);
 void BrakePressureSensor_startCalibration(BrakePressureSensor *me, ubyte1 secondsToRun);
 void BrakePressureSensor_calibrationCycle(BrakePressureSensor *me, ubyte1 *errorCount);
 void BrakePressureSensor_getPedalTravel(BrakePressureSensor *me, ubyte1 *errorCount, float4 *pedalPercent);
+void BrakePressureSensor_setPSI(BrakePressureSensor *me);
+float4 BrakePressureSensor_getBPS0_V(BrakePressureSensor *me);
+float4 BrakePressureSensor_getBPS1_V(BrakePressureSensor *me);
+ubyte2 BrakePressureSensor_getBPS0_Pressure(BrakePressureSensor *me);
+ubyte2 BrakePressureSensor_getBPS1_Pressure(BrakePressureSensor *me);
 
 #endif //  _BRAKEPRESSURESENSOR_H

@@ -49,6 +49,7 @@
 #include "cooling.h"
 #include "bms.h"
 #include "LaunchControl.h"
+#include "regen.h"
 #include "drs.h"
 #include "powerLimit.h"
 #include "PID.h"
@@ -139,7 +140,6 @@ void main(void)
     ubyte4 timestamp_startTime = 0;
     ubyte4 timestamp_EcoButton = 0;
     ubyte1 calibrationErrors; //NOT USED
-    ubyte1 tick =0;
 
 
     /*******************************************/
@@ -215,7 +215,7 @@ void main(void)
     ReadyToDriveSound *rtds = RTDS_new();
     BatteryManagementSystem *bms = BMS_new(serialMan, BMS_BASE_ADDRESS);
     // 240 Nm
-    MotorController *mcm0 = MotorController_new(serialMan, 0xA0, FORWARD, 2400, 5, 10, ENDURANCE); //CAN addr, direction, torque limit x10 (100 = 10Nm)
+    MotorController *mcm0 = MotorController_new(serialMan, 0xA0, FORWARD, 2400, ENDURANCE); //CAN addr, direction, torque limit x10 (100 = 10Nm)
     // 75 Nm
     InstrumentCluster *ic0 = InstrumentCluster_new(serialMan, 0x702);
     TorqueEncoder *tps = TorqueEncoder_new(bench);
@@ -223,6 +223,7 @@ void main(void)
     WheelSpeeds *wss = WheelSpeeds_new(WHEEL_DIAMETER, WHEEL_DIAMETER, NUM_BUMPS, NUM_BUMPS);
     SafetyChecker *sc = SafetyChecker_new(serialMan, 320, 32); //Must match amp limits
     CoolingSystem *cs = CoolingSystem_new(serialMan);
+    Regen *regen = Regen_new(FALSE);
     LaunchControl *lc = LaunchControl_new(FALSE);
     DRS *drs = DRS_new();
     PowerLimit *pl = POWERLIMIT_new(FALSE);
@@ -325,28 +326,6 @@ void main(void)
         //if (IO_RTC_GetTimeUS(timestamp_calibStart) < (ubyte4)5000000)
 
         //SensorValue TRUE and FALSE are reversed due to Pull Up Resistor
-        //No regen below 5kph
-        if (MCM_getDCCurrent(mcm0) < -72)
-        {
-            tick++;
-        }
-        else {
-            tick = 0;
-        }
-        
-        sbyte4 groundSpeedKPH = MCM_getGroundSpeedKPH(mcm0);
-        if (groundSpeedKPH < 15 || tick>=10)
-        {
-            MCM_setRegenMode(mcm0, REGENMODE_OFF);
-        } else {
-            MCM_setRegenMode(mcm0, REGENMODE_FORMULAE);
-            // Regen mode is now set based on battery voltage to preserve overvoltage fault 
-            // if(BMS_getPackVoltage(bms) >= 38500 * 10){ 
-            //     MCM_setRegenMode(mcm0, REGENMODE_FORMULAE); 
-            // } else {
-            //     MCM_setRegenMode(mcm0, REGENMODE_FIXED);
-            // } 
-        }
 
         if (Sensor_EcoButton.sensorValue == TRUE || (Sensor_RTDButton.sensorValue == FALSE && Sensor_HVILTerminationSense.sensorValue == FALSE) ) // temp make rtd button rtd button in lv
         {
@@ -475,6 +454,7 @@ void main(void)
         // MCM_incrementCurrentForTesting(mcm0, 5);      // 5A increments  
         // MCM_incrementRPMForTesting(mcm0, 100);        // 100 RPM increments
         LaunchControl_calculateCommands(lc, tps, bps, mcm0, wss);
+        Regen_calculateCommands(regen, mcm0,tps, bps);
         // PowerLimit_updatePLPower(pl);
         Efficiency_calculateCommands(eff, mcm0, pl);
         PowerLimit_calculateCommands(pl, mcm0, tps);
@@ -507,7 +487,7 @@ void main(void)
         //canOutput_sendMCUControl(mcm0, FALSE);
 
         //Send debug data
-        canOutput_sendDebugMessage(canMan, tps, bps, mcm0, ic0, bms, wss, sc, lc, pl, drs, eff);
+        canOutput_sendDebugMessage(canMan, tps, bps, mcm0, ic0, bms, wss, sc, lc, pl, drs, regen, eff);
         canOutput_sendDebugMessage1(canMan, mcm0, tps);
         //canOutput_sendSensorMessages();
         //canOutput_sendStatusMessages(mcm0);

@@ -5,6 +5,7 @@
 #include "canManager.h"
 
 
+
 struct _InstrumentCluster
 {
     SerialManager* serialMan;
@@ -45,7 +46,7 @@ void IC_parseCanMessage(InstrumentCluster* me, MotorController* mcm, IO_CAN_DATA
         //////////////////////////////////////////////////////////
         case 0x702:
         {
-            MCM_setRegenMode(mcm, icCanMessage->data[0]);
+            //MCM_setRegenMode(mcm, icCanMessage->data[0]);
             //MCM_setMaxTorqueDNm(mcm, (ubyte2)icCanMessage->data[1] << 8 | icCanMessage->data[0]);
             //me->torqueMapMode = icCanMessage->data[2];
             // me->launchControlSensitivity = icCanMessage->data[3];    //unused
@@ -59,7 +60,7 @@ void IC_parseCanMessage(InstrumentCluster* me, MotorController* mcm, IO_CAN_DATA
         //////////////////////////////////////////////////////
         case 0x703:
         {
-            MCM_setRegen_TorqueLimitDNm(mcm, (icCanMessage->data[0]*10)); //Nm to DNm
+          //  MCM_setRegen_TorqueLimitDNm(mcm, (icCanMessage->data[0]*10)); //Nm to DNm
             //MCM_setRegen_TorqueLimitDNm(mcm, (ubyte2)icCanMessage->data[1] << 8 | icCanMessage->data[0]);
             //MCM_setRegen_TorqueAtZeroPedalDNm(mcm, (ubyte2)icCanMessage->data[3] << 8 | icCanMessage->data[2]);
             break;
@@ -72,7 +73,7 @@ void IC_parseCanMessage(InstrumentCluster* me, MotorController* mcm, IO_CAN_DATA
         //////////////////////////////////////////////////////
         case 0x704:
         {
-            MCM_setRegen_TorqueAtZeroPedalDNm(mcm, (icCanMessage->data[0]*10)); //Nm to DNm
+            //MCM_setRegen_TorqueAtZeroPedalDNm(mcm, (icCanMessage->data[0]*10)); //Nm to DNm
             /*
             float4 BPSfloat, APPSfloat;
             // evil bithack avoids float cast errors and keeps code footprint small
