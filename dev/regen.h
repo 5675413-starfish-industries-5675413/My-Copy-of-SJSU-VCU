@@ -23,7 +23,7 @@ typedef struct _Regen {
     RegenMode mode;                //Software reading of regen knob position.  Each mode has different regen behavior (variables below).
     ubyte2 torqueLimitDNm;         //Tuneable value.  Regen torque (in Nm) at full regen.  Positive value.
     float4 appsTorque;
-    float4 bpsTorque;
+    float4 bpsTorqueNm;
     sbyte2 regenTorqueCommand;
     ubyte2 torqueAtZeroPedalDNm;   //Tuneable value.  Amount of regen torque (in Nm) to apply when both pedals at 0% travel.  Positive value.
     float4 percentBPSForMaxRegen;  //Tuneable value.  Amount of brake pedal required for full regen. Value between zero and one.
@@ -42,6 +42,6 @@ void Regen_calculateCommands(Regen* me, MotorController * mcm, TorqueEncoder *tp
 void Regen_updateMode(Regen* me);
 
 /** GETTER FUNCTIONS **/
-
+sbyte2 Regen_get_torqueCommand(Regen *me);
 
 #endif //_REGEN_H
