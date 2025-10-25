@@ -13,7 +13,7 @@
 #define GEAR_RATIO                      2.7f
 #define PSI_TO_N_PER_mm_SQUARED    0.006895f
 #define mm_TO_m                       0.001f
-#define REAR_PISTON_AREA         2 * 791.73f    // mm^2
+#define REAR_PISTON_AREA         4 * 791.73f    // mm^2  //this is nolan this number should be 4x
 #define ROTOR_RADIUS                  74.17f    // mm
 
 Regen* Regen_new(bool regenToggle)
@@ -29,7 +29,7 @@ Regen* Regen_new(bool regenToggle)
     me->torqueAtZeroPedalDNm = 0;
     me->percentBPSForMaxRegen = 0; //zero to one.. 1 = 100%
     me->percentAPPSForCoasting = 0;
-    me->padMu = 0.5;
+    me->padMu = 0.4;
     me->minimumSpeedKPH = MIN_REGEN_SPEED_KPH;       //Assigned by main
     me->SpeedRampStart = REGEN_RAMPDOWN_START_SPEED; //Assigned by main
     me->tick = 0;
