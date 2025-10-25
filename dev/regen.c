@@ -105,8 +105,8 @@ void Regen_calculateCommands(Regen *me, MotorController *mcm, TorqueEncoder *tps
     if (me->regenTorqueCommand >= 231) {
         MCM_set_Regen_torqueCommand(mcm, 231);
     }
-    else if (me->regenTorqueCommand <= -150) {
-        MCM_set_Regen_torqueCommand(mcm, 150);
+    else if (me->regenTorqueCommand <= -50) {
+        MCM_set_Regen_torqueCommand(mcm, 50);
     }
     else {
         MCM_set_Regen_torqueCommand(mcm, me->regenTorqueCommand);
