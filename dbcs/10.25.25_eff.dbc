@@ -1,0 +1,103 @@
+VERSION "HIPBNYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY/4/%%%/4/'%**4YYY///"
+
+
+NS_ : 
+	NS_DESC_
+	CM_
+	BA_DEF_
+	BA_
+	VAL_
+	CAT_DEF_
+	CAT_
+	FILTER
+	BA_DEF_DEF_
+	EV_DATA_
+	ENVVAR_DATA_
+	SGTYPE_
+	SGTYPE_VAL_
+	BA_DEF_SGTYPE_
+	BA_SGTYPE_
+	SIG_TYPE_REF_
+	VAL_TABLE_
+	SIG_GROUP_
+	SIG_VALTYPE_
+	SIGTYPE_VALTYPE_
+
+BS_:
+
+
+BU_: DBG VCU BMS MCM DCU DAQ S2C
+
+CM_ BU_ VCU "The vehicle control unit";
+CM_ BU_ MCM "The motor controller of the car";
+CM_ BU_ BMS "The battery management system";
+CM_ BU_ DCU "The dash control unit";
+CM_ BO_ 160 "Motor Controller Temperatures Set 1";
+CM_ BO_ 161 "Motor Controller Temperatures Set 2";
+CM_ BO_ 162 "Motor Controller Temperatures Set 3";
+CM_ BO_ 165 "Motor Position Information";
+CM_ BO_ 166 "Motor Current Information";
+CM_ BO_ 167 "Motor Voltage Information";
+CM_ BO_ 192 "Motor Controller Command Messages";
+CM_ BO_ 1280 "Throttle Position Sensor 0 Value";
+CM_ BO_ 1281 "Throttle Position Sensor 1 Value";
+CM_ BO_ 1282 "Brake Pressure Sensor Value";
+CM_ BO_ 1283 "Wheel Speed Sensor Value";
+CM_ BO_ 1286 "VCU Safety Messages";
+CM_ BO_ 1568 "BMS Status and Fault Message";
+CM_ BO_ 1571 "Accumulator Pack Voltage and Current"; 
+CM_ BO_ 1572 "Accumulator Load Voltage and Current"; 
+CM_ BO_ 1573 "Cell Voltage High and Low"; 
+CM_ BO_ 1574 "Cell Voltage Average and Mismatch"; 
+CM_ BO_ 1575 "SOC Percentage and Battery Capacity"; 
+CM_ BO_ 1576 "Cell and BMS Board Temperature Average"; 
+CM_ BO_ 1577 "Cell Temperature High and Low"; 
+CM_ BO_ 1584 "BMS Board Temperature High and Low"; 
+CM_ BO_ 1585 "Accumulator Load Power"; 
+CM_ BO_ 1793 "Dash Control Unit Timestamp"; 
+CM_ SG_ 1024 OverPower "";
+CM_ BO_ 2023 "This CAN id is used for communication between the energy meter and the download tool.";
+CM_ BO_ 2031 "This CAN id is used for communication between the energy meter and the download tool.";
+CM_ BU_ BMS1000M "BMS Master Controller";
+CM_ BU_ VCU "Vehicle Control Unit or Master System Controller";
+CM_ BO_ 1536 "Sent when BMS state transition is needed";
+CM_ BO_ 1538 "Sent every 100ms";
+CM_ SG_ 1538 BMS_Cell_Over_Temperature_Fault "";
+CM_ BO_ 1552 "Sent every 100ms";
+CM_ SG_ 1552 BMS_Number_Monitors_Detected "";
+CM_ SG_ 1552 BMS_Incorrect_Number_Monitor_Boards "";
+CM_ BO_ 1553 "Sent every 100ms";
+CM_ BO_ 1554 "Sent every 100ms";
+CM_ SG_ 1554 BMS_Master_Board_Temperature "";
+CM_ SG_ 1554 BMS_Internal_5V_Rail_Sense "";
+CM_ BO_ 1568 "Sent every 100ms";
+CM_ SG_ 1568 BMS_Pack_Current "Charging is positive";
+CM_ BO_ 1569 "Sent every 100ms";
+CM_ SG_ 1569 BMS_State_Of_Charge "";
+CM_ SG_ 1569 BMS_State_Of_Health "";
+CM_ BO_ 1570 "Sent every 100ms";
+CM_ BO_ 1571 "Sent every 100ms";
+CM_ SG_ 1571 BMS_Highest_Cell_Temperature "";
+CM_ SG_ 1571 BMS_Lowest_Cell_Temperature "";
+CM_ BO_ 1788 "Sent every 1 second";
+CM_ BO_ 1788 "Sent every 1 second";
+CM_ BO_ 1572 "Sent every 100ms";
+CM_ SG_ 1572 BMS_Sum_Of_Cells_Voltage "";
+CM_ SG_ 1572 BMS_Precharge_Voltage "";
+
+BA_DEF_ "BusType" STRING ;
+BA_DEF_ BO_ "GenMsgCycleTime" INT 0 0;
+BA_DEF_ SG_ "FieldType" STRING ;
+
+BA_DEF_DEF_ "BusType" "CAN";
+BA_DEF_DEF_ "FieldType" "";
+BA_DEF_DEF_ "GenMsgCycleTime" 0;
+
+BA_ "FieldType" SG_ 100 DRIVER_HEARTBEAT_cmd "DRIVER_HEARTBEAT_cmd";
+
+VAL_ 100 DRIVER_HEARTBEAT_cmd 2 "DRIVER_HEARTBEAT_cmd_REBOOT" 1 "DRIVER_HEARTBEAT_cmd_SYNC" 0 "DRIVER_HEARTBEAT_cmd_NOOP" ;
+VAL_ 1024 CurrentGain 0 "x1" 1 "x2" 2 "x4" 3 "x8" 4 "x16" 5 "x32" ;
+VAL_ 1024 Logging 0 "x1" 1 "x2" 2 "x4" 3 "x8" 4 "x16" 5 "x32" ;/Users/sean/Downloads/NLG5_BRUSA.dbc
+VAL_ 1536 BMS_State_Request 0 "No State Change Requested" 1 "Request BMS Sleep" 2 "Request BMS Idle" 3 "Request BMS Pre-charge" 4 "Request Clear Faults" ;
+VAL_ 1538 BMS_Imminent_Contactor_Opening_Warning 0 "Contactors will not open within 2 seconds" 1 "Contactors will open within 2 seconds due to fault condition" ;
+VAL_ 1552 BMS_Current_State 0 "BMS Internal Error" 1 "BMS Sleep" 2 "BMS Startup" 3 "BMS Idle" 4 "BMS Pre-charge" 5 "BMS Active" 6 "BMS Fault" ;

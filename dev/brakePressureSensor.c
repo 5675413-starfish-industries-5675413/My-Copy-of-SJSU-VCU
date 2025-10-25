@@ -61,11 +61,19 @@ BrakePressureSensor *BrakePressureSensor_new(void)
     me->brakesAreOn = FALSE;
     me->runCalibration = FALSE; //Do not run the calibration at the next main loop cycle
 
-
     me->bps0_calibMin = 489;
     me->bps0_calibMax = 2290;
     me->calibrated = TRUE;
 
+    me->bps0_percent = 0;
+    me->bps1_percent = 0;
+
+    me->bps0_value = 0;
+    me->bps1_value = 0;
+    me->bps0_V = 0;
+    me->bps1_V = 0;
+    me->bps0_PSI = 0;
+    me->bps1_PSI = 0;
 
     return me;
 }
@@ -284,10 +292,10 @@ void BrakePressureSensor_getPedalTravel(BrakePressureSensor *me, ubyte1 *errorCo
 }
 
 ubyte2 BrakePressureSensor_getBPS0_mV(BrakePressureSensor *me) {
-    return 1000 * me->bps0_V;
+    return (ubyte2)(1000 * me->bps0_V);
 }
 ubyte2 BrakePressureSensor_getBPS1_mV(BrakePressureSensor *me) {
-    return 1000 * me->bps1_V;
+    return (ubyte2)(1000 * me->bps1_V);
 }
 ubyte2 BrakePressureSensor_getBPS0_Pressure(BrakePressureSensor *me) {
     return me->bps0_PSI;
