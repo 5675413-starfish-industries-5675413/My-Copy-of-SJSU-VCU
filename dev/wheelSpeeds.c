@@ -59,7 +59,7 @@ WheelSpeeds *WheelSpeeds_new(float4 tireDiameterInches_F, float4 tireDiameterInc
     me->filteredFrequency_FR = 0;
     me->filteredFrequency_RL = 0;
     me->filteredFrequency_RR = 0;
-    me->smoothingFactor = 0.2;
+    me->smoothingFactor = 0.4;
 
     //Turn on WSS power pins
     IO_DO_Set(IO_DO_07, TRUE); // WSS x4
