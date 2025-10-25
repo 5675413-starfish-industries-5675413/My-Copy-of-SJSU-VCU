@@ -1,7 +1,9 @@
+#include <stdlib.h> //Needed for malloc
 #include "IO_Driver.h" //Includes datatypes, constants, etc - should be included in every c file
 #include "motorController.h"
 #include "sensors.h"
 #include "regen.h"
+#include "mathFunctions.h"
 
 // Rules & Saftey Features
 #define MIN_REGEN_SPEED_KPH                5
@@ -19,7 +21,7 @@ Regen* Regen_new(bool regenToggle)
     Regen* me = (Regen*)malloc(sizeof(Regen));
     me->regenToggle=regenToggle;
 
-    me->mode = REGENMODE_OFF;
+    me->mode = REGENMODE_FORMULAE;
     me->appsTorque = 0;
     me->bpsTorqueNm = 0;
     me->regenTorqueCommand = 0;
@@ -49,7 +51,7 @@ void Regen_calculateCommands(Regen *me, MotorController *mcm, TorqueEncoder *tps
         return;
     }
 
-    if (MCM_getDCCurrent(mcm) < -72) {      // saftey check stopping at -72A over 1 consecutive second
+    if (MCM_getDCCurrent(mcm) < -72) { // saftey check stopping at -72A over 1 consecutive second
         me->tick++;
     } else {
         me->tick = 0;
@@ -78,11 +80,18 @@ void Regen_calculateCommands(Regen *me, MotorController *mcm, TorqueEncoder *tps
     if (MCM_getMotorRPM(mcm) > 2400){
         me->torqueLimitDNm = -0.022 * (MCM_getMotorRPM(mcm)-2400) + 750; //No regen above 2400 RPM
     }
-
-    // Shinika's APPS implementation:
-    //me->appsTorque = MCM_getMaxTorqueDNm(mcm) * getPercent(appsOutputPercent, me->percentAPPSForCoasting, 1, TRUE)
-    //               - me->torqueAtZeroPedalDNm * getPercent(appsOutputPercent, me->percentAPPSForCoasting, 0, TRUE);
+    
     me->appsTorque = MCM_getMaxTorqueDNm(mcm) * appsOutputPercent;
+
+    if (me->mode == REGENMODE_HYBRID) {
+        // Shinika's APPS implementation:
+        me->appsTorque = MCM_getMaxTorqueDNm(mcm) * getPercent(appsOutputPercent, me->percentAPPSForCoasting, 1, TRUE)
+                       - me->torqueAtZeroPedalDNm * getPercent(appsOutputPercent, me->percentAPPSForCoasting, 0, TRUE);
+
+    } 
+    else if (me->mode == REGENMODE_FORMULAE &&  me->appsTorque > 0) {
+        MCM_set_Regen_torqueCommand(mcm, me->appsTorque); // redundancy: no bps if throttle is pressed (might happen due to noise in sensors)
+    }
 
     // Shinika's BPS implementation:
     // me->bpsTorqueDnm = 0 - (me->torqueLimitDNm - me->torqueAtZeroPedalDNm) * getPercent(bps->percent, 0, me->percentBPSForMaxRegen, TRUE);
