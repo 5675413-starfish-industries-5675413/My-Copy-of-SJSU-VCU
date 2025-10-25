@@ -13,7 +13,7 @@
 #define GEAR_RATIO                      2.7f
 #define PSI_TO_N_PER_mm_SQUARED    0.006895f
 #define mm_TO_m                       0.001f
-#define REAR_PISTON_AREA         2 * 791.73f    // mm^2
+#define REAR_PISTON_AREA         4 * 791.73f    // mm^2  //this is nolan this number should be 4x
 #define ROTOR_RADIUS                  74.17f    // mm
 
 Regen* Regen_new(bool regenToggle)

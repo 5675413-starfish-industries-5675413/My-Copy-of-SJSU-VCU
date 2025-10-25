@@ -12,10 +12,10 @@
 /*****************************************************************************
 * Brake Pressure Sensor (BPS) functions
 ****************************************************************************/
-// Backcalc: ADC Vals
+// Backcalc: ADC Count to V
 #define ADC_RESOLUTION_COUNT    1023.0f    // 10-bit resolution to adc count
 #define ADC_VOLT_RANGE             5.0f    // 5 volt range
-// Backcalc: Sensor Vals
+// Backcalc: V to PSI
 #define MAX_RATED_PRESSURE      2000.0f    // PSI
 #define MIN_V                      0.5f    // 0.5 V
 #define V_RANGE                    4.0f    // 4.5V - 0.5V
