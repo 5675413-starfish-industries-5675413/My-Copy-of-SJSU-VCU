@@ -167,7 +167,16 @@ void LaunchControl_calculateCommands(LaunchControl *me, TorqueEncoder *tps, Brak
                 LaunchControl_calculatePIDOutput(me);
                 me->lcTorqueCommand = MCM_getFeedbackTorque(mcm) + me->pid->output;
             }
-            MCM_update_LC_torqueCommand(mcm, me->lcTorqueCommand);
+
+            if (me->lcTorqueCommand > 231) {
+                MCM_update_LC_torqueCommand(mcm, 231);
+            }
+            else if (me->lcTorqueCommand < 0) {
+                MCM_update_LC_torqueCommand(mcm, 0);
+            }
+            else {
+                MCM_update_LC_torqueCommand(mcm, me->lcTorqueCommand);
+            }
             break;
     }
 }
