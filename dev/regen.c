@@ -29,7 +29,7 @@ Regen* Regen_new(bool regenToggle)
     me->torqueAtZeroPedalDNm = 0;
     me->percentBPSForMaxRegen = 0; //zero to one.. 1 = 100%
     me->percentAPPSForCoasting = 0;
-    me->padMu = 0.5;
+    me->padMu = 0.4;
     me->minimumSpeedKPH = MIN_REGEN_SPEED_KPH;       //Assigned by main
     me->SpeedRampStart = REGEN_RAMPDOWN_START_SPEED; //Assigned by main
     me->tick = 0;
