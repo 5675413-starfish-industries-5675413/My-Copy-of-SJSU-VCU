@@ -10,10 +10,10 @@
 #define REGEN_RAMPDOWN_START_SPEED        10
 
 // Pressure Formula Constants
-#define GEAR_RATIO                      2.7f
-#define PSI_TO_N_PER_mm_SQUARED    0.006895f
+#define GEAR_RATIO                      3.2f
+#define kPa_TO_MPa                   1000.0f
 #define mm_TO_m                       0.001f
-#define REAR_PISTON_AREA         4 * 791.73f    // mm^2  //this is nolan this number should be 4x
+#define REAR_PISTON_AREA         4 * 791.73f    // mm^2  // 4x, because 4 calipers total (2 for each wheel)
 #define ROTOR_RADIUS                  74.17f    // mm
 
 Regen* Regen_new(bool regenToggle)
@@ -30,86 +30,11 @@ Regen* Regen_new(bool regenToggle)
     me->percentBPSForMaxRegen = 0; //zero to one.. 1 = 100%
     me->percentAPPSForCoasting = 0;
     me->padMu = 0.4;
-    me->minimumSpeedKPH = MIN_REGEN_SPEED_KPH;       //Assigned by main
-    me->SpeedRampStart = REGEN_RAMPDOWN_START_SPEED; //Assigned by main
     me->tick = 0;
 
     Regen_updateSettings(me);
 
     return me;
-}
-
-void Regen_calculateCommands(Regen *me, MotorController *mcm, TorqueEncoder *tps, BrakePressureSensor *bps)
-{
-    if (me->regenToggle == FALSE) {
-        MCM_set_Regen_activeStatus(mcm, FALSE);
-        return;
-    }
-
-    if (MCM_getGroundSpeedKPH(mcm) < MIN_REGEN_SPEED_KPH) {
-        MCM_set_Regen_activeStatus(mcm, FALSE);
-        return;
-    }
-
-    if (MCM_getDCCurrent(mcm) < -72) { // saftey check stopping at -72A over 1 consecutive second
-        me->tick++;
-    } else {
-        me->tick = 0;
-    }
-
-    if (me->tick >= 10) {
-        MCM_set_Regen_activeStatus(mcm, FALSE);
-        return;
-    }
-
-    MCM_set_Regen_activeStatus(mcm, TRUE);
-
-/*
-    // Regen mode is now set based on battery voltage to preserve overvoltage fault
-    // if(BMS_getPackVoltage(bms) >= 38500 * 10){
-    //     MCM_setRegenMode(mcm0, REGENMODE_FORMULAE);
-    // } else {
-    //     MCM_setRegenMode(mcm0, REGENMODE_FIXED);
-    // }
-*/
-
-    float4 appsOutputPercent;
-    TorqueEncoder_getOutputPercent(tps, &appsOutputPercent);
-
-    me->torqueLimitDNm = 750;
-    if (MCM_getMotorRPM(mcm) > 2400){
-        me->torqueLimitDNm = -0.022 * (MCM_getMotorRPM(mcm)-2400) + 750; //No regen above 2400 RPM
-    }
-    
-    me->appsTorque = MCM_getMaxTorqueDNm(mcm) * appsOutputPercent;
-
-    if (me->mode == REGENMODE_HYBRID) {
-        // Shinika's APPS implementation:
-        me->appsTorque = MCM_getMaxTorqueDNm(mcm) * getPercent(appsOutputPercent, me->percentAPPSForCoasting, 1, TRUE)
-                       - me->torqueAtZeroPedalDNm * getPercent(appsOutputPercent, me->percentAPPSForCoasting, 0, TRUE);
-    } 
-    else if (me->mode == REGENMODE_FORMULAE &&  me->appsTorque > 0) {
-        MCM_set_Regen_torqueCommand(mcm, me->appsTorque); // redundancy: no bps if throttle is pressed (might happen due to noise in sensors)
-    }
-
-    // Shinika's BPS implementation:
-    // me->bpsTorqueDnm = 0 - (me->torqueLimitDNm - me->torqueAtZeroPedalDNm) * getPercent(bps->percent, 0, me->percentBPSForMaxRegen, TRUE);
-
-    // Prop Valve Regen Implementation:
-    BrakePressureSensor_setPSI(bps);
-    me->bpsTorqueNm = (((bps->bps0_PSI-bps->bps1_PSI) * PSI_TO_N_PER_mm_SQUARED) * me->padMu * REAR_PISTON_AREA * (ROTOR_RADIUS * mm_TO_m)) / GEAR_RATIO;
-
-    me->regenTorqueCommand = (me->appsTorque/10) - (sbyte2)(me->bpsTorqueNm);
-
-    if (me->regenTorqueCommand >= 231) {
-        MCM_set_Regen_torqueCommand(mcm, 231);
-    }
-    else if (me->regenTorqueCommand <= -150) {
-        MCM_set_Regen_torqueCommand(mcm, 150);
-    }
-    else {
-        MCM_set_Regen_torqueCommand(mcm, me->regenTorqueCommand);
-    }
 }
 
 void Regen_updateSettings(Regen* me)
@@ -158,6 +83,86 @@ void Regen_updateSettings(Regen* me)
         me->percentBPSForMaxRegen = 0; //zero to one.. 1 = 100%
         me->percentAPPSForCoasting = 0;
         break;
+    }
+}
+
+void Regen_calculateCommands(Regen *me, MotorController *mcm, TorqueEncoder *tps, BrakePressureSensor *bps)
+{
+    if (me->regenToggle == FALSE) {
+        MCM_set_Regen_activeStatus(mcm, FALSE);
+        return;
+    }
+
+    if (MCM_getGroundSpeedKPH(mcm) < MIN_REGEN_SPEED_KPH) {
+        MCM_set_Regen_activeStatus(mcm, FALSE);
+        return;
+    }
+
+    if (MCM_getDCCurrent(mcm) < -72) { // saftey check stopping at -72A over 1 consecutive second
+        me->tick++;
+    } else {
+        me->tick = 0;
+    }
+
+    if (me->tick >= 10) {
+        MCM_set_Regen_activeStatus(mcm, FALSE);
+        return;
+    }
+
+    MCM_set_Regen_activeStatus(mcm, TRUE);
+
+/*
+    // Regen mode is now set based on battery voltage to preserve overvoltage fault
+    // if(BMS_getPackVoltage(bms) >= 38500 * 10){
+    //     MCM_setRegenMode(mcm0, REGENMODE_FORMULAE);
+    // } else {
+    //     MCM_setRegenMode(mcm0, REGENMODE_FIXED);
+    // }
+*/
+
+    if (MCM_getMotorRPM(mcm) > 2400){
+        me->torqueLimitDNm -= 0.022 * (MCM_getMotorRPM(mcm)-2400); //Torque limit is reduced by -0.022 DNm for each RPM over 2400
+    }
+
+    float4 appsOutputPercent;
+    TorqueEncoder_getOutputPercent(tps, &appsOutputPercent);
+    
+    me->appsTorque = MCM_getMaxTorqueDNm(mcm) / 10 * appsOutputPercent; // no regen, linear mapping of tps
+
+    if (me->mode == REGENMODE_TESLA || me->mode == REGENMODE_HYBRID) {  // overwrite w/ regen on tps
+        // Shinika's APPS implementation:
+        me->appsTorque = MCM_getMaxTorqueDNm(mcm) * getPercent(appsOutputPercent, me->percentAPPSForCoasting, 1, TRUE)
+                       - me->torqueAtZeroPedalDNm * getPercent(appsOutputPercent, me->percentAPPSForCoasting, 0, TRUE);
+    } 
+/*
+    else if (me->mode == REGENMODE_FORMULAE &&  bps->bps0_percent > 0) {
+        MCM_set_Regen_torqueCommand(mcm, me->appsTorque); // no apps if brakes is pressed (takes priority)
+    }
+*/
+    // Shinika's BPS implementation:
+    // me->bpsTorqueDnm = 0 - (me->torqueLimitDNm - me->torqueAtZeroPedalDNm) * getPercent(bps->percent, 0, me->percentBPSForMaxRegen, TRUE);
+
+    // Prop Valve Regen Implementation:
+    if (me->mode == REGENMODE_FORMULAE) {
+        BrakePressureSensor_setPressure(bps);
+        me->bpsTorqueNm = (((bps->bps1_Pressure-bps->bps0_Pressure) * kPa_TO_MPa) * me->padMu * REAR_PISTON_AREA * (ROTOR_RADIUS * mm_TO_m)) / GEAR_RATIO;
+
+        if (bps->bps0_percent > 0) {
+            me->appsTorque = 0; // bps overpowers tps 
+        }
+    }
+    
+    me->regenTorqueCommand = (sbyte2)(me->appsTorque - me->bpsTorqueNm);
+
+    // clamps regen -50 Nm to 231 Nm
+    if (me->regenTorqueCommand >= 231) {
+        MCM_set_Regen_torqueCommand(mcm, 231);
+    }
+    else if (me->regenTorqueCommand <= -50) {
+        MCM_set_Regen_torqueCommand(mcm, -1 * me->torqueLimitDNm / 10);
+    }
+    else {
+        MCM_set_Regen_torqueCommand(mcm, me->regenTorqueCommand);
     }
 }
 

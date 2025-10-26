@@ -12,22 +12,10 @@
 /*****************************************************************************
 * Brake Pressure Sensor (BPS) functions
 ****************************************************************************/
-// Backcalc: ADC Count to V
-#define ADC_RESOLUTION_COUNT    1023.0f    // 10-bit resolution to adc count
-#define ADC_VOLT_RANGE             5.0f    // 5 volt range
-// Backcalc: V to PSI
-#define MAX_RATED_PRESSURE      2000.0f    // PSI
-#define MIN_V                      0.5f    // 0.5 V
-#define V_RANGE                    4.0f    // 4.5V - 0.5V
-
-    /*  
-    float4 adcToVolts_10Bit_5V(ubyte2 counts)
-    {
-        return ((float4)counts / ADC_10BIT_RESOLUTION_COUNT) * ADC_5V_RANGE;
-    }
-    float4 adcToVolts_10Bit_5V(ubyte2 counts);
-*/
-
+// Backcalc: mV to kPa
+#define MAX_RATED_PRESSURE      13789.5f    // kPa
+#define MIN_V                       0.1f    // V
+#define V_RANGE                     4.0f    // 4.1V - 0.1V
 
 // TODO: #94 Make this CAN configurable and store in EEPROM
 // This value is used for controlling the brake light and triggering the TPS-BPS implausibility fault
@@ -61,7 +49,6 @@ BrakePressureSensor *BrakePressureSensor_new(void)
     me->brakesAreOn = FALSE;
     me->runCalibration = FALSE; //Do not run the calibration at the next main loop cycle
 
-
     me->bps0_calibMin = 489;
     me->bps0_calibMax = 2290;
     me->calibrated = TRUE;
@@ -70,21 +57,17 @@ BrakePressureSensor *BrakePressureSensor_new(void)
     return me;
 }
 
-void BrakePressureSensor_setPSI(BrakePressureSensor *me){
-    // backcalc: ADC counts to volts (10-bit, 5 V)
-    me->bps0_V = me->bps0_value / ADC_RESOLUTION_COUNT * ADC_VOLT_RANGE;     // front: 0.487-4.487
-    me->bps1_V = me->bps1_value / ADC_RESOLUTION_COUNT * ADC_VOLT_RANGE;     // rear:  0.495-4.495
-
-    // backcalc: volt to Pressure (PSI)    y={x-0.5}/{4}*2000
-    me->bps0_PSI = MAX_RATED_PRESSURE * (me->bps0_V - MIN_V) / V_RANGE; // 0-2000 
-    me->bps1_PSI = MAX_RATED_PRESSURE * (me->bps1_V - MIN_V) / V_RANGE; //
+void BrakePressureSensor_setPressure(BrakePressureSensor *me){
+    // backcalc: Voltage (mV) to Pressure (kPa)
+    me->bps0_Pressure = MAX_RATED_PRESSURE * (me->bps0_voltage / 1000 - MIN_V) / V_RANGE;
+    me->bps1_Pressure = MAX_RATED_PRESSURE * (me->bps1_voltage / 1000 - MIN_V) / V_RANGE;
 }
 
 //Updates all values based on sensor readings, safety checks, etc
  void BrakePressureSensor_update(BrakePressureSensor *me, bool bench)
 {
-    me->bps0_value = me->bps0->sensorValue;
-    me->bps1_value = me->bps1->sensorValue;
+    me->bps0_voltage = me->bps0->sensorValue;
+    me->bps1_voltage = me->bps1->sensorValue;
 
     //This function runs before the calibration cycle function.  If calibration is currently
     //running, then set the percentage to zero for safety purposes.
@@ -97,8 +80,8 @@ void BrakePressureSensor_setPSI(BrakePressureSensor *me){
     }
     else
     {
-        me->bps0_percent = getPercent(me->bps0_value, me->bps0_calibMin, me->bps0_calibMax, TRUE);
-        //me->bps1_percent = getPercent(me->bps1_value, me->bps1_calibMin, me->bps1_calibMax, TRUE);
+        me->bps0_percent = getPercent(me->bps0_voltage, me->bps0_calibMin, me->bps0_calibMax, TRUE);
+        //me->bps1_percent = getPercent(me->bps1_voltage, me->bps1_calibMin, me->bps1_calibMax, TRUE);
         //BPS0 only
         me->percent = me->bps0_percent;  // Note: If we had redundant sensors we would average them here
         me->brakesAreOn = me->percent > BRAKES_ON_PERCENT;
@@ -284,14 +267,14 @@ void BrakePressureSensor_getPedalTravel(BrakePressureSensor *me, ubyte1 *errorCo
 }
 
 ubyte2 BrakePressureSensor_getBPS0_mV(BrakePressureSensor *me) {
-    return 1000 * me->bps0_V;
+    return me->bps0_voltage;
 }
 ubyte2 BrakePressureSensor_getBPS1_mV(BrakePressureSensor *me) {
-    return 1000 * me->bps1_V;
+    return me->bps1_voltage;
 }
 ubyte2 BrakePressureSensor_getBPS0_Pressure(BrakePressureSensor *me) {
-    return me->bps0_PSI;
+    return me->bps0_Pressure;
 }
 ubyte2 BrakePressureSensor_getBPS1_Pressure(BrakePressureSensor *me) {
-    return me->bps1_PSI;
+    return me->bps1_Pressure;
 }

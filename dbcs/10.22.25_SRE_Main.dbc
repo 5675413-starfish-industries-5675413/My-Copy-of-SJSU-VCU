@@ -350,14 +350,13 @@ BO_ 1286 VCU_Safety_Checker: 8 VCU
 
 BO_ 1287 Low_Voltage: 8 DAQ
  SG_ Voltage : 0|16@1+ (0.001,0) [0|20] "V" VCU
+ SG_ VCU_RegenTq : 0|16@1- (1,0) [-32768|32767] "Nm" VCU
 
 BO_ 1288 VCU_Regen_Settings: 8 VCU
- SG_ VCU_MCM_RegenMode : 0|8@1+ (1,0) [0|255] "" VCU
- SG_ VCU_MCM_MaxTorqueNm : 16|8@1+ (1,0) [0|255] "Nm" VCU
- SG_ VCU_MCM_RegenTorqueLimitNm : 24|8@1+ (1,0) [0|255] "Nm" VCU
- SG_ VCU_MCM_RegenTorqueZeroPedal : 32|8@1+ (1,0) [0|255] "Nm" VCU
- SG_ VCU_MCM_RegenAPPSMaxCoasting : 48|8@1+ (1,0) [0|255] "" VCU
- SG_ VCU_MCM_RegenBPSMaxRegen : 56|8@1+ (1,0) [0|255] "" VCU
+ SG_ VCU_BPS0_Voltage : 0|16@1+ (1,0) [0|65535] "mV" VCU
+ SG_ VCU_BPS1_Voltage : 16|16@1+ (1,0) [0|65535] "mV" VCU
+ SG_ VCU_BPS0_Pressure : 32|16@1+ (1,0) [0|65535] "kPa" VCU
+ SG_ VCU_BPS1_Pressure : 48|16@1+ (1,0) [0|65535] "kPa" VCU
 
 BO_ 1289 MCM_RTD_HVIL: 8 VCU
  SG_ HVIL_Active : 0|16@1+ (1,0) [0|20] "" VCU

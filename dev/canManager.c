@@ -554,8 +554,8 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     canMessages[canMessageCount - 1].id = canMessageID + canMessageCount - 1;
     canMessages[canMessageCount - 1].data[byteNum++] = brakePercent; //This should be bps0Percent, but for now bps0Percent = brakePercent
     canMessages[canMessageCount - 1].data[byteNum++] = 0;
-    canMessages[canMessageCount - 1].data[byteNum++] = bps->bps0_value;
-    canMessages[canMessageCount - 1].data[byteNum++] = bps->bps0_value >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] = bps->bps0_voltage;
+    canMessages[canMessageCount - 1].data[byteNum++] = bps->bps0_voltage >> 8;
     canMessages[canMessageCount - 1].data[byteNum++] = bps->bps0_calibMin;
     canMessages[canMessageCount - 1].data[byteNum++] = bps->bps0_calibMin >> 8;
     canMessages[canMessageCount - 1].data[byteNum++] = bps->bps0_calibMax;
@@ -685,8 +685,8 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     canMessages[canMessageCount - 1].id_format = IO_CAN_STD_FRAME;
     canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)Sensor_LVBattery.sensorValue;
     canMessages[canMessageCount - 1].data[byteNum++] = Sensor_LVBattery.sensorValue >> 8;
-    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte1)(100 * LVBatterySOC);
-    canMessages[canMessageCount - 1].data[byteNum++] = 0;
+    canMessages[canMessageCount - 1].data[byteNum++] =  (sbyte2)(Regen_get_torqueCommand(regen));
+    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(Regen_get_torqueCommand(regen))) >> 8;
     canMessages[canMessageCount - 1].data[byteNum++] = 0;
     canMessages[canMessageCount - 1].data[byteNum++] = 0;
     canMessages[canMessageCount - 1].data[byteNum++] = 0;
@@ -698,16 +698,14 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     byteNum = 0;
     canMessages[canMessageCount - 1].id = canMessageID + canMessageCount - 1;
     canMessages[canMessageCount - 1].id_format = IO_CAN_STD_FRAME;
-    canMessages[canMessageCount - 1].data[byteNum++] = MCM_get_Regen_torqueCommand(mcm);
-    canMessages[canMessageCount - 1].data[byteNum++] = MCM_get_Regen_torqueCommand(mcm) >> 8;
-    canMessages[canMessageCount - 1].data[byteNum++] = BrakePressureSensor_getBPS0_mV(bps);
-    canMessages[canMessageCount - 1].data[byteNum++] = BrakePressureSensor_getBPS0_mV(bps) >> 8;
-    canMessages[canMessageCount - 1].data[byteNum++] = BrakePressureSensor_getBPS1_mV(bps);
-    canMessages[canMessageCount - 1].data[byteNum++] = BrakePressureSensor_getBPS1_mV(bps) >> 24;
-    canMessages[canMessageCount - 1].data[byteNum++] = BrakePressureSensor_getBPS0_Pressure(bps);
-    canMessages[canMessageCount - 1].data[byteNum++] = BrakePressureSensor_getBPS0_Pressure(bps) >> 8;
-    canMessages[canMessageCount - 1].data[byteNum++] = BrakePressureSensor_getBPS1_Pressure(bps);
-    canMessages[canMessageCount - 1].data[byteNum++] = BrakePressureSensor_getBPS1_Pressure(bps) >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] =  (ubyte2)(BrakePressureSensor_getBPS0_mV(bps));
+    canMessages[canMessageCount - 1].data[byteNum++] = ((ubyte2)(BrakePressureSensor_getBPS0_mV(bps))) >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] =  (ubyte2)(BrakePressureSensor_getBPS1_mV(bps));
+    canMessages[canMessageCount - 1].data[byteNum++] = ((ubyte2)(BrakePressureSensor_getBPS1_mV(bps))) >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] =  (ubyte2)(BrakePressureSensor_getBPS0_Pressure(bps));
+    canMessages[canMessageCount - 1].data[byteNum++] = ((ubyte2)(BrakePressureSensor_getBPS0_Pressure(bps))) >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] =  (ubyte2)(BrakePressureSensor_getBPS1_Pressure(bps));
+    canMessages[canMessageCount - 1].data[byteNum++] = ((ubyte2)(BrakePressureSensor_getBPS1_Pressure(bps))) >> 8;
     canMessages[canMessageCount - 1].length = byteNum;
 
     //509: MCM RTD Status
@@ -777,8 +775,8 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     canMessages[canMessageCount - 1].id = canMessageID + canMessageCount - 1;
     canMessages[canMessageCount - 1].data[byteNum++] = brakePercent; //This should be bps0Percent, but for now bps0Percent = brakePercent
     canMessages[canMessageCount - 1].data[byteNum++] = 0;
-    canMessages[canMessageCount - 1].data[byteNum++] = bps->bps1_value;
-    canMessages[canMessageCount - 1].data[byteNum++] = bps->bps1_value >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] = bps->bps0_voltage;
+    canMessages[canMessageCount - 1].data[byteNum++] = bps->bps0_voltage >> 8;
     canMessages[canMessageCount - 1].data[byteNum++] = bps->bps1_calibMin;
     canMessages[canMessageCount - 1].data[byteNum++] = bps->bps1_calibMin >> 8;
     canMessages[canMessageCount - 1].data[byteNum++] = bps->bps1_calibMax;

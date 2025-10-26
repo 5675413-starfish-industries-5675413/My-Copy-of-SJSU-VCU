@@ -214,16 +214,14 @@ void main(void)
 
     ReadyToDriveSound *rtds = RTDS_new();
     BatteryManagementSystem *bms = BMS_new(serialMan, BMS_BASE_ADDRESS);
-    // 240 Nm
-    MotorController *mcm0 = MotorController_new(serialMan, 0xA0, FORWARD, 2400, ENDURANCE); //CAN addr, direction, torque limit x10 (100 = 10Nm)
-    // 75 Nm
+    MotorController *mcm0 = MotorController_new(serialMan, 0xA0, FORWARD, 2310, ENDURANCE); //CAN addr, direction, torque limit x10 (100 = 10Nm)
     InstrumentCluster *ic0 = InstrumentCluster_new(serialMan, 0x702);
     TorqueEncoder *tps = TorqueEncoder_new(bench);
     BrakePressureSensor *bps = BrakePressureSensor_new();
     WheelSpeeds *wss = WheelSpeeds_new(WHEEL_DIAMETER, WHEEL_DIAMETER, NUM_BUMPS, NUM_BUMPS);
     SafetyChecker *sc = SafetyChecker_new(serialMan, 320, 32); //Must match amp limits
     CoolingSystem *cs = CoolingSystem_new(serialMan);
-    Regen *regen = Regen_new(FALSE);
+    Regen *regen = Regen_new(TRUE);
     LaunchControl *lc = LaunchControl_new(FALSE);
     DRS *drs = DRS_new();
     PowerLimit *pl = POWERLIMIT_new(FALSE);
