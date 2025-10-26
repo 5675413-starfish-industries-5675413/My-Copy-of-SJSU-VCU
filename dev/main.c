@@ -224,7 +224,7 @@ void main(void)
     SafetyChecker *sc = SafetyChecker_new(serialMan, 320, 32); //Must match amp limits
     CoolingSystem *cs = CoolingSystem_new(serialMan);
     Regen *regen = Regen_new(FALSE);
-    LaunchControl *lc = LaunchControl_new(FALSE);
+    LaunchControl *lc = LaunchControl_new(TRUE);
     DRS *drs = DRS_new();
     PowerLimit *pl = POWERLIMIT_new(FALSE);
     Efficiency *eff = EFFICIENCY_new(FALSE);
