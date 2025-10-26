@@ -24,7 +24,7 @@ extern Sensor Sensor_LCButton;
 LaunchControl *LaunchControl_new(bool lcToggle) {
     LaunchControl* me = (LaunchControl*)malloc(sizeof(struct _LaunchControl));
     me->Kp = 10;
-    me->Ki = 175;
+    me->Ki = 75;
     me->Kd = 0;
     me->pid = PID_new(me->Kp, me->Ki, me->Kd, 0.5, 1);
     me->slipRatioTarget = 0.2;
