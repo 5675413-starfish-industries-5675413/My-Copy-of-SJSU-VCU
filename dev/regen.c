@@ -11,7 +11,7 @@
 
 // Pressure Formula Constants
 #define GEAR_RATIO                      3.2f
-#define kPa_TO_MPa                   1000.0f
+#define kPa_TO_MPa                    0.001f
 #define mm_TO_m                       0.001f
 #define REAR_PISTON_AREA         4 * 791.73f    // mm^2  // 4x, because 4 calipers total (2 for each wheel)
 #define ROTOR_RADIUS                  74.17f    // mm
@@ -104,7 +104,6 @@ void Regen_calculateCommands(Regen *me, MotorController *mcm, TorqueEncoder *tps
     } else {
         me->tick = 0;
     }
-
     if (me->tick >= 10) {
         MCM_set_Regen_activeStatus(mcm, FALSE);
         return;
@@ -128,18 +127,14 @@ void Regen_calculateCommands(Regen *me, MotorController *mcm, TorqueEncoder *tps
     float4 appsOutputPercent;
     TorqueEncoder_getOutputPercent(tps, &appsOutputPercent);
     
-    me->appsTorque = MCM_getMaxTorqueDNm(mcm) / 10 * appsOutputPercent; // no regen, linear mapping of tps
+    me->appsTorque = (MCM_getMaxTorqueDNm(mcm) / 10) * appsOutputPercent; // Nm // no regen, linear mapping of tps
 
     if (me->mode == REGENMODE_TESLA || me->mode == REGENMODE_HYBRID) {  // overwrite w/ regen on tps
         // Shinika's APPS implementation:
         me->appsTorque = MCM_getMaxTorqueDNm(mcm) * getPercent(appsOutputPercent, me->percentAPPSForCoasting, 1, TRUE)
                        - me->torqueAtZeroPedalDNm * getPercent(appsOutputPercent, me->percentAPPSForCoasting, 0, TRUE);
     } 
-/*
-    else if (me->mode == REGENMODE_FORMULAE &&  bps->bps0_percent > 0) {
-        MCM_set_Regen_torqueCommand(mcm, me->appsTorque); // no apps if brakes is pressed (takes priority)
-    }
-*/
+
     // Shinika's BPS implementation:
     // me->bpsTorqueDnm = 0 - (me->torqueLimitDNm - me->torqueAtZeroPedalDNm) * getPercent(bps->percent, 0, me->percentBPSForMaxRegen, TRUE);
 

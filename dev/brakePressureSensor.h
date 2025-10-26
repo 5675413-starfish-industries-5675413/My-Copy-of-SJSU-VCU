@@ -23,11 +23,11 @@ typedef struct _BrakePressureSensor
 
     ubyte2 bps0_voltage;      // mV
     float4 bps0_percent;
-    ubyte2 bps0_Pressure;     // kPa
+    float4 bps0_Pressure;     // kPa
 
     ubyte2 bps1_voltage;      // mV
     float4 bps1_percent;
-    ubyte2 bps1_Pressure;     // kPa
+    float4 bps1_Pressure;     // kPa
     
 
     bool runCalibration;
@@ -52,7 +52,7 @@ void BrakePressureSensor_getPedalTravel(BrakePressureSensor *me, ubyte1 *errorCo
 void BrakePressureSensor_setPressure(BrakePressureSensor *me);
 float4 BrakePressureSensor_getBPS0_V(BrakePressureSensor *me);
 float4 BrakePressureSensor_getBPS1_V(BrakePressureSensor *me);
-ubyte2 BrakePressureSensor_getBPS0_Pressure(BrakePressureSensor *me);
-ubyte2 BrakePressureSensor_getBPS1_Pressure(BrakePressureSensor *me);
+float4 BrakePressureSensor_getBPS0_Pressure(BrakePressureSensor *me);
+float4 BrakePressureSensor_getBPS1_Pressure(BrakePressureSensor *me);
 
 #endif //  _BRAKEPRESSURESENSOR_H

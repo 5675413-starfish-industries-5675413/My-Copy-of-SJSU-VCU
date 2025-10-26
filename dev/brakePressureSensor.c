@@ -14,6 +14,7 @@
 ****************************************************************************/
 // Backcalc: mV to kPa
 #define MAX_RATED_PRESSURE      13789.5f    // kPa
+#define mV_TO_V                   0.001f
 #define MIN_V                       0.1f    // V
 #define V_RANGE                     4.0f    // 4.1V - 0.1V
 
@@ -66,8 +67,8 @@ BrakePressureSensor *BrakePressureSensor_new(void)
 
 void BrakePressureSensor_setPressure(BrakePressureSensor *me){
     // backcalc: Voltage (mV) to Pressure (kPa)
-    me->bps0_Pressure = MAX_RATED_PRESSURE * (me->bps0_voltage / 1000 - MIN_V) / V_RANGE;
-    me->bps1_Pressure = MAX_RATED_PRESSURE * (me->bps1_voltage / 1000 - MIN_V) / V_RANGE;
+    me->bps0_Pressure = MAX_RATED_PRESSURE * (me->bps0_voltage * mV_TO_V - MIN_V) / V_RANGE;
+    me->bps1_Pressure = MAX_RATED_PRESSURE * (me->bps1_voltage * mV_TO_V - MIN_V) / V_RANGE;
 }
 
 //Updates all values based on sensor readings, safety checks, etc
@@ -273,15 +274,15 @@ void BrakePressureSensor_getPedalTravel(BrakePressureSensor *me, ubyte1 *errorCo
     //    }
 }
 
-ubyte2 BrakePressureSensor_getBPS0_mV(BrakePressureSensor *me) {
+ubyte2 BrakePressureSensor_getBPS0_Voltage(BrakePressureSensor *me) {
     return me->bps0_voltage;
 }
-ubyte2 BrakePressureSensor_getBPS1_mV(BrakePressureSensor *me) {
+ubyte2 BrakePressureSensor_getBPS1_Voltage(BrakePressureSensor *me) {
     return me->bps1_voltage;
 }
-ubyte2 BrakePressureSensor_getBPS0_Pressure(BrakePressureSensor *me) {
+float4 BrakePressureSensor_getBPS0_Pressure(BrakePressureSensor *me) {
     return me->bps0_Pressure;
 }
-ubyte2 BrakePressureSensor_getBPS1_Pressure(BrakePressureSensor *me) {
+float4 BrakePressureSensor_getBPS1_Pressure(BrakePressureSensor *me) {
     return me->bps1_Pressure;
 }
