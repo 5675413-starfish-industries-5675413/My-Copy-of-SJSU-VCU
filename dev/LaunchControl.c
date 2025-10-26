@@ -208,12 +208,12 @@ void LaunchControl_calculatePIDOutput(LaunchControl *me)
         PID_computeOutput(me->pid, me->currentVelocityDifference);
     }
 
-    // if (me->pid->output > 20) {
-    //     me->pid->output = 20;
-    // } 
-    // else if (me->pid->output < -20) {
-    //     me->pid->output = -20;
-    // }
+    if (me->pid->output > 20) {
+        me->pid->output = 20;
+    } 
+    else if (me->pid->output < -20) {
+        me->pid->output = -20;
+    }
 }
 
 
