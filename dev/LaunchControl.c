@@ -38,7 +38,7 @@ LaunchControl *LaunchControl_new(bool lcToggle) {
     me->maxTorque = 231;
     me->prevTorque = me->initialTorque;
     me->useFilter = FALSE;
-    me->mode = LC_MODE_VELOCITY_DIFFERENCE;
+    me->mode = LC_MODE_SLIP_RATIO;
     me->state = LC_STATE_IDLE;
     me->phase = LC_PHASE_RAMP;
     return me;
