@@ -17,16 +17,17 @@ typedef struct _BrakePressureSensor
     ubyte2 bps0_calibMin; //2 bytes for ADC, 4 bytes if switch to digital/timer/PWM
     ubyte2 bps0_calibMax;
     bool bps0_reverse;
-    ubyte2 bps0_value;
-    float4 bps0_percent;
-    ubyte2 bps0_Pressure;
-
     ubyte2 bps1_calibMin;
     ubyte2 bps1_calibMax;
     bool bps1_reverse; 
-    ubyte2 bps1_value;
+
+    ubyte2 bps0_voltage;      // mV
+    float4 bps0_percent;
+    float4 bps0_Pressure;     // kPa
+
+    ubyte2 bps1_voltage;      // mV
     float4 bps1_percent;
-    ubyte2 bps1_Pressure;
+    float4 bps1_Pressure;     // kPa
     
 
     bool runCalibration;
@@ -48,10 +49,10 @@ void BrakePressureSensor_loadCalibrationFromEEPROM(BrakePressureSensor *me);
 void BrakePressureSensor_startCalibration(BrakePressureSensor *me, ubyte1 secondsToRun);
 void BrakePressureSensor_calibrationCycle(BrakePressureSensor *me, ubyte1 *errorCount);
 void BrakePressureSensor_getPedalTravel(BrakePressureSensor *me, ubyte1 *errorCount, float4 *pedalPercent);
-void BrakePressureSensor_setPSI(BrakePressureSensor *me);
-ubyte2 BrakePressureSensor_getBPS0_mV(BrakePressureSensor *me);
-ubyte2 BrakePressureSensor_getBPS1_mV(BrakePressureSensor *me);
-ubyte2 BrakePressureSensor_getBPS0_Pressure(BrakePressureSensor *me);
-ubyte2 BrakePressureSensor_getBPS1_Pressure(BrakePressureSensor *me);
+void BrakePressureSensor_setPressure(BrakePressureSensor *me);
+float4 BrakePressureSensor_getBPS0_V(BrakePressureSensor *me);
+float4 BrakePressureSensor_getBPS1_V(BrakePressureSensor *me);
+float4 BrakePressureSensor_getBPS0_Pressure(BrakePressureSensor *me);
+float4 BrakePressureSensor_getBPS1_Pressure(BrakePressureSensor *me);
 
 #endif //  _BRAKEPRESSURESENSOR_H
