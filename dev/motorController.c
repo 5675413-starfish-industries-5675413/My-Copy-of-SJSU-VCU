@@ -816,7 +816,7 @@ sbyte2 MCM_getMotorTemp(MotorController *me)
 
 float MCM_getGroundSpeedKPH(MotorController *me)
 {   
-    float FD_Ratio = (me->currentEvent == ACCELERATION) ? 3.2 : 2.7; //divide # of rear teeth by number of front teeth
+    float FD_Ratio = 3.2; //divide # of rear teeth by number of front teeth
     sbyte4 Revolutions = 60; //this converts the rpm to rotations per hour
     //tireCirc does PI * Diameter_Tire because otherwise it doesn't work
     //for 16s set tireCirc to 1.295 for 18s set tireCirc to 1.395 

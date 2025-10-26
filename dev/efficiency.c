@@ -61,11 +61,14 @@ void Efficiency_calculateCommands(Efficiency* me, MotorController *mcm, PowerLim
     if (me->finishedLap) {
         // calculate the carryover for just one lap
         me->carryOverEnergy_kWh = me->energyBudget_kWh - me->lapEnergySpent_kWh;
+        me->lapEnergySpent_kWh = 0.0f;
         
         // calculate the power limit for next lap using the algorithm
-        float timeInStraights_h = me->timeInStraights_s / 3600.0f;
+        float timeInStraights_h = me->timeInStraights_s / 3600.0f;  
         if (timeInStraights_h > 0.0f) { // safety check division by zero
             pl->plTargetPower = ((me->energyBudget_kWh + me->carryOverEnergy_kWh) - me->energySpentInCorners_kWh) / timeInStraights_h;
+            me->energySpentInCorners_kWh = 0.0f;
+            me->energySpentInStraights_kWh = 0.0f;
         }
         
         // reset el variablialas! for next lap
@@ -93,7 +96,7 @@ void Efficiency_resetLap(Efficiency* me){
     me->timeInCorners_s = 0.0f;
     me->energySpentInCorners_kWh = 0.0f;   
     me->energySpentInStraights_kWh = 0.0f;
-    me->lapEnergySpent_kWh = 0.0f;
+    me->lapEnergySpent_kWh = 0.0f; //not reset
     me->totalLapDistance_km = 0.0f;
     me->finishedLap = FALSE;
 }
