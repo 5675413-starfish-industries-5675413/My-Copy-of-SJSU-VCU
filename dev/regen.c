@@ -11,7 +11,7 @@
 
 // Pressure Formula Constants
 #define GEAR_RATIO                      2.7f
-#define PSI_TO_MPa                 0.006895f
+#define kPA_TO_MPa                   1000.0f
 #define mm_TO_m                       0.001f
 #define REAR_PISTON_AREA         4 * 791.73f    // mm^2  //this is nolan this number should be 4x
 #define ROTOR_RADIUS                  74.17f    // mm
@@ -22,6 +22,7 @@ Regen* Regen_new(bool regenToggle)
     me->regenToggle=regenToggle;
 
     me->mode = REGENMODE_FORMULAE;
+    
     me->appsTorque = 0;
     me->bpsTorqueNm = 0;
     me->regenTorqueCommand = 0;
@@ -74,18 +75,17 @@ void Regen_calculateCommands(Regen *me, MotorController *mcm, TorqueEncoder *tps
     // }
 */
 
+    if (MCM_getMotorRPM(mcm) > 2400){
+        me->torqueLimitDNm -= 0.022 * (MCM_getMotorRPM(mcm)-2400); // Lower torque limit by 0.022 DNm for every RPM above 2400
+    }
+
     float4 appsOutputPercent;
     TorqueEncoder_getOutputPercent(tps, &appsOutputPercent);
 
-    me->torqueLimitDNm = 750;
-    if (MCM_getMotorRPM(mcm) > 2400){
-        me->torqueLimitDNm = -0.022 * (MCM_getMotorRPM(mcm)-2400) + 750; //No regen above 2400 RPM
-    }
-    
-    me->appsTorque = MCM_getMaxTorqueDNm(mcm) * appsOutputPercent;
+    me->appsTorque = MCM_getMaxTorqueDNm(mcm) / 10 * appsOutputPercent;
 
     if (me->mode == REGENMODE_HYBRID) {
-        // Shinika's APPS implementation:
+        // Shinika's APPS implementation:    WARNING: this is in DNm
         me->appsTorque = MCM_getMaxTorqueDNm(mcm) * getPercent(appsOutputPercent, me->percentAPPSForCoasting, 1, TRUE)
                        - me->torqueAtZeroPedalDNm * getPercent(appsOutputPercent, me->percentAPPSForCoasting, 0, TRUE);
     } 
@@ -97,16 +97,15 @@ void Regen_calculateCommands(Regen *me, MotorController *mcm, TorqueEncoder *tps
     // me->bpsTorqueDnm = 0 - (me->torqueLimitDNm - me->torqueAtZeroPedalDNm) * getPercent(bps->percent, 0, me->percentBPSForMaxRegen, TRUE);
 
     // Prop Valve Regen Implementation:
-   
-    me->bpsTorqueNm = (((bps->bps0_PSI-bps->bps1_PSI) * PSI_TO_MPa) * me->padMu * REAR_PISTON_AREA * (ROTOR_RADIUS * mm_TO_m)) / GEAR_RATIO;
+    me->bpsTorqueNm = ((bps->bps0_Pressure-bps->bps1_Pressure) * kPA_TO_MPa * me->padMu * REAR_PISTON_AREA * (ROTOR_RADIUS * mm_TO_m)) / GEAR_RATIO;
 
-    me->regenTorqueCommand = (me->appsTorque/10) - (sbyte2)(me->bpsTorqueNm);
+    me->regenTorqueCommand = (sbyte2)(me->appsTorque - me->bpsTorqueNm);
 
     if (me->regenTorqueCommand >= 231) {
         MCM_set_Regen_torqueCommand(mcm, 231);
     }
     else if (me->regenTorqueCommand <= -50) {
-        MCM_set_Regen_torqueCommand(mcm, 50);
+        MCM_set_Regen_torqueCommand(mcm, -50);
     }
     else {
         MCM_set_Regen_torqueCommand(mcm, me->regenTorqueCommand);
