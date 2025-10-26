@@ -56,8 +56,8 @@ BrakePressureSensor *BrakePressureSensor_new(void)
     me->bps0_percent = 0;
     me->bps1_percent = 0;
 
-    me->bps0_value = 0;         // mV
-    me->bps1_value = 0;         // mV
+    me->bps0_voltage = 0;         // mV
+    me->bps1_voltage = 0;         // mV
     me->bps0_Pressure = 0;      // kPa
     me->bps1_Pressure = 0;      // kPa
 
