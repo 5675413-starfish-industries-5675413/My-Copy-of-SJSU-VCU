@@ -156,10 +156,10 @@ void Regen_calculateCommands(Regen *me, MotorController *mcm, TorqueEncoder *tps
     me->regenTorqueCommand = (sbyte2)(me->appsTorque - me->bpsTorqueNm);
 
     // clamps regen -50 Nm to 231 Nm
-    if (me->regenTorqueCommand >= 231) {
+    if (me->regenTorqueCommand > 231) {
         MCM_set_Regen_torqueCommand(mcm, 231);
     }
-    else if (me->regenTorqueCommand <= -50) {
+    else if (me->regenTorqueCommand < (-1 * me->torqueLimitDNm / 10)) {
         MCM_set_Regen_torqueCommand(mcm, -1 * me->torqueLimitDNm / 10);
     }
     else {
