@@ -20,7 +20,10 @@ typedef enum { ENABLED, DISABLED, UNKNOWN } Status;
 typedef enum { CLOCKWISE, COUNTERCLOCKWISE, REVERSE, FORWARD, _0, _1 } Direction;
 
 typedef struct _MotorController MotorController;
-typedef enum { ACCEL, ENDURANCE} Event;
+typedef enum { 
+    ACCELERATION,    // Acceleration event - higher gear ratio for faster acceleration
+    ENDURANCE        // Endurance event - lower gear ratio for efficiency
+} Event;
 
 MotorController* MotorController_new(SerialManager* sm, ubyte2 canMessageBaseID, Direction initialDirection, sbyte2 torqueMaxInDNm, Event currentEvent);
 
@@ -109,7 +112,7 @@ bool MCM_getRTDSFlag(MotorController* me);
 sbyte2 MCM_getTemp(MotorController* me);
 sbyte2 MCM_getMotorTemp(MotorController* me);
 
-sbyte4 MCM_getGroundSpeedKPH(MotorController* me);
+float MCM_getGroundSpeedKPH(MotorController* me);
 
 //----------------------------------------------------------------------------
 //Inter-object functions

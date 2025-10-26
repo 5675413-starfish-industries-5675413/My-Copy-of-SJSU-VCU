@@ -172,6 +172,7 @@ MotorController *MotorController_new(SerialManager *sm, ubyte2 canMessageBaseID,
 
     me->lcTorqueCommand = 0;
     me->lcEngaged = FALSE;
+    me->currentEvent = currentEvent;
 
     me-> plTorqueCommand = 0;
     me-> plActive = FALSE;
@@ -813,17 +814,17 @@ sbyte2 MCM_getMotorTemp(MotorController *me)
     return me->motor_temp;
 }
 
-sbyte4 MCM_getGroundSpeedKPH(MotorController *me)
+float MCM_getGroundSpeedKPH(MotorController *me)
 {   
-    sbyte4 FD_Ratio = (me->currentEvent == ACCEL) ? 3.2 : 2.7; //divide # of rear teeth by number of front teeth
+    float FD_Ratio = (me->currentEvent == ACCELERATION) ? 3.2 : 2.7; //divide # of rear teeth by number of front teeth
     sbyte4 Revolutions = 60; //this converts the rpm to rotations per hour
     //tireCirc does PI * Diameter_Tire because otherwise it doesn't work
     //for 16s set tireCirc to 1.295 for 18s set tireCirc to 1.395 
     //sbyte4 PI = 3.141592653589; 
     //sbyte4 Diameter_Tire = 0.4;
-    sbyte4 tireCirc = 1.295; //the actual average tire circumference in meters
-    sbyte4 KPH_Unit_Conversion = 1000.0;
-    sbyte4 groundKPH = ((me->motorRPM/FD_Ratio) * Revolutions * tireCirc) / KPH_Unit_Conversion; 
+    float tireCirc = 1.295; //the actual average tire circumference in meters
+    float KPH_Unit_Conversion = 1000.0;
+    float groundKPH = ((me->motorRPM/FD_Ratio) * Revolutions * tireCirc) / KPH_Unit_Conversion; 
 
     return groundKPH;
     

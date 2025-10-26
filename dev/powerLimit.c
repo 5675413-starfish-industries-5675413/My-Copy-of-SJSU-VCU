@@ -24,7 +24,7 @@
 PowerLimit* POWERLIMIT_new(bool plToggle){
     PowerLimit* me = (PowerLimit*)malloc(sizeof(PowerLimit));
     me->plToggle=plToggle;
-    me->pid = PID_new(10, 30, 0, 231,10); // PID tuning
+    me->pid = PID_new(10, 20, 0, 231,10); // PID tuning
     me->plMode = 2; // 1 = Torque PID, 2 = Power PID, 3 = Torque+Power PID
     me->plStatus = FALSE; // FALSE = Off, TRUE = On
     me->plTorqueCommand = 0; // Torque command in deciNewton-meters
@@ -123,7 +123,7 @@ void PowerLimit_updatePLPower(PowerLimit* me){
 }
 
 void PowerLimit_calculateCommands(PowerLimit *me, MotorController *mcm, TorqueEncoder *tps){
-    PowerLimit_updatePLPower(me); // uncomment for rotary switch
+    // PowerLimit_updatePLPower(me); // uncomment for rotary switch
     if(me->plToggle){
         //PowerLimit_updatePLPower(me); // uncomment for rotary switch
         PowerLimit_setPLInitializationThreshold(me);
