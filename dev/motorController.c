@@ -260,7 +260,7 @@ void MCM_calculateCommands(MotorController *me, TorqueEncoder *tps, BrakePressur
     {
         torqueOutput = me->appsTorque;
     }
-    if(me->regenActive == FALSE && (torqueOutput > 2310 || torqueOutput < 0)) //attempt to fix issue of -3000
+    if(me->regenActive == FALSE && (torqueOutput > 2400 || torqueOutput < 0)) //attempt to fix issue of -3000
     {
         torqueOutput = me->appsTorque;
     }

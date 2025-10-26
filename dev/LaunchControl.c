@@ -23,8 +23,8 @@ extern Sensor Sensor_LCButton;
 
 LaunchControl *LaunchControl_new(bool lcToggle) {
     LaunchControl* me = (LaunchControl*)malloc(sizeof(struct _LaunchControl));
-    me->Kp = 20;
-    me->Ki = 10;
+    me->Kp = 10;
+    me->Ki = 175;
     me->Kd = 0;
     me->pid = PID_new(me->Kp, me->Ki, me->Kd, 0.5, 1);
     me->slipRatioTarget = 0.2;
@@ -168,8 +168,8 @@ void LaunchControl_calculateCommands(LaunchControl *me, TorqueEncoder *tps, Brak
                 me->lcTorqueCommand = MCM_getCommandedTorque(mcm) + me->pid->output;
             }
 
-            if (me->lcTorqueCommand > 231) {
-                MCM_update_LC_torqueCommand(mcm, 231);
+            if (me->lcTorqueCommand > 240) {
+                MCM_update_LC_torqueCommand(mcm, 240);
             }
             else if (me->lcTorqueCommand < 0) {
                 MCM_update_LC_torqueCommand(mcm, 0);

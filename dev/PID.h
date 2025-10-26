@@ -14,7 +14,7 @@
 // Define a structure for the PID controller
 typedef struct _PID {
     sbyte1 Kp;               // Proportional gain
-    sbyte1 Ki;               // Integral     gain
+    sbyte2 Ki;               // Integral     gain
     sbyte1 Kd;               // Derivative   gain
     sbyte2 scalefactor; // tells us what to divide the gain values by
     float setpoint;         // Target       value
@@ -36,14 +36,14 @@ typedef struct _PID {
  * If using the PID with deci-newton meters, the maximum safe Kp value is 141 aka 14.1, in the event of a 
  * maximized currenterror (pid->setpoint - sensorValue = 2310)
  * */
-PID* PID_new(sbyte1 Kp, sbyte1 Ki, sbyte1 Kd, sbyte2 saturationValue, sbyte2 scalefactor);
+PID* PID_new(sbyte1 Kp, sbyte2 Ki, sbyte1 Kd, sbyte2 saturationValue, sbyte2 scalefactor);
 
 /** SETTER FUNCTIONS  **/
 
 void PID_setTotalError(PID* pid, sbyte2 totalError);
 void PID_setSaturationPoint(PID *pid, sbyte2 saturationValue);
 void PID_updateSetpoint(PID *pid, float setpoint);
-void PID_updateGainValues(PID* pid, sbyte1 Kp, sbyte1 Ki, sbyte1 Kd);
+void PID_updateGainValues(PID* pid, sbyte1 Kp, sbyte2 Ki, sbyte1 Kd);
 
 /** COMPUTATIONS **/
 

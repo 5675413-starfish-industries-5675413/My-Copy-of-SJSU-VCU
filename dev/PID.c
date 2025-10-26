@@ -17,7 +17,7 @@
  ****************************************************************************/
 #include "PID.h"
 
-PID* PID_new(sbyte1 Kp, sbyte1 Ki, sbyte1 Kd, sbyte2 saturationValue, sbyte2 scalefactor) {
+PID* PID_new(sbyte1 Kp, sbyte2 Ki, sbyte1 Kd, sbyte2 saturationValue, sbyte2 scalefactor) {
     PID* me = (PID*)malloc(sizeof(PID));
     me->Kp = Kp;
     me->Ki = Ki;
@@ -38,7 +38,7 @@ PID* PID_new(sbyte1 Kp, sbyte1 Ki, sbyte1 Kd, sbyte2 saturationValue, sbyte2 sca
 
 /** SETTER FUNCTIONS  **/
 
-void PID_updateGainValues(PID* pid, sbyte1 Kp, sbyte1 Ki, sbyte1 Kd){
+void PID_updateGainValues(PID* pid, sbyte1 Kp, sbyte2 Ki, sbyte1 Kd){
     pid->Kp = Kp;
     pid->Ki = Ki;
     pid->Kd = Kd;
