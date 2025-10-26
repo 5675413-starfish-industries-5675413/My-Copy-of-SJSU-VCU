@@ -33,7 +33,7 @@ LaunchControl *LaunchControl_new(bool lcToggle) {
     me->currentVelocityDifference = 0;
     me->targetVelocityDifference = 0;
     me->lcTorqueCommand = 0;
-    me->initialTorque = 231;
+    me->initialTorque = 75;
     me->k = 0.6;
     me->maxTorque = 231;
     me->prevTorque = me->initialTorque;
