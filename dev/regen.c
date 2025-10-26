@@ -10,7 +10,7 @@
 #define REGEN_RAMPDOWN_START_SPEED        10
 
 // Pressure Formula Constants
-#define GEAR_RATIO                      2.7f
+#define GEAR_RATIO                      3.2f    // 2.7 
 #define kPA_TO_MPa                   1000.0f
 #define mm_TO_m                       0.001f
 #define REAR_PISTON_AREA         4 * 791.73f    // mm^2  //this is nolan this number should be 4x
@@ -30,7 +30,7 @@ Regen* Regen_new(bool regenToggle)
     me->torqueAtZeroPedalDNm = 0;
     me->percentBPSForMaxRegen = 0; //zero to one.. 1 = 100%
     me->percentAPPSForCoasting = 0;
-    me->padMu = 0.6;
+    me->padMu = 0.4;
     me->minimumSpeedKPH = MIN_REGEN_SPEED_KPH;       //Assigned by main
     me->SpeedRampStart = REGEN_RAMPDOWN_START_SPEED; //Assigned by main
     me->tick = 0;
@@ -42,7 +42,7 @@ Regen* Regen_new(bool regenToggle)
 
 void Regen_calculateCommands(Regen *me, MotorController *mcm, TorqueEncoder *tps, BrakePressureSensor *bps)
 {
-     BrakePressureSensor_setPSI(bps);
+    BrakePressureSensor_setPSI(bps);
     if (me->regenToggle == FALSE) {
         MCM_set_Regen_activeStatus(mcm, FALSE);
         return;
@@ -58,7 +58,6 @@ void Regen_calculateCommands(Regen *me, MotorController *mcm, TorqueEncoder *tps
     } else {
         me->tick = 0;
     }
-
     if (me->tick >= 10) {
         MCM_set_Regen_activeStatus(mcm, FALSE);
         return;
@@ -89,22 +88,19 @@ void Regen_calculateCommands(Regen *me, MotorController *mcm, TorqueEncoder *tps
         me->appsTorque = MCM_getMaxTorqueDNm(mcm) * getPercent(appsOutputPercent, me->percentAPPSForCoasting, 1, TRUE)
                        - me->torqueAtZeroPedalDNm * getPercent(appsOutputPercent, me->percentAPPSForCoasting, 0, TRUE);
     } 
-    else if (me->mode == REGENMODE_FORMULAE &&  me->appsTorque > 0) {
-        MCM_set_Regen_torqueCommand(mcm, me->appsTorque); // redundancy: no bps if throttle is pressed (might happen due to noise in sensors)
-    }
 
     // Shinika's BPS implementation:
     // me->bpsTorqueDnm = 0 - (me->torqueLimitDNm - me->torqueAtZeroPedalDNm) * getPercent(bps->percent, 0, me->percentBPSForMaxRegen, TRUE);
 
     // Prop Valve Regen Implementation:
     me->bpsTorqueNm = ((bps->bps0_Pressure-bps->bps1_Pressure) * kPA_TO_MPa * me->padMu * REAR_PISTON_AREA * (ROTOR_RADIUS * mm_TO_m)) / GEAR_RATIO;
-
+    
     me->regenTorqueCommand = (sbyte2)(me->appsTorque - me->bpsTorqueNm);
 
-    if (me->regenTorqueCommand >= 231) {
+    if (me->regenTorqueCommand > 231) {
         MCM_set_Regen_torqueCommand(mcm, 231);
     }
-    else if (me->regenTorqueCommand <= -50) {
+    else if (me->regenTorqueCommand < -50) {
         MCM_set_Regen_torqueCommand(mcm, -50);
     }
     else {

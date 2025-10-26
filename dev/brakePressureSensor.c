@@ -75,8 +75,8 @@ BrakePressureSensor *BrakePressureSensor_new(void)
 
 void BrakePressureSensor_setPSI(BrakePressureSensor *me){
     // backcalc: Voltage mV to Pressure (kPa)    y={x-0.5}/{4}*2000
-    me->bps0_Pressure = MAX_RATED_PRESSURE * (me->bps0_value / 1000 - MIN_V) / V_RANGE; // 0-2000 
-    me->bps1_Pressure = MAX_RATED_PRESSURE * (me->bps1_value / 1000 - MIN_V) / V_RANGE; //
+    me->bps0_Pressure = MAX_RATED_PRESSURE * (me->bps0_value / 1000 - MIN_V) / V_RANGE;
+    me->bps1_Pressure = MAX_RATED_PRESSURE * (me->bps1_value / 1000 - MIN_V) / V_RANGE;
 }
 
 //Updates all values based on sensor readings, safety checks, etc

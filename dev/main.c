@@ -223,8 +223,8 @@ void main(void)
     WheelSpeeds *wss = WheelSpeeds_new(WHEEL_DIAMETER, WHEEL_DIAMETER, NUM_BUMPS, NUM_BUMPS);
     SafetyChecker *sc = SafetyChecker_new(serialMan, 320, 32); //Must match amp limits
     CoolingSystem *cs = CoolingSystem_new(serialMan);
-    Regen *regen = Regen_new(FALSE);
-    LaunchControl *lc = LaunchControl_new(TRUE);
+    Regen *regen = Regen_new(TRUE);
+    LaunchControl *lc = LaunchControl_new(FALSE);
     DRS *drs = DRS_new();
     PowerLimit *pl = POWERLIMIT_new(FALSE);
     Efficiency *eff = EFFICIENCY_new(FALSE);
