@@ -19,16 +19,14 @@ typedef struct _BrakePressureSensor
     bool bps0_reverse;
     ubyte2 bps0_value;
     float4 bps0_percent;
-    float4 bps0_V;
-    ubyte2 bps0_PSI;
+    ubyte2 bps0_Pressure;
 
     ubyte2 bps1_calibMin;
     ubyte2 bps1_calibMax;
     bool bps1_reverse; 
     ubyte2 bps1_value;
     float4 bps1_percent;
-    float4 bps1_V;
-    ubyte2 bps1_PSI;
+    ubyte2 bps1_Pressure;
     
 
     bool runCalibration;

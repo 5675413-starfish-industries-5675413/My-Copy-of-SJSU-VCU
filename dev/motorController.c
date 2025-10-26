@@ -255,7 +255,7 @@ void MCM_calculateCommands(MotorController *me, TorqueEncoder *tps, BrakePressur
         torqueOutput = me->regenTorqueCommand;
     }
   
-    //Safety Check. torqueOutput Should never rise above 231
+    // Redunant Safety Check. torqueOutput Should never rise above 231 or below -231
     if(me->regenActive == TRUE && (torqueOutput > 2310 || torqueOutput < -2310))
     {
         torqueOutput = me->appsTorque;
