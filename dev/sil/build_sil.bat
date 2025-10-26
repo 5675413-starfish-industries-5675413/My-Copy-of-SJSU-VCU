@@ -1,4 +1,5 @@
 @echo off
+setlocal enabledelayedexpansion
 REM Build script for Power Limit SIL (Software-in-the-Loop) DLL
 REM This compiles all necessary C files into libpl_sil.dll for Python testing
 
@@ -10,34 +11,60 @@ REM Try to find GCC/MinGW in common locations
 where gcc >nul 2>&1
 if %ERRORLEVEL% EQU 0 (
     echo Found GCC in PATH
-) else (
-    echo GCC not found in PATH, searching common locations...
-    
-    REM Try Anaconda (in user directory)
-    if exist "%USERPROFILE%\anaconda3\Library\mingw-w64\bin\gcc.exe" (
-        echo Found MinGW in Anaconda
-        set PATH=%PATH%;%USERPROFILE%\anaconda3\Library\mingw-w64\bin
-    ) else if exist "C:\ProgramData\anaconda3\Library\mingw-w64\bin\gcc.exe" (
-        echo Found MinGW in Anaconda (system install)
-        set PATH=%PATH%;C:\ProgramData\anaconda3\Library\mingw-w64\bin
-    ) else if exist "C:\msys64\mingw64\bin\gcc.exe" (
-        echo Found MinGW in MSYS2
-        set PATH=%PATH%;C:\msys64\mingw64\bin
-    ) else if exist "C:\MinGW\bin\gcc.exe" (
-        echo Found MinGW standalone
-        set PATH=%PATH%;C:\MinGW\bin
-    ) else (
-        echo ERROR: GCC not found!
-        echo Please install MinGW via one of:
-        echo   - Anaconda: conda install m2w64-toolchain
-        echo   - MSYS2: https://www.msys2.org/
-        echo   - Standalone MinGW: https://sourceforge.net/projects/mingw/
-        echo   - Or add GCC to your PATH
-        pause
-        exit /b 1
-    )
+    goto :found_gcc
 )
 
+echo GCC not found in PATH, searching common locations...
+
+REM Try Anaconda locations (user and system installs)
+set "ANACONDA_USER=%USERPROFILE%\anaconda3\Library\mingw-w64\bin\gcc.exe"
+if exist "%ANACONDA_USER%" (
+    echo Found MinGW in Anaconda (user install)
+    set "ANACONDA_PATH=%USERPROFILE%\anaconda3\Library\mingw-w64\bin"
+    set "PATH=%PATH%;%ANACONDA_PATH%"
+    goto :found_gcc
+)
+if exist "C:\ProgramData\anaconda3\Library\mingw-w64\bin\gcc.exe" (
+    echo Found MinGW in Anaconda (system install)
+    set "PATH=%PATH%;C:\ProgramData\anaconda3\Library\mingw-w64\bin"
+    goto :found_gcc
+)
+REM Try Miniconda
+set "MINICONDA_USER=%USERPROFILE%\miniconda3\Library\mingw-w64\bin\gcc.exe"
+if exist "%MINICONDA_USER%" (
+    echo Found MinGW in Miniconda (user install)
+    set "MINICONDA_PATH=%USERPROFILE%\miniconda3\Library\mingw-w64\bin"
+    set "PATH=%PATH%;%MINICONDA_PATH%"
+    goto :found_gcc
+)
+if exist "C:\ProgramData\miniconda3\Library\mingw-w64\bin\gcc.exe" (
+    echo Found MinGW in Miniconda (system install)
+    set "PATH=%PATH%;C:\ProgramData\miniconda3\Library\mingw-w64\bin"
+    goto :found_gcc
+)
+REM Try MSYS2
+if exist "C:\msys64\mingw64\bin\gcc.exe" (
+    echo Found MinGW in MSYS2
+    set "PATH=%PATH%;C:\msys64\mingw64\bin"
+    goto :found_gcc
+)
+REM Try standalone MinGW
+if exist "C:\MinGW\bin\gcc.exe" (
+    echo Found MinGW standalone
+    set "PATH=%PATH%;C:\MinGW\bin"
+    goto :found_gcc
+)
+
+echo ERROR: GCC not found!
+echo Please install MinGW via one of:
+echo   - Anaconda: conda install m2w64-toolchain
+echo   - MSYS2: https://www.msys2.org/
+echo   - Standalone MinGW: https://sourceforge.net/projects/mingw/
+echo   - Or add GCC to your PATH
+pause
+exit /b 1
+
+:found_gcc
 REM Verify GCC is now available
 where gcc >nul 2>&1
 if %ERRORLEVEL% NEQ 0 (
@@ -82,7 +109,7 @@ REM Compile all necessary source files
     "%DEV_DIR%\readyToDriveSound.c" ^
     "%DEV_DIR%\instrumentCluster.c" ^
     "%SIL_DIR%\testHelpers.c" ^
-    "%SIL_DIR%\sensors_sil_stubs.c" ^
+    "%SIL_INC_DIR%\sensors_sil_stubs.c" ^
     "%SIL_INC_DIR%\IO_RTC_sil.c" ^
     "%SIL_INC_DIR%\IO_UART_sil.c" ^
     "%SIL_INC_DIR%\IO_ADC_sil.c" ^

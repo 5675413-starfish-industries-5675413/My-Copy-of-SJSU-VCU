@@ -56,7 +56,7 @@ def tps(request):
 
 @pytest.fixture
 def pl(request):
-    p = lib.POWERLIMIT_new(False)
+    p = lib.POWERLIMIT_new(True)
     assert p != ffi.NULL
     return p
 
@@ -69,11 +69,11 @@ def test_one_step_runs_parameterized(pl, mcm0, tps, config):
     pid = params['pid']
     
     # Set TPS to 100%
-    set_tps_percent(tps, 0.987)
+    set_tps_percent(tps, 0.983)
     
     # Configure Motor Controller Parameters
     lib.TEST_MCM_setCommandedTorque(mcm0)
-    lib.TEST_MCM_setRPM(mcm0, 1812)
+    lib.TEST_MCM_setRPM(mcm0, 2184)
     lib.TEST_MCM_setDCVoltage(mcm0, 800)
     lib.TEST_MCM_setDCCurrent(mcm0, 100)
     lib.MCM_calculateCommands(mcm0, tps, ffi.NULL)

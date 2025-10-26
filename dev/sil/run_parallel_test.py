@@ -44,14 +44,14 @@ def process_chunk(chunk_data, chunk_id):
         # Configure PL
         lib.TEST_setPLKnobVoltage(1800)
         lib.TEST_setPLAlwaysOn(pl, 1)
-        lib.TEST_setPID(pl, 20, 10, 0, 231, 10)
+        lib.TEST_setPID(pl, 10, 0, 0, 231, 10)
         lib.TEST_setPLMode(pl, 1)
         lib.TEST_setPLStatus(pl, False)
         lib.TEST_setPLTorqueCommand(pl, 0)
         lib.TEST_setPLTargetPower(pl, 40)
         lib.TEST_setPLThresholdDiscrepancy(pl, 15)
         lib.TEST_setPLInitializationThreshold(pl, 0)
-        lib.TEST_setClampingMethod(pl, 6)
+        lib.TEST_setClampingMethod(pl, 0)
         
         # Run calculation
         lib.PowerLimit_calculateCommand(pl, mcm0, tps)
@@ -72,7 +72,7 @@ def process_chunk(chunk_data, chunk_id):
 def main():
     # Paths
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    input_csv = r"i2pro_data2.csv"
+    input_csv = r"i2pro_data.csv"
     output_csv = os.path.join(script_dir, "output/test_results_output.csv")
     
     print("Loading CSV data...")
