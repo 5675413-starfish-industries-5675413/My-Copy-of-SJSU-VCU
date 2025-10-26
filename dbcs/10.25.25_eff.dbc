@@ -30,7 +30,7 @@ BU_: DBG VCU BMS MCM DCU DAQ S2C
 BO_ 1287 Low_Voltage: 8 DAQ
  SG_ Voltage : 0|16@1+ (0.001,0) [0|20] "V" VCU
  SG_ VCU_RegenTq : 16|16@1- (1,0) [-32768|32767] "nM" VCU
- SG_ VCU_Effiency_TimeinStriahgts : 16|16@1- (1,0) [-32768|32767] "t" VCU
+ SG_ VCU_Effiency_TimeinStriahgts : 32|16@1- (1,0) [-32768|32767] "t" VCU
 
 BO_ 1290 VCU_Efficiency_Settings: 8 VCU
  SG_ VCU_Efficiency_LapCounter : 0|8@1+ (1,0) [0|255] "laps" VCU
