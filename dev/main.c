@@ -226,8 +226,8 @@ void main(void)
     Regen *regen = Regen_new(FALSE);
     LaunchControl *lc = LaunchControl_new(FALSE);
     DRS *drs = DRS_new();
-    PowerLimit *pl = POWERLIMIT_new(TRUE);
-    Efficiency *eff = EFFICIENCY_new(TRUE);
+    PowerLimit *pl = POWERLIMIT_new(FALSE);
+    Efficiency *eff = EFFICIENCY_new(FALSE);
 //---------------------------------------------------------------------------------------------------------
     //----------------------------------------------------------------------------
     // TODO: Additional Initial Power-up functions
