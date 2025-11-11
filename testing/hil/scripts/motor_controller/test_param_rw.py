@@ -1,6 +1,6 @@
 import can, cantools, time
 
-dbc = cantools.database.load_file("10.03.25_LC_Main.dbc")
+dbc = cantools.database.load_file("dbcs/10.03.25_LC_Main.dbc")
 bus = can.interface.Bus()
 
 #### Read safe MCM parameter address ####

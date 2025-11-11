@@ -10,7 +10,7 @@ DC_VOLTAGE = 350.0
 DC_CURRENT = 175.0
 TEST_DURATION_SECONDS = 5.0
 
-dbc = cantools.database.load_file("10.03.25_LC_Main.dbc")
+dbc = cantools.database.load_file("dbcs/10.03.25_LC_Main.dbc")
 
 mcm_rpm = dbc.get_message_by_name("MCM_Motor_Position_Info")
 mcm_current = dbc.get_message_by_name("MCM_Current_Info")

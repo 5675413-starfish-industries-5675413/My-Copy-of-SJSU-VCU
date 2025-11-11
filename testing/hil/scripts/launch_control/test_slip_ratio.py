@@ -22,7 +22,7 @@ def build_payload(fl, fr, rl, rr):
     """
     return struct.pack(">HHHH", fl, fr, rl, rr)
 
-dbc = cantools.database.load_file("10.22.25_SRE_Main.dbc", strict=False)
+dbc = cantools.database.load_file("dbcs/10.22.25_SRE_Main.dbc", strict=False)
 
 lc_msg = dbc.get_message_by_name("VCU_LC_Status_A")
 lc_id = lc_msg.frame_id
