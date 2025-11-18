@@ -103,9 +103,9 @@ hil --dbc dbcs/10.03.25_LC_Main.dbc listen --decode
 - `hil version` - Show version information
 
 **Coming Soon:**
-- `hil signal-watch` - Real-time signal monitoring with live table (Week 3-4)
-- `hil inject` - Inject CAN messages (Week 3-4)
-- `hil transmit --interactive` - Interactive message builder (Week 3-4)
+- `hil signal-watch` - Real-time signal monitoring with live table
+- `hil inject` - Inject CAN messages
+- `hil transmit --interactive` - Interactive message builder
 
 ## Running tests
 
