@@ -1,0 +1,134 @@
+{
+  "build_configurations": [
+    {
+      "name": "PL_50kW",
+      "description": "Power Limit set to 50 kW",
+      "parameters": {
+        "plTargetPower": 50,
+        "plMode": 1,
+        "plThresholdDiscrepancy": 15,
+        "plInitializationThreshold": 0,
+        "clampingMethod": 3,
+        "plAlwaysOn": true,
+        "pid": {
+          "Kp": 10,
+          "Ki": 0,
+          "Kd": 0,
+          "saturation": 231,
+          "gain": 10
+        }
+      }
+    },
+    {
+      "name": "PL_60kW",
+      "description": "Power Limit set to 60 kW",
+      "parameters": {
+        "plTargetPower": 60,
+        "plMode": 1,
+        "plThresholdDiscrepancy": 15,
+        "plInitializationThreshold": 0,
+        "clampingMethod": 3,
+        "plAlwaysOn": true,
+        "pid": {
+          "Kp": 10,
+          "Ki": 0,
+          "Kd": 0,
+          "saturation": 231,
+          "gain": 10
+        }
+      }
+    },
+    {
+      "name": "PL_70kW",
+      "description": "Power Limit set to 70 kW",
+      "parameters": {
+        "plTargetPower": 70,
+        "plMode": 1,
+        "plThresholdDiscrepancy": 15,
+        "plInitializationThreshold": 0,
+        "clampingMethod": 3,
+        "plAlwaysOn": true,
+        "pid": {
+          "Kp": 10,
+          "Ki": 0,
+          "Kd": 0,
+          "saturation": 231,
+          "gain": 10
+        }
+      }
+    },
+    {
+      "name": "PL_80kW",
+      "description": "Power Limit set to 80 kW",
+      "parameters": {
+        "plTargetPower": 80,
+        "plMode": 1,
+        "plThresholdDiscrepancy": 15,
+        "plInitializationThreshold": 0,
+        "clampingMethod": 3,
+        "plAlwaysOn": true,
+        "pid": {
+          "Kp": 10,
+          "Ki": 0,
+          "Kd": 0,
+          "saturation": 231,
+          "gain": 10
+        }
+      }
+    },
+    {
+      "name": "PL_90kW",
+      "description": "Power Limit set to 90 kW",
+      "parameters": {
+        "plTargetPower": 90,
+        "plMode": 1,
+        "plThresholdDiscrepancy": 15,
+        "plInitializationThreshold": 0,
+        "clampingMethod": 3,
+        "plAlwaysOn": true,
+        "pid": {
+          "Kp": 10,
+          "Ki": 0,
+          "Kd": 0,
+          "saturation": 231,
+          "gain": 10
+        }
+      }
+    },
+    {
+      "name": "test",
+      "description": "For SIL testing purposes",
+      "parameters": {
+        "plTargetPower": 40,
+        "plMode": 1,
+        "plThresholdDiscrepancy": 15,
+        "plInitializationThreshold": 0,
+        "clampingMethod": 0,
+        "plAlwaysOn": true,
+        "pid": {
+          "Kp": 10,
+          "Ki": 0,
+          "Kd": 0,
+          "saturation": 231,
+          "gain": 10
+        }
+      }
+    }
+  ],
+  "notes": {
+    "plMode_values": {
+      "1": "TQ equation only",
+      "2": "PowerPID only",
+      "3": "LUT only",
+      "4": "Both TQ equation and LUT together (Final Algorithm)"
+    },
+    "clampingMethod_values": {
+      "1": "Saturation point to 231",
+      "2": "Saturation point to sensor value",
+      "3": "Subtract previous error from totalError",
+      "4": "Set pidSetpoint to sensor value"
+    },
+    "plInitializationThreshold": "Automatically calculated as plTargetPower - plThresholdDiscrepancy"
+  }
+}
+
