@@ -40,7 +40,7 @@ def cli(ctx, dbc):
 
 
 @cli.command()
-@click.option('--duration', type=int, help='Listen duration in seconds')
+@click.option('--duration', type=float, help='Listen duration in seconds')
 @click.option('--decode', is_flag=True, help='Decode messages using DBC')
 @click.option('--filter', 'filter_id', help='Filter by CAN ID (hex, e.g., 0x50B)')
 @click.option('--message', help='Filter by message name')
@@ -94,6 +94,7 @@ def listen(ctx, duration, decode, filter_id, message):
     # Listen loop
     start_time = time.time()
     message_count = 0
+    filtered_message_count = 0
 
     try:
         while True:
@@ -113,6 +114,7 @@ def listen(ctx, duration, decode, filter_id, message):
                 filter_val = int(filter_id, 16) if filter_id.startswith('0x') else int(filter_id)
                 if msg.arbitration_id != filter_val:
                     continue
+                filtered_message_count += 1
 
             # Display message
             if decode and dbc_loader:
@@ -139,6 +141,8 @@ def listen(ctx, duration, decode, filter_id, message):
         can_interface.shutdown()
         console.print()
         console.print(f"[green]✓[/green] Received {message_count} messages")
+        if filter_id:
+            console.print(f"[green]✓[/green] {filtered_message_count} messages matched filter 0x{filter_val:03X}")
         if duration:
             elapsed = time.time() - start_time
             console.print(f"[dim]Elapsed time: {elapsed:.1f}s[/dim]")

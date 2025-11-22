@@ -10,10 +10,10 @@ TX_PERIOD_S = 0.02              # 50 Hz WSS update
 TEST_DURATION_SECONDS = 5.0     # Run for 5 seconds
 
 # Wheel Speed Sensor Values
-FL = 100
-FR = 100
-RL = 50
-RR = 50
+FL = 50
+FR = 50
+RL = 100
+RR = 100
 
 def build_payload(fl, fr, rl, rr):
     """
@@ -22,7 +22,7 @@ def build_payload(fl, fr, rl, rr):
     """
     return struct.pack(">HHHH", fl, fr, rl, rr)
 
-dbc = cantools.database.load_file("dbcs/10.22.25_SRE_Main.dbc", strict=False)
+dbc = cantools.database.load_file("testing/hil/dbcs/10.22.25_SRE_Main.dbc", strict=False)
 
 lc_msg = dbc.get_message_by_name("VCU_LC_Status_A")
 lc_id = lc_msg.frame_id
