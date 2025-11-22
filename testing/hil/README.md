@@ -26,19 +26,37 @@ The HIL platform provides a modular testing infrastructure for designers, allowi
 1. **Install PCAN-USB drivers**
     - Download drivers [here](https://www.peak-system.com/PCAN-USB.199.0.html?L=1) for your OS
 
-2. **Install Python dependencies**
-
-    (Optional but Recommended) Set up a *virtual environment* (venv) in `testing/hil` first, then activate it and install dependencies.
+2. **Set up virtual environment and install dependencies**
 
     ```bash
-   cd testing/hil/
-   pip install -r requirements.txt
-   ```
-3. **Make sure PCAN-USB device is discoverable**
+    cd testing/hil/
+
+    # Create virtual environment
+    python3 -m venv venv
+
+    # Activate virtual environment
+    source venv/bin/activate    # On macOS/Linux
+    # or
+    venv\Scripts\activate       # On Windows
+
+    # Install dependencies
+    pip install -r requirements.txt
+
+    # Install HIL CLI tool in development mode
+    pip install -e .
+    ```
+
+3. **Verify installation**
     ```bash
-   python scripts/utils/pc_pcan.py
-   ```
-   Expected output: `OK: True`
+    # Check CLI is installed
+    hil --version
+    # Expected: sre-hil, version 0.1.0
+
+    # Check PCAN hardware (if connected)
+    hil listen --duration 5
+    # or use legacy script:
+    python scripts/utils/pc_pcan.py
+    ```
 
 ### Configuration
 
@@ -52,6 +70,42 @@ bitrate = 500000          # 500 kbps (must match VCU)
 ```
 
 For **macOS users**, define a `.canrc` file with the same content inside your macOS user directory (`/Users/<user>`).
+
+## CLI Usage
+
+The HIL platform now includes a comprehensive CLI tool (`hil`) for CAN testing:
+
+### Basic Commands
+
+```bash
+# Show help
+hil --help
+
+# Listen to raw CAN traffic
+hil listen --duration 10
+
+# Listen with DBC decoding
+hil listen --decode
+
+# Filter by CAN ID
+hil listen --filter 0x50B --decode
+
+# Filter by message name
+hil listen --message VCU_LC_Status_A --decode
+
+# Override DBC file
+hil --dbc dbcs/10.03.25_LC_Main.dbc listen --decode
+```
+
+### Available Commands
+
+- `hil listen` - Listen to CAN bus traffic (BUSMASTER monitoring equivalent)
+- `hil version` - Show version information
+
+**Coming Soon:**
+- `hil signal-watch` - Real-time signal monitoring with live table
+- `hil inject` - Inject CAN messages
+- `hil transmit --interactive` - Interactive message builder
 
 ## Running tests
 

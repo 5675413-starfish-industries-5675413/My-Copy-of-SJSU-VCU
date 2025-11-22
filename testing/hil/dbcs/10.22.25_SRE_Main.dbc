@@ -395,7 +395,7 @@ BO_ 1296 VCU_80kW_Debug: 8 VCU
  SG_ VCU_MCM_Power : 0|32@1+ (1,0) [0|200] "W" VCU
  SG_ VCU_Safety_Checker_Notices : 32|32@1+ (1,0) [0|200] "" VCU
 
-BO_ 1297 VCU_Power_Limit_Status_AMsg: 8 VCU
+BO_ 1297 VCU_Power_Limit_Status_AMsg: 7 VCU
  SG_ VCU_POWERLIMIT_getInitialisationThreshold_W : 0|8@1+ (1,0) [0|255] "W" VCU
  SG_ VCU_POWERLIMIT_getMode_W : 8|8@1+ (1,0) [0|255] "W" VCU
  SG_ VCU_POWERLIMIT_getStatus_W : 16|8@1+ (1,0) [0|255] "W" VCU

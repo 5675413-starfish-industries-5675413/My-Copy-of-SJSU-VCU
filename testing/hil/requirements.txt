@@ -1,3 +1,13 @@
-python-can
-cantools
-pytest
+# CAN Communication
+python-can>=4.0.0
+cantools>=36.0.0
+
+# CLI Framework
+click>=8.0.0
+rich>=13.0.0
+
+# Testing Framework
+pytest>=7.0.0
+
+# Configuration
+pyyaml>=6.0
