@@ -243,6 +243,16 @@ void main(void)
     //TODO: Power-on error checking?
 
     /*******************************************/
+    /*           SIL CONFIGURATION             */
+    /*******************************************/
+    bool SIL = FALSE;
+    if (SIL) {
+        // Reads json file and parses whatever values are needed for the SIL test
+    }
+
+
+
+    /*******************************************/
     /*       PERIODIC APPLICATION CODE         */
     /*******************************************/
     /* main loop, executed periodically with a defined cycle time (here: 5 ms) */
