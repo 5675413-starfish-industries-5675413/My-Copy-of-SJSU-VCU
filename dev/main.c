@@ -55,6 +55,14 @@
 #include "PID.h"
 #include "efficiency.h"
 
+// SIL (Software-In-the-Loop) includes
+#ifdef SIL_BUILD
+#include "parse_values.h"
+bool SIL = TRUE;
+#else
+bool SIL = FALSE;
+#endif
+
 //Application Database, needed for TTC-Downloader
 APDB appl_db =
     {
@@ -137,6 +145,18 @@ extern Sensor Sensor_DRSButton;
 ****************************************************************************/
 void main(void)
 {
+    // Test print to verify output is working
+    fprintf(stderr, "=== MAIN FUNCTION STARTED ===\n");
+    fflush(stderr);
+    
+    #ifdef SIL_BUILD
+    fprintf(stderr, "SIL_BUILD is defined in preprocessor\n");
+    fflush(stderr);
+    #endif
+    
+    fprintf(stderr, "SIL variable value: %d\n", SIL ? 1 : 0);
+    fflush(stderr);
+    
     ubyte4 timestamp_startTime = 0;
     ubyte4 timestamp_EcoButton = 0;
     ubyte1 calibrationErrors; //NOT USED
@@ -145,13 +165,31 @@ void main(void)
     /*******************************************/
     /*        Low Level Initializations        */
     /*******************************************/
+    if (SIL) {
+        fprintf(stderr, "SIL: About to call IO_Driver_Init\n");
+        fflush(stderr);
+    }
     IO_Driver_Init(NULL); //Handles basic startup for all VCU subsystems
 
+    if (SIL) {
+        fprintf(stderr, "SIL: IO_Driver_Init completed\n");
+        fflush(stderr);
+    }
+
     //Initialize serial first so we can use it to debug init of other subsystems
+    if (SIL) {
+        fprintf(stderr, "SIL: About to create SerialManager\n");
+        fflush(stderr);
+    }
     SerialManager *serialMan = SerialManager_new();
     IO_RTC_StartTime(&timestamp_startTime);
     SerialManager_send(serialMan, "\n\n\n\n\n\n\n\n\n\n----------------------------------------------------\n");
     SerialManager_send(serialMan, "VCU serial is online.\n");
+    
+    if (SIL) {
+        fprintf(stderr, "SIL: SerialManager created\n");
+        fflush(stderr);
+    }
 
     //Read initial values from EEPROM
     //EEPROMManager* EEPROMManager_new();
@@ -164,8 +202,16 @@ void main(void)
     // Check if we're on the bench or not
     //----------------------------------------------------------------------------
     bool bench;
+    if (SIL) {
+        fprintf(stderr, "SIL: About to initialize digital input\n");
+        fflush(stderr);
+    }
     IO_DI_Init(IO_DI_06, IO_DI_PD_10K);
     IO_RTC_StartTime(&timestamp_startTime);
+    if (SIL) {
+        fprintf(stderr, "SIL: Starting bench mode detection loop\n");
+        fflush(stderr);
+    }
     while (IO_RTC_GetTimeUS(timestamp_startTime) < 55555)
     {
         IO_Driver_TaskBegin();
@@ -178,8 +224,17 @@ void main(void)
         while (IO_RTC_GetTimeUS(timestamp_startTime) < 10000)
             ; // wait until 10ms have passed
     }
+    if (SIL) {
+        fprintf(stderr, "SIL: Finished bench mode detection loop\n");
+        fflush(stderr);
+    }
     IO_DI_DeInit(IO_DI_06);
     SerialManager_send(serialMan, bench == TRUE ? "VCU is in bench mode.\n" : "VCU is NOT in bench mode.\n");
+    
+    if (SIL) {
+        fprintf(stderr, "SIL: About to initialize ADC\n");
+        fflush(stderr);
+    }
 
     //----------------------------------------------------------------------------
     // VCU Subsystem Initializations
@@ -188,14 +243,34 @@ void main(void)
     //----------------------------------------------------------------------------
     SerialManager_send(serialMan, "VCU objects/subsystems initializing.\n");
     vcu_initializeADC(bench); //Configure and activate all I/O pins on the VCU
+    if (SIL) {
+        fprintf(stderr, "SIL: ADC initialized\n");
+        fflush(stderr);
+    }
     //vcu_initializeCAN();
     //vcu_initializeMCU();
 
     //Do some loops until the ADC stops outputting garbage values
+    if (SIL) {
+        fprintf(stderr, "SIL: About to run ADC waste loop\n");
+        fflush(stderr);
+    }
     vcu_ADCWasteLoop();
+    if (SIL) {
+        fprintf(stderr, "SIL: ADC waste loop completed\n");
+        fflush(stderr);
+    }
 
     //vcu_init functions may have to be performed BEFORE creating CAN Manager object
+    if (SIL) {
+        fprintf(stderr, "SIL: About to create CanManager\n");
+        fflush(stderr);
+    }
     CanManager *canMan = CanManager_new(500, 50, 50, 500, 10, 10, 200000, serialMan); //3rd param = messages per node (can0/can1; read/write)
+    if (SIL) {
+        fprintf(stderr, "SIL: CanManager created\n");
+        fflush(stderr);
+    }
     //can0_busSpeed ---------------------^    ^   ^   ^    ^   ^     ^         ^
     //can0_read_messageLimit -----------------|   |   |    |   |     |         |
     //can0_write_messageLimit---------------------+   |    |   |     |         |
@@ -212,6 +287,10 @@ void main(void)
     // ! to remove -- retired functionality
     // ubyte1 pot_DRS_LC = 0; // 0 is for DRS and 1 is for launch control/Auto DRS - CHANGE HERE FOR POT MODE
 
+    if (SIL) {
+        fprintf(stderr, "SIL: About to create objects\n");
+        fflush(stderr);
+    }
     ReadyToDriveSound *rtds = RTDS_new();
     BatteryManagementSystem *bms = BMS_new(serialMan, BMS_BASE_ADDRESS);
     MotorController *mcm0 = MotorController_new(serialMan, 0xA0, FORWARD, 2310, ENDURANCE); //CAN addr, direction, torque limit x10 (100 = 10Nm)
@@ -226,6 +305,10 @@ void main(void)
     DRS *drs = DRS_new();
     PowerLimit *pl = POWERLIMIT_new(FALSE);
     Efficiency *eff = EFFICIENCY_new(FALSE);
+    if (SIL) {
+        fprintf(stderr, "SIL: All objects created\n");
+        fflush(stderr);
+    }
 //---------------------------------------------------------------------------------------------------------
     //----------------------------------------------------------------------------
     // TODO: Additional Initial Power-up functions
@@ -245,9 +328,39 @@ void main(void)
     /*******************************************/
     /*           SIL CONFIGURATION             */
     /*******************************************/
-    bool SIL = FALSE;
     if (SIL) {
-        // Reads json file and parses whatever values are needed for the SIL test
+        fprintf(stderr, "SIL: Reached SIL CONFIGURATION section\n");
+        fflush(stderr);
+    }
+ 
+    
+    // Static variables to store JSON-parsed TPS values (preserved across loop iterations)
+    static float4 saved_tps_travelPercent = 0.0f;
+    static float4 saved_tps0_percent = 0.0f;
+    static float4 saved_tps1_percent = 0.0f;
+    
+    if (SIL) {
+        fprintf(stderr, "SIL mode is ENABLED\n");
+        fflush(stderr);
+        // Parse struct values from JSON configuration file
+        // Path is relative to where the executable runs (build_main_sil directory)
+        const char* json_config_path = "json_files/struct_members_output.json";
+        fprintf(stderr, "SIL: About to parse JSON from: %s\n", json_config_path);
+        fflush(stderr);
+        int parse_result = parse_struct_values_from_json(json_config_path, pl, mcm0, tps);
+        if (parse_result != 0) {
+            fprintf(stderr, "SIL: Failed to parse JSON configuration file (error: %d)\n", parse_result);
+            fflush(stderr);
+        } else {
+            fprintf(stderr, "SIL: Successfully parsed JSON configuration file\n");
+            // Save the TPS values that were parsed from JSON (they will be overwritten by TorqueEncoder_update)
+            saved_tps_travelPercent = tps->travelPercent;
+            saved_tps0_percent = tps->tps0_percent;
+            saved_tps1_percent = tps->tps1_percent;
+            fprintf(stderr, "SIL: Saved travelPercent=%.3f, tps0_percent=%.3f, tps1_percent=%.3f\n", 
+                    saved_tps_travelPercent, saved_tps0_percent, saved_tps1_percent);
+            fflush(stderr);
+        }
     }
 
 
@@ -262,8 +375,21 @@ void main(void)
     ubyte4 time = 0;
         //IO_RTC_StartTime(&timestamp_calibStart);
     SerialManager_send(serialMan, "VCU initializations complete.  Entering main loop.\n");
+    if (SIL) {
+        fprintf(stderr, "SIL: Starting main loop\n");
+        fflush(stderr);
+    }
     while (1)
     {
+        #ifdef SIL_BUILD
+        static int loop_entry_count = 0;
+        loop_entry_count++;
+        if (loop_entry_count <= 3) {
+            fprintf(stderr, "SIL: Loop iteration %d started\n", loop_entry_count);
+            fflush(stderr);
+        }
+        #endif
+        
         //----------------------------------------------------------------------------
         // Task management stuff (start)
         //----------------------------------------------------------------------------
@@ -281,11 +407,23 @@ void main(void)
         // Handle data input streams
         //----------------------------------------------------------------------------
         //Get readings from our sensors and other local devices (buttons, 12v battery, etc)
+        if (SIL && loop_entry_count <= 3) {
+            fprintf(stderr, "SIL: About to update sensors\n");
+            fflush(stderr);
+        }
         sensors_updateSensors();
 
         //Pull messages from CAN FIFO and update our object representations.
         //Also echoes can0 messages to can1 for DAQ.
+        if (SIL && loop_entry_count <= 3) {
+            fprintf(stderr, "SIL: About to call CanManager_read\n");
+            fflush(stderr);
+        }
         CanManager_read(canMan, CAN0_HIPRI, mcm0, ic0, bms, sc, wss);
+        if (SIL && loop_entry_count <= 3) {
+            fprintf(stderr, "SIL: CanManager_read completed\n");
+            fflush(stderr);
+        }
         // if (Sensor_TestButton.sensorValue == TRUE ) {
         //     // TODO rewire Sensor_TestButton 
         //     lc->buttonDebug |= 0x02;
@@ -382,6 +520,12 @@ void main(void)
             IO_DO_Set(IO_DO_03, TRUE);
         }
         TorqueEncoder_update(tps);
+        // In SIL mode, restore the JSON-parsed TPS values that were overwritten by TorqueEncoder_update
+        if (SIL && saved_tps_travelPercent != 0.0f) {
+            tps->travelPercent = saved_tps_travelPercent;
+            tps->tps0_percent = saved_tps0_percent;
+            tps->tps1_percent = saved_tps1_percent;
+        }
         //Every cycle: if the calibration was started and hasn't finished, check the values again
         TorqueEncoder_calibrationCycle(tps, &calibrationErrors); //Todo: deal with calibration errors
         BrakePressureSensor_update(bps, bench);
@@ -465,15 +609,47 @@ void main(void)
         Regen_calculateCommands(regen, mcm0,tps, bps);
         // PowerLimit_updatePLPower(pl);
         Efficiency_calculateCommands(eff, mcm0, pl);
+        if (SIL && loop_entry_count <= 3) {
+            fprintf(stderr, "SIL: About to calculate PowerLimit commands\n");
+            fflush(stderr);
+        }
         PowerLimit_calculateCommands(pl, mcm0, tps);
+        if (SIL && loop_entry_count <= 3) {
+            fprintf(stderr, "SIL: PowerLimit_calculateCommands completed\n");
+            fflush(stderr);
+        }
+        if (SIL && loop_entry_count <= 3) {
+            fprintf(stderr, "SIL: About to call MCM_calculateCommands\n");
+            fflush(stderr);
+        }
         MCM_calculateCommands(mcm0, tps, bps);
+        if (SIL && loop_entry_count <= 3) {
+            fprintf(stderr, "SIL: MCM_calculateCommands completed\n");
+            fflush(stderr);
+        }
 
+        if (SIL && loop_entry_count <= 3) {
+            fprintf(stderr, "SIL: About to call SafetyChecker_update\n");
+            fflush(stderr);
+        }
         SafetyChecker_update(sc, mcm0, bms, tps, bps, &Sensor_HVILTerminationSense, &Sensor_LVBattery);
+        if (SIL && loop_entry_count <= 3) {
+            fprintf(stderr, "SIL: SafetyChecker_update completed\n");
+            fflush(stderr);
+        }
 
         /*******************************************/
         /*  Output Adjustments by Safety Checker   */
         /*******************************************/
+        if (SIL && loop_entry_count <= 3) {
+            fprintf(stderr, "SIL: About to call SafetyChecker_reduceTorque\n");
+            fflush(stderr);
+        }
         SafetyChecker_reduceTorque(sc, mcm0, bms, wss);
+        if (SIL && loop_entry_count <= 3) {
+            fprintf(stderr, "SIL: SafetyChecker_reduceTorque completed\n");
+            fflush(stderr);
+        }
 
         /*******************************************/
         /*              Enact Outputs              */
@@ -495,8 +671,11 @@ void main(void)
         //canOutput_sendMCUControl(mcm0, FALSE);
 
         //Send debug data
+        // Skip CAN debug messages in SIL mode to avoid hangs
+        #ifndef SIL_BUILD
         canOutput_sendDebugMessage(canMan, tps, bps, mcm0, ic0, bms, wss, sc, lc, pl, drs, regen, eff);
         canOutput_sendDebugMessage1(canMan, mcm0, tps);
+        #endif
         //canOutput_sendSensorMessages();
         //canOutput_sendStatusMessages(mcm0);
 
@@ -507,12 +686,72 @@ void main(void)
 
         //Task end function for IO Driver - This function needs to be called at the end of every SW cycle
         IO_Driver_TaskEnd();
+        
+        if (SIL && loop_entry_count <= 3) {
+            fprintf(stderr, "SIL: About to wait for cycle time (10ms)\n");
+            fflush(stderr);
+        }
         //wait until the cycle time is over
         while (IO_RTC_GetTimeUS(timestamp_mainLoopStart) < 10000) // 1000 = 1ms
         {
             IO_UART_Task(); //The task function shall be called every SW cycle.
         }
+        if (SIL && loop_entry_count <= 3) {
+            fprintf(stderr, "SIL: Cycle time wait completed\n");
+            fflush(stderr);
+        }
 
+        /*******************************************/
+        /*              SIL OUTPUTS                */
+        /*******************************************/
+        if (SIL) {
+            static int loop_count = 0;
+            static bool values_printed = FALSE;
+            loop_count++;
+            
+            // Print debug values after PowerLimit calculation (only once, on second iteration)
+            // First loop is for VCU initialization, second loop has proper values
+            if (!values_printed && loop_count == 2) {
+                fprintf(stderr, "\n=== SIL OUTPUTS ===\n");
+                
+                // Debug: Check MCM values
+                sbyte4 mcm_voltage = MCM_getDCVoltage(mcm0);
+                sbyte4 mcm_current = MCM_getDCCurrent(mcm0);
+                sbyte4 mcm_rpm = MCM_getMotorRPM(mcm0);
+                sbyte2 mcm_apps_torque = MCM_commands_getAppsTorque(mcm0);
+                sbyte4 mcm_power_kw = (mcm_voltage * mcm_current) / 1000;
+                
+                fprintf(stderr, "MCM DC_Voltage: %d V\n", mcm_voltage);
+                fprintf(stderr, "MCM DC_Current: %d A\n", mcm_current);
+                fprintf(stderr, "MCM motorRPM: %d\n", mcm_rpm);
+                ubyte2 mcm_max_torque = MCM_getMaxTorqueDNm(mcm0);
+                fprintf(stderr, "MCM torqueMaximumDNm: %d\n", mcm_max_torque);
+                float4 tps_travel_percent = tps->travelPercent;
+                float4 tps_output_curve = tps->outputCurveExponent;
+                float4 tps_output_percent = 0.0f;
+                TorqueEncoder_getOutputPercent(tps, &tps_output_percent);
+                fprintf(stderr, "TPS travelPercent: %.4f\n", tps_travel_percent);
+                fprintf(stderr, "TPS outputCurveExponent: %.4f\n", tps_output_curve);
+                fprintf(stderr, "TPS outputPercent: %.4f\n", tps_output_percent);
+                fprintf(stderr, "MCM appsTorque: %d (expected: %d)\n", mcm_apps_torque, (sbyte2)(mcm_max_torque * tps_output_percent));
+                fprintf(stderr, "MCM Power (V*I/1000): %d kW\n", mcm_power_kw);
+                fprintf(stderr, "PL plToggle: %s\n", (pl->plToggle ? "True" : "False"));
+                fprintf(stderr, "PL plStatus: %s\n", POWERLIMIT_getStatus(pl) ? "True" : "False");
+                fprintf(stderr, "PL TorqueCommand: %d\n", POWERLIMIT_getTorqueCommand(pl));
+                
+                // Calculate power: power = (torque_command/10) * angular_speed * 0.9345
+                // angular_speed = RPM * 2 * PI / 60
+                float angular_speed = (float)mcm_rpm * 2.0f * 3.14159265358979323846f / 60.0f;
+                float power = ((float)POWERLIMIT_getTorqueCommand(pl) / 10.0f) * angular_speed;
+                float electrical_power = power * 0.9345f;  // Convert to electrical power
+                fprintf(stderr, "MCM Power (calculated): %.0fkW\n", electrical_power);
+                fprintf(stderr, "===================\n\n");
+                fflush(stderr);  // Force output to be written immediately
+                values_printed = TRUE;
+            }
+        }
+        
+        
     } //end of main loop
 
     //----------------------------------------------------------------------------
