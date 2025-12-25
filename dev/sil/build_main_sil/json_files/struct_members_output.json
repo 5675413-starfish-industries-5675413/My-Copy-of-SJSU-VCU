@@ -300,7 +300,7 @@
         "saturation": 231,
         "gain": 10
       },
-      "plToggle": null,
+      "plToggle": true,
       "plStatus": false,
       "plMode": 1,
       "plTargetPower": 50,
@@ -405,7 +405,7 @@
       "timestamp_calibrationStart": null,
       "calibrationRunTime": null,
       "outputCurveExponent": null,
-      "calibrated": null,
+      "calibrated": true,
       "travelPercent": 0.983,
       "implausibility": null
     }
@@ -488,6 +488,14 @@
     }
   },
   {
+    "name": "io_adc_safety_conf",
+    "parameters": {
+      "adc_val_upper": null,
+      "adc_val_lower": null,
+      "redundant_channel": null
+    }
+  },
+  {
     "name": "io_can_data_frame",
     "parameters": {
       "data[8]": null,
@@ -525,7 +533,7 @@
     "name": "io_pwd_pulse_samples",
     "parameters": {
       "pulse_samples_count": null,
-      "pulse_sample[IO_PWD_MAX_PULSE_SAMPLES]": null
+      "pulse_sample[9]": null
     }
   },
   {
