@@ -61,11 +61,13 @@ def test_PL():
     with open(struct_members_path, 'w') as f:
         json.dump(struct_members, f, indent=2)
 
-    # test_run_main()
+    test_run_main()
     
     # do something with the output later
 
 def test_run_main():
+    """Compile main.c with SIL headers and run it."""
+    # Note: Run pytest with -s flag to see output: pytest -s test_main.py::test_PL
     """Compile main.c with SIL headers and run it."""
     # Check if gcc is available
     try:
@@ -118,10 +120,13 @@ def test_run_main():
         sil_inc_dir / 'IO_PWD_sil.c',
         sil_inc_dir / 'IO_WDTimer_sil.c',
         sil_inc_dir / 'DIAG_Functions_sil.c',
+        # JSON parsing library and parser
+        sil_inc_dir / 'cJSON.c',  # cJSON library for JSON parsing
+        script_dir / 'parse_values.c',  # JSON parser for struct initialization
     ]
     
-    # Filter out files that don't exist
-    existing_sources = [str(f) for f in source_files if f.exists()]
+    # Filter out files that don't exist and convert to resolved absolute paths
+    existing_sources = [str(f.resolve()) for f in source_files if f.exists()]
     
     if not existing_sources:
         pytest.skip("No source files found")
@@ -146,27 +151,38 @@ def test_run_main():
         '-DRTS_TTC_FLASH_DATE_DAY=1',
         '-DRTS_TTC_FLASH_DATE_HOUR=0',
         '-DRTS_TTC_FLASH_DATE_MINUTE=0',
+        # Define SIL_BUILD to enable SIL-specific code
+        '-DSIL_BUILD',
     ]
     # Math library - must come after source files for linking
     ldflags = ['-lm']
     # Include SIL headers first so they override real headers
+    # Use resolve() for normalized absolute paths
     includes = [
-        f'-I{sil_inc_dir}',  # SIL headers take precedence (checked first)
-        f'-I{inc_dir}',
-        f'-I{dev_dir}',
+        f'-I{str(sil_inc_dir.resolve())}',  # SIL headers take precedence (checked first), also contains cJSON.h
+        f'-I{str(script_dir.resolve())}',  # Contains parse_values.h
+        f'-I{str(inc_dir.resolve())}',
+        f'-I{str(dev_dir.resolve())}',
     ]
+    
+    # Debug: Print include paths
+    print("Include paths:", includes)
+    print("Number of source files:", len(existing_sources))
     
     # Compile main.c with all dependencies
     try:
+        compile_cmd = ['gcc'] + cflags + includes + existing_sources + ['-o', str(main_exe.resolve())] + ldflags
         result = subprocess.run(
-            ['gcc'] + cflags + includes + existing_sources + ['-o', str(main_exe)] + ldflags,
-            cwd=str(build_dir),
+            compile_cmd,
+            cwd=str(build_dir.resolve()),
             capture_output=True,
             text=True,
             timeout=120
         )
         
         if result.returncode != 0:
+            # Print the command for debugging
+            print(f"Compilation command: {' '.join(compile_cmd[:10])}...")  # Print first 10 args
             pytest.fail(f"Compilation failed:\nSTDOUT: {result.stdout}\nSTDERR: {result.stderr}")
             
     except subprocess.TimeoutExpired:
@@ -179,14 +195,51 @@ def test_run_main():
         pytest.fail("Compilation completed but executable not found")
     
     # Run main.c with timeout (it has an infinite loop)
+    # Use Popen to capture output even when timeout occurs
+    import subprocess as sp
+    import sys
     try:
-        subprocess.run(
-            [str(main_exe)],
-            timeout=2.0,
-            cwd=str(build_dir)
+        exe_path = str(main_exe.resolve())
+        sys.stderr.write(f"\nRunning executable: {exe_path}\n")
+        sys.stderr.flush()
+        
+        # Verify executable exists
+        if not main_exe.exists():
+            pytest.fail(f"Executable not found: {exe_path}")
+        
+        process = sp.Popen(
+            [exe_path],
+            cwd=str(build_dir.resolve()),
+            stdout=sp.PIPE,
+            stderr=sp.PIPE,
+            text=True,
+            bufsize=0  # Unbuffered
         )
-    except subprocess.TimeoutExpired:
-        # Expected - main.c runs forever
-        pass
+        
+        try:
+            stdout, stderr = process.communicate(timeout=2.0)
+            sys.stderr.write("\nProgram completed (unexpected - should run forever)\n")
+        except sp.TimeoutExpired:
+            # Kill the process and get any output before timeout
+            sys.stderr.write("\nProgram timed out (expected - main.c has infinite loop)\n")
+            process.kill()
+            stdout, stderr = process.communicate()
+        
+        # Always print output, even if empty - use sys.stderr so pytest shows it
+        sys.stderr.write(f"\n=== Program Output (STDOUT) ===\n")
+        if stdout:
+            sys.stderr.write(stdout)
+        else:
+            sys.stderr.write("(empty)\n")
+            
+        sys.stderr.write(f"\n=== Program Output (STDERR) ===\n")
+        if stderr:
+            sys.stderr.write(stderr)
+        else:
+            sys.stderr.write("(empty)\n")
+        sys.stderr.flush()
+            
     except Exception as e:
+        sys.stderr.write(f"\nException occurred: {e}\n")
+        sys.stderr.flush()
         pytest.fail(f"Failed to run main.c: {e}")
