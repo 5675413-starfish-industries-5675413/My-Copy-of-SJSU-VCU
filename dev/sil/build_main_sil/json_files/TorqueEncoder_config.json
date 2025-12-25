@@ -19,7 +19,7 @@
         "timestamp_calibrationStart": null,
         "calibrationRunTime": null,
         "outputCurveExponent": null,
-        "calibrated": null,
+        "calibrated": true,
         "travelPercent": 0.983,
         "implausibility": null
       }
