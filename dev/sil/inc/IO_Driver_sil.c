@@ -5,6 +5,7 @@
 
 #include "IO_Driver.h"
 #include "IO_Constants.h"
+#include "IO_RTC.h"
 
 /**
  * Global initialization of IO driver
@@ -14,6 +15,10 @@ IO_ErrorType IO_Driver_Init(const IO_DRIVER_SAFETY_CONF * const safety_conf)
 {
     // SIL stub - no actual hardware initialization needed
     (void)safety_conf; // Suppress unused parameter warning
+    
+    // Initialize RTC (required for timing functions)
+    IO_RTC_Init();
+    
     return IO_E_OK;
 }
 
