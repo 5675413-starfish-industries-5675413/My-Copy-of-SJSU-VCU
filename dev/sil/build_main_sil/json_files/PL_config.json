@@ -5,6 +5,7 @@
       "plStatus": false,
       "plTargetPower": 50,
       "plMode": 1,
+      "plToggle": true,
       "plThresholdDiscrepancy": 15,
       "plInitializationThreshold": 0,
       "clampingMethod": 3,
