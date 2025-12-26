@@ -117,6 +117,21 @@ class DBCLoader:
             data=data,
             is_extended_id=False
         )
+    
+    def get_message(self, message_name: str):
+        """
+        Returns the CAN message object from the DBC
+        
+        Args:
+            message_name: Name of the message (from DBC)
+            
+        Returns:
+            CAN message object
+
+        Raises:
+            KeyError: If message not found in DBC    
+        """
+        return self.dbc.get_message_by_name(message_name)
 
     def get_message_info(self, message_name: str) -> Dict[str, Any]:
         """
