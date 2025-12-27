@@ -7,7 +7,7 @@
 #include "math.h"
 #include "powerLimit.h"
 
-typedef struct _Efficiency{
+typedef struct _Efficiency {
     bool efficiencyToggle;
     
     // Energy Budget Algorithm Variables
@@ -23,13 +23,15 @@ typedef struct _Efficiency{
     float totalLapDistance_km;  // Accumulated distance this lap
     bool finishedLap;  // Flag for lap completion
     PowerLimit *powerLimit;
-    
 } Efficiency;
 
-Efficiency* EFFICIENCY_new(bool efficiencyToggle);
+Efficiency* Efficiency_new(bool efficiencyToggle);
+
 void Efficiency_calculateCommands(Efficiency* me, MotorController *mcm, PowerLimit *pl);
 void Efficiency_resetLap(Efficiency* me);
 void Efficiency_completedLap(Efficiency* me, MotorController *mcm);
+
+bool Efficiency_getFinishedLap(Efficiency* me);
 ubyte1 Efficiency_getLapCounter(Efficiency* me);
 float Efficiency_getEnergyBudget_kWh(Efficiency* me);
 float Efficiency_getCarryOverEnergy_kWh(Efficiency* me);
@@ -37,4 +39,5 @@ float Efficiency_getEnergySpentInCorners_kWh(Efficiency* me);
 float Efficiency_getTimeInStraights_s(Efficiency* me);
 float Efficiency_getLapEnergySpent_kWh(Efficiency* me);
 float Efficiency_getTotalLapDistance_km(Efficiency* me);
+
 #endif // EFFICIENCY_H
