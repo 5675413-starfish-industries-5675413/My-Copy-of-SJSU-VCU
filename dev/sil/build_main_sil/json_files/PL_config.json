@@ -3,16 +3,16 @@
     "description": "Power Limit set to 50 kW",
     "parameters": {
       "plStatus": false,
-      "plTargetPower": 50,
-      "plMode": 1,
+      "plTargetPower": 33,
+      "plMode": 2,
       "plToggle": true,
-      "plThresholdDiscrepancy": 15,
+      "plThresholdDiscrepancy": 5,
       "plInitializationThreshold": 0,
-      "clampingMethod": 3,
+      "clampingMethod": 4,
       "plAlwaysOn": true,
       "pid": {
         "Kp": 10,
-        "Ki": 0,
+        "Ki": 20,
         "Kd": 0,
         "saturation": 231,
         "gain": 10

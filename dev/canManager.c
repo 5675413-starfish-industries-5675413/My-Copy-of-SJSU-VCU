@@ -90,25 +90,11 @@ CanManager* CanManager_new(ubyte2 can0_busSpeed, ubyte1 can0_read_messageLimit, 
                          , ubyte2 can1_busSpeed, ubyte1 can1_read_messageLimit, ubyte1 can1_write_messageLimit
                          , ubyte4 defaultSendDelayus, SerialManager* serialMan) //ubyte4 defaultMinSendDelay, ubyte4 defaultMaxSendDelay)
 {
-    #ifdef SIL_BUILD
-    fprintf(stderr, "SIL: CanManager_new: Starting\n");
-    fflush(stderr);
-    #endif
     
     CanManager* me = (CanManager*)malloc(sizeof(struct _CanManager));
-    
-    #ifdef SIL_BUILD
-    fprintf(stderr, "SIL: CanManager_new: malloc completed\n");
-    fflush(stderr);
-    #endif
 
     me->sm = serialMan;
     SerialManager_send(me->sm, "CanManager's reference to SerialManager was created.\n");
-    
-    #ifdef SIL_BUILD
-    fprintf(stderr, "SIL: CanManager_new: About to initialize canMessageHistory array\n");
-    fflush(stderr);
-    #endif
     
     //create can history data structure (AVL tree?)
     //me->incomingTree = NULL;
@@ -117,34 +103,12 @@ CanManager* CanManager_new(ubyte2 can0_busSpeed, ubyte1 can0_read_messageLimit, 
     {
         me->canMessageHistory[id] = 0;
     }
-    
-    #ifdef SIL_BUILD
-    fprintf(stderr, "SIL: CanManager_new: canMessageHistory initialized\n");
-    fflush(stderr);
-    #endif
 
     me->sendDelayus = defaultSendDelayus;
 
     //Activate the CAN channels --------------------------------------------------
-    #ifdef SIL_BUILD
-    fprintf(stderr, "SIL: CanManager_new: About to initialize CAN channel 0\n");
-    fflush(stderr);
-    #endif
     me->ioErr_can0_Init = IO_CAN_Init(IO_CAN_CHANNEL_0, can0_busSpeed, 0, 0, 0);
-    #ifdef SIL_BUILD
-    fprintf(stderr, "SIL: CanManager_new: CAN channel 0 initialized (error: %d)\n", me->ioErr_can0_Init);
-    fflush(stderr);
-    #endif
-    
-    #ifdef SIL_BUILD
-    fprintf(stderr, "SIL: CanManager_new: About to initialize CAN channel 1\n");
-    fflush(stderr);
-    #endif
     me->ioErr_can1_Init = IO_CAN_Init(IO_CAN_CHANNEL_1, can1_busSpeed, 0, 0, 0);
-    #ifdef SIL_BUILD
-    fprintf(stderr, "SIL: CanManager_new: CAN channel 1 initialized (error: %d)\n", me->ioErr_can1_Init);
-    fflush(stderr);
-    #endif
 
     //Configure the FIFO queues
     //This specifies: The handle names for the queues
@@ -153,41 +117,16 @@ CanManager* CanManager_new(ubyte2 can0_busSpeed, ubyte1 can0_read_messageLimit, 
     //, the direction of the queue (in/out)
     //, the frame size
     //, and other stuff?
-    #ifdef SIL_BUILD
-    fprintf(stderr, "SIL: CanManager_new: About to configure FIFO queues\n");
-    fflush(stderr);
-    #endif
     IO_CAN_ConfigFIFO(&me->can0_readHandle, IO_CAN_CHANNEL_0, can0_read_messageLimit, IO_CAN_MSG_READ, IO_CAN_STD_FRAME, 0, 0);
-    #ifdef SIL_BUILD
-    fprintf(stderr, "SIL: CanManager_new: CAN0 read FIFO configured\n");
-    fflush(stderr);
-    #endif
     IO_CAN_ConfigFIFO(&me->can0_writeHandle, IO_CAN_CHANNEL_0, can0_write_messageLimit, IO_CAN_MSG_WRITE, IO_CAN_STD_FRAME, 0, 0);
-    #ifdef SIL_BUILD
-    fprintf(stderr, "SIL: CanManager_new: CAN0 write FIFO configured\n");
-    fflush(stderr);
-    #endif
     IO_CAN_ConfigFIFO(&me->can1_readHandle, IO_CAN_CHANNEL_1, can1_read_messageLimit, IO_CAN_MSG_READ, IO_CAN_STD_FRAME, 0, 0);
-    #ifdef SIL_BUILD
-    fprintf(stderr, "SIL: CanManager_new: CAN1 read FIFO configured\n");
-    fflush(stderr);
-    #endif
     IO_CAN_ConfigFIFO(&me->can1_writeHandle, IO_CAN_CHANNEL_1, can1_write_messageLimit, IO_CAN_MSG_WRITE, IO_CAN_STD_FRAME, 0, 0);
-    #ifdef SIL_BUILD
-    fprintf(stderr, "SIL: CanManager_new: CAN1 write FIFO configured\n");
-    fflush(stderr);
-    #endif
 
     //Assume read/write at error state until used
     me->ioErr_can0_read = IO_E_CAN_BUS_OFF;
     me->ioErr_can0_write = IO_E_CAN_BUS_OFF;
     me->ioErr_can1_read = IO_E_CAN_BUS_OFF;
     me->ioErr_can1_write = IO_E_CAN_BUS_OFF;
-    
-    #ifdef SIL_BUILD
-    fprintf(stderr, "SIL: CanManager_new: About to define default messages\n");
-    fflush(stderr);
-    #endif
 
     //-------------------------------------------------------------------
     //Define default messages
@@ -248,8 +187,6 @@ CanManager* CanManager_new(ubyte2 can0_busSpeed, ubyte1 can0_read_messageLimit, 
     #endif // #ifndef SIL_BUILD
     
     #ifdef SIL_BUILD
-    fprintf(stderr, "SIL: CanManager_new: Completed successfully (skipped message history init)\n");
-    fflush(stderr);
     #endif
 
     return me;
@@ -268,12 +205,7 @@ CanManager* CanManager_new(ubyte2 can0_busSpeed, ubyte1 can0_read_messageLimit, 
 * http://stackoverflow.com/questions/2360794/how-to-pass-an-array-of-struct-using-pointer-in-c-c
 ****************************************************************************/
 IO_ErrorType CanManager_send(CanManager* me, CanChannel channel, IO_CAN_DATA_FRAME canMessages[], ubyte1 canMessageCount)
-{
-    #ifdef SIL_BUILD
-    fprintf(stderr, "SIL: CanManager_send: Starting (canMessageCount=%d)\n", canMessageCount);
-    fflush(stderr);
-    #endif
-    
+{ 
     //SerialManager_send(me->sm, "Do you even send?\n");
     bool sendSerialDebug = FALSE;
     ubyte2 serialMessageID = 0xC0;
@@ -372,11 +304,6 @@ IO_ErrorType CanManager_send(CanManager* me, CanChannel channel, IO_CAN_DATA_FRA
             }
         }
     } //end of loop for each message in outgoing messages
-
-    #ifdef SIL_BUILD
-    fprintf(stderr, "SIL: CanManager_send: Finished loop (messagesToSendCount=%d)\n", messagesToSendCount);
-    fflush(stderr);
-    #endif
 
     IO_UART_Task();
     //----------------------------------------------------------------------------
@@ -587,11 +514,6 @@ void canOutput_sendSensorMessages(CanManager* me)
 //----------------------------------------------------------------------------
 void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressureSensor* bps, MotorController* mcm, InstrumentCluster* ic, BatteryManagementSystem* bms, WheelSpeeds* wss, SafetyChecker* sc, LaunchControl* lc, PowerLimit *pl, DRS *drs, Regen *regen, Efficiency *eff)
 {
-    #ifdef SIL_BUILD
-    fprintf(stderr, "SIL: canOutput_sendDebugMessage: Starting\n");
-    fflush(stderr);
-    #endif
-    
     IO_CAN_DATA_FRAME canMessages[me->can0_write_messageLimit];
     ubyte1 errorCount;
     float4 tempPedalPercent;   //Pedal percent float (a decimal between 0 and 1
@@ -603,10 +525,6 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     ubyte1 byteNum;
     // ubyte1 byteNum1;
 
-    #ifdef SIL_BUILD
-    fprintf(stderr, "SIL: canOutput_sendDebugMessage: About to get TorqueEncoder values\n");
-    fflush(stderr);
-    #endif
     TorqueEncoder_getIndividualSensorPercent(tps, 0, &tempPedalPercent); //borrow the pedal percent variable
     tps0Percent = 0xFF * tempPedalPercent;
     TorqueEncoder_getIndividualSensorPercent(tps, 1, &tempPedalPercent);
@@ -975,18 +893,7 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(PID_getOutput(lc->pid))) >> 8;
     canMessages[canMessageCount - 1].length = byteNum;
 
-    #ifdef SIL_BUILD
-    fprintf(stderr, "SIL: canOutput_sendDebugMessage: About to call CanManager_send (canMessageCount=%d)\n", canMessageCount);
-    fflush(stderr);
-    #endif
-
     CanManager_send(me, CAN0_HIPRI, canMessages, canMessageCount);
-    
-    #ifdef SIL_BUILD
-    fprintf(stderr, "SIL: canOutput_sendDebugMessage: CanManager_send returned\n");
-    fflush(stderr);
-    #endif 
-
 
     //----------------------------------------------------------------------------
     //Additional sensors

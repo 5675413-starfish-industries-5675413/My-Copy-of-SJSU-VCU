@@ -195,9 +195,6 @@ int parse_MotorController_from_json(MotorController* mcm, void* json_params)
         // Initial value is 13, so increment by (target - 13)
         sbyte4 increment = (sbyte4)(int_val - 13);
         MCM_incrementVoltageForTesting(mcm, increment);
-        fprintf(stderr, "SIL: Parsed MCM DC_Voltage: target=%d, increment=%d, result=%d\n", 
-                int_val, increment, MCM_getDCVoltage(mcm));
-        fflush(stderr);
     }
     
     // Set DC Current (increment from initial value of 13)
@@ -205,18 +202,12 @@ int parse_MotorController_from_json(MotorController* mcm, void* json_params)
         // Initial value is 13, so increment by (target - 13)
         sbyte4 increment = (sbyte4)(int_val - 13);
         MCM_incrementCurrentForTesting(mcm, increment);
-        fprintf(stderr, "SIL: Parsed MCM DC_Current: target=%d, increment=%d, result=%d\n", 
-                int_val, increment, MCM_getDCCurrent(mcm));
-        fflush(stderr);
     }
     
     // Set Motor RPM (increment from initial value of 0)
     if (get_json_int_safe(params, "motorRPM", &int_val)) {
         // Initial value is 0, so increment by target value
         MCM_incrementRPMForTesting(mcm, (sbyte4)int_val);
-        fprintf(stderr, "SIL: Parsed MCM motorRPM: target=%d, result=%d\n", 
-                int_val, MCM_getMotorRPM(mcm));
-        fflush(stderr);
     }
     
     // Note: commandedTorque and appsTorque are typically set by MCM_calculateCommands()
