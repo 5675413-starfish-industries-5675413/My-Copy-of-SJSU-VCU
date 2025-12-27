@@ -46,7 +46,7 @@ void Efficiency_calculateCommands(Efficiency* me, MotorController *mcm, PowerLim
     float energyThisCycle_kWh = (currentPower_kW * CYCLE_TIME_S) / 3600.0f;
     
     // track time and accumulate energy based on power limit status
-    if (pl->plStatus == TRUE && MCM_get_PL_torqueCommand(mcm) < MCM_commands_getAppsTorque(mcm)) {
+    if (pl->plStatus == TRUE && pl->plTorqueCommand < MCM_commands_getAppsTorque(mcm)) {
         me->timeInStraights_s += CYCLE_TIME_S;
         me->energySpentInStraights_kWh += energyThisCycle_kWh;
     } else {
