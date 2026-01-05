@@ -24,7 +24,12 @@
 
 //VCU/C headers
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#ifdef SIL_BUILD
+#include <sys/select.h>
+#include <unistd.h>
+#endif
 #include "APDB.h"
 #include "IO_DIO.h"
 #include "IO_Driver.h" //Includes datatypes, constants, etc - should be included in every c file
@@ -58,9 +63,6 @@
 // SIL (Software-In-the-Loop) includes
 #ifdef SIL_BUILD
 #include "parse_values.h"
-bool SIL = TRUE;
-#else
-bool SIL = FALSE;
 #endif
 
 //Application Database, needed for TTC-Downloader
@@ -260,29 +262,88 @@ void main(void)
     /*           SIL CONFIGURATION             */
     /*******************************************/
     
+    #ifdef SIL_BUILD
     // Static variables to store JSON-parsed TPS values (preserved across loop iterations)
     static float4 saved_tps_travelPercent = 0.0f;
     static float4 saved_tps0_percent = 0.0f;
     static float4 saved_tps1_percent = 0.0f;
     
-    if (SIL) {
-        // Parse struct values from JSON configuration file
-        // Path is relative to where the executable runs (build_main_sil directory)
-        const char* json_config_path = "json_files/struct_members_output.json";
-        int parse_result = parse_struct_values_from_json(json_config_path, pl, mcm0, tps);
-        if (parse_result != 0) {
-            fprintf(stderr, "SIL: Failed to parse JSON configuration file (error: %d)\n", parse_result);
+
+    {
+        // Use a large buffer for JSON (up to 256KB)
+        #define JSON_BUFFER_SIZE (256 * 1024)
+        char* json_buffer = (char*)malloc(JSON_BUFFER_SIZE);
+        if (json_buffer == NULL) {
+            fprintf(stderr, "SIL: Failed to allocate JSON buffer\n");
             fflush(stderr);
         } else {
-
-            // Save the TPS values that were parsed from JSON (they will be overwritten by TorqueEncoder_update)
-            saved_tps_travelPercent = tps->travelPercent;
-            saved_tps0_percent = tps->tps0_percent;
-            saved_tps1_percent = tps->tps1_percent;
+            size_t total_read = 0;
+            int brace_count = 0;
+            int in_string = 0;
+            int escape_next = 0;
+            
+            // Read until we have a complete JSON object
+            while (total_read < JSON_BUFFER_SIZE - 1) {
+                int c = fgetc(stdin);
+                if (c == EOF) {
+                    break;
+                }
+                
+                json_buffer[total_read++] = (char)c;
+                
+                // Track braces to know when JSON is complete
+                if (!escape_next && c == '"' && total_read > 1 && json_buffer[total_read-2] != '\\') {
+                    in_string = !in_string;
+                }
+                escape_next = (!escape_next && c == '\\' && in_string);
+                
+                if (!in_string) {
+                    if (c == '{') brace_count++;
+                    else if (c == '}') {
+                        brace_count--;
+                        if (brace_count == 0) {
+                            // Complete JSON object found
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            json_buffer[total_read] = '\0';
+            
+            // Remove trailing newline if present
+            if (total_read > 0 && json_buffer[total_read - 1] == '\n') {
+                json_buffer[total_read - 1] = '\0';
+                total_read--;
+            }
+            
+            if (total_read > 0) {
+                int parse_result =
+                    parse_struct_values_from_string(json_buffer, pl, mcm0, tps);
+        
+                if (parse_result != 0) {
+                    fprintf(stderr,
+                            "SIL: Failed to parse JSON from stdin (error: %d, length: %zu)\n",
+                            parse_result, total_read);
+                    fprintf(stderr, "SIL: Received JSON (first 200 chars): %.200s\n", json_buffer);
+                    if (total_read > 200) {
+                        fprintf(stderr, "SIL: Received JSON (last 200 chars): %.200s\n", json_buffer + total_read - 200);
+                    }
+                    fflush(stderr);
+                } else {
+                    saved_tps_travelPercent = tps->travelPercent;
+                    saved_tps0_percent = tps->tps0_percent;
+                    saved_tps1_percent = tps->tps1_percent;
+                }
+            } else {
+                fprintf(stderr, "SIL: No JSON data read from stdin\n");
+                fflush(stderr);
+            }
+            
+            free(json_buffer);
         }
     }
-
-
+    #endif
 
     /*******************************************/
     /*       PERIODIC APPLICATION CODE         */
@@ -295,16 +356,7 @@ void main(void)
         //IO_RTC_StartTime(&timestamp_calibStart);
     SerialManager_send(serialMan, "VCU initializations complete.  Entering main loop.\n");
     while (1)
-    {
-        #ifdef SIL_BUILD
-        static int loop_entry_count = 0;
-        loop_entry_count++;
-        if (loop_entry_count <= 3) {
-            fprintf(stderr, "SIL: Loop iteration %d started\n", loop_entry_count);
-            fflush(stderr);
-        }
-        #endif
-        
+    {   
         //----------------------------------------------------------------------------
         // Task management stuff (start)
         //----------------------------------------------------------------------------
@@ -423,12 +475,16 @@ void main(void)
             IO_DO_Set(IO_DO_03, TRUE);
         }
         TorqueEncoder_update(tps);
+
         // In SIL mode, restore the JSON-parsed TPS values that were overwritten by TorqueEncoder_update
-        if (SIL && saved_tps_travelPercent != 0.0f) {
+        #ifdef SIL_BUILD
+        if (saved_tps_travelPercent != 0.0f) {
             tps->travelPercent = saved_tps_travelPercent;
             tps->tps0_percent = saved_tps0_percent;
             tps->tps1_percent = saved_tps1_percent;
         }
+        #endif 
+    
         //Every cycle: if the calibration was started and hasn't finished, check the values again
         TorqueEncoder_calibrationCycle(tps, &calibrationErrors); //Todo: deal with calibration errors
         BrakePressureSensor_update(bps, bench);
@@ -564,19 +620,82 @@ void main(void)
             IO_UART_Task(); //The task function shall be called every SW cycle.
         }
 
-        /*******************************************/
-        /*              SIL OUTPUTS                */
-        /*******************************************/
-        if (SIL) {
-            static int loop_count = 0;
-            static bool values_printed = FALSE;
-            loop_count++;
-            
-            // Print debug values after PowerLimit calculation (only once, on second iteration)
-            // First loop is for VCU initialization, second loop has proper values
-            if (!values_printed && loop_count == 2) {
-                fprintf(stderr, "\n=== SIL OUTPUTS ===\n");
+    /*******************************************/
+    /*         SIL JSON INPUT (per loop)       */
+    /*******************************************/
+    #ifdef SIL_BUILD
+    // Non-blocking JSON reader for main loop
+    {
+        fd_set readfds;
+        struct timeval timeout;
+        FD_ZERO(&readfds);
+        FD_SET(0, &readfds); // stdin is file descriptor 0
+        timeout.tv_sec = 0;
+        timeout.tv_usec = 0; // Non-blocking check
+        
+        if (select(1, &readfds, NULL, NULL, &timeout) > 0 && FD_ISSET(0, &readfds)) {
+            // Data available, read JSON
+            #define JSON_BUFFER_SIZE (256 * 1024)
+            char* json_buffer = (char*)malloc(JSON_BUFFER_SIZE);
+            if (json_buffer != NULL) {
+                size_t total_read = 0;
+                int brace_count = 0;
+                int in_string = 0;
+                int escape_next = 0;
                 
+                // Read until we have a complete JSON object
+                while (total_read < JSON_BUFFER_SIZE - 1) {
+                    int c = fgetc(stdin);
+                    if (c == EOF) {
+                        break;
+                    }
+                    
+                    json_buffer[total_read++] = (char)c;
+                    
+                    // Track braces to know when JSON is complete
+                    if (!escape_next && c == '"' && total_read > 1 && json_buffer[total_read-2] != '\\') {
+                        in_string = !in_string;
+                    }
+                    escape_next = (!escape_next && c == '\\' && in_string);
+                    
+                    if (!in_string) {
+                        if (c == '{') brace_count++;
+                        else if (c == '}') {
+                            brace_count--;
+                            if (brace_count == 0) {
+                                // Complete JSON object found
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                json_buffer[total_read] = '\0';
+                
+                // Remove trailing newline if present
+                if (total_read > 0 && json_buffer[total_read - 1] == '\n') {
+                    json_buffer[total_read - 1] = '\0';
+                    total_read--;
+                }
+                
+                if (total_read > 0) {
+                    int parse_result = parse_struct_values_from_string(json_buffer, pl, mcm0, tps);
+                    if (parse_result != 0) {
+                        fprintf(stderr, "SIL: Failed to parse JSON in loop (error: %d)\n", parse_result);
+                        fflush(stderr);
+                    }
+                }
+                
+                free(json_buffer);
+            }
+        }
+    }
+    #endif
+
+    /*******************************************/
+    /*              SIL OUTPUTS                */
+    /*******************************************/
+    #ifdef SIL_BUILD
                 // Debug: Check MCM values
                 // sbyte4 mcm_voltage = MCM_getDCVoltage(mcm0);
                 // sbyte4 mcm_current = MCM_getDCCurrent(mcm0);
@@ -611,6 +730,7 @@ void main(void)
                 // fprintf(stderr, "===================\n\n");
                 // fflush(stderr);  // Force output to be written immediately
 
+                float4 mcm_motorRPM = MCM_getMotorRPM(mcm0);
                 float4 timeinstraight = eff->timeInStraights_s;
                 float4 timeincorners = eff->timeInCorners_s;
                 float4 lapcounter = eff->lapCounter;
@@ -621,124 +741,29 @@ void main(void)
                 float4 totallapdistance = eff->totalLapDistance_km;
                 float4 lapenergyspent = eff->lapEnergySpent_kWh;
 
-                fprintf(stderr, "time in straight: %.4f\n", timeinstraight);
-                fprintf(stderr, "time in corners: %.4f\n", timeincorners);
-                fprintf(stderr, "lap counter: %.4f\n", lapcounter);
-                fprintf(stderr, "PL Target: %.4f\n", pltarget);
-                fprintf(stderr, "Energy consumption per lap: %.4f\n",energyconsumptionperlap);
-                fprintf(stderr, "Energy budget per lap: %.4f\n", energybudgetperlap);
-                fprintf(stderr, "Carry over energy: %.4f\n", carryoverenergy);
-                fprintf(stderr, "Total lap distance: %.4f\n", totallapdistance);
-                fprintf(stderr, "Lap energy spent: %.4f\n", lapenergyspent);
-                fflush(stderr);  // Ensure output is flushed before exit
-
-                values_printed = TRUE;
-            }
-            
-            // In SIL_BUILD mode, check for stop flag and periodically print efficiency values
-            #ifdef SIL_BUILD
-            // Check for stop flag file and print efficiency values every 10 iterations (0.1 second)
-            // Print efficiency values every 10 iterations (0.1 second)
-            // This is the critical path - keep it fast and simple
-            if (loop_count % 10 == 0) {
-                // Always print loop_count first to verify we're still running
-                fprintf(stderr, "loop_count: %d\n", loop_count);
-                fflush(stderr);  // Flush immediately to prevent buffer blocking
-                
-                // Check stop flag (quick check, no file operations that could block)
-                FILE* stop_file = fopen("json_files/stop_flag.flag", "r");
-                if (stop_file != NULL) {
-                    fclose(stop_file);
-                    // Print final efficiency values before exiting
-                    float4 timeinstraight = eff->timeInStraights_s;
-                    float4 timeincorners = eff->timeInCorners_s;
-                    float4 lapcounter = eff->lapCounter;
-                    float4 pltarget = pl->plTargetPower;
-                    float4 energyconsumptionperlap = eff->lapEnergySpent_kWh;
-                    float4 energybudgetperlap = eff->energyBudget_kWh;
-                    float4 carryoverenergy = eff->carryOverEnergy_kWh;
-                    float4 totallapdistance = eff->totalLapDistance_km;
-                    float4 lapenergyspent = eff->lapEnergySpent_kWh;
-                    
-                    fprintf(stderr, "time in straight: %.4f\n", timeinstraight);
-                    fprintf(stderr, "time in corners: %.4f\n", timeincorners);
-                    fprintf(stderr, "lap counter: %.4f\n", lapcounter);
-                    fprintf(stderr, "PL Target: %.4f\n", pltarget);
-                    fprintf(stderr, "Energy consumption per lap: %.4f\n",energyconsumptionperlap);
-                    fprintf(stderr, "Energy budget per lap: %.4f\n", energybudgetperlap);
-                    fprintf(stderr, "Carry over energy: %.4f\n", carryoverenergy);
-                    fprintf(stderr, "Total lap distance: %.4f\n", totallapdistance);
-                    fprintf(stderr, "Lap energy spent: %.4f\n", lapenergyspent);
-                    fflush(stderr);
-                    
-                    break;  // Exit the main loop
-                }
-                
-                // Print efficiency values (always do this, even if JSON parsing fails)
-                float4 timeinstraight = eff->timeInStraights_s;
-                float4 timeincorners = eff->timeInCorners_s;
-                float4 lapcounter = eff->lapCounter;
-                float4 pltarget = pl->plTargetPower;
-                float4 energyconsumptionperlap = eff->lapEnergySpent_kWh;
-                float4 energybudgetperlap = eff->energyBudget_kWh;
-                float4 carryoverenergy = eff->carryOverEnergy_kWh;
-                float4 totallapdistance = eff->totalLapDistance_km;
-                float4 lapenergyspent = eff->lapEnergySpent_kWh;
-                
-                fprintf(stderr, "time in straight: %.4f\n", timeinstraight);
-                fprintf(stderr, "time in corners: %.4f\n", timeincorners);
-                fprintf(stderr, "lap counter: %.4f\n", lapcounter);
-                fprintf(stderr, "PL Target: %.4f\n", pltarget);
-                fprintf(stderr, "Energy consumption per lap: %.4f\n",energyconsumptionperlap);
-                fprintf(stderr, "Energy budget per lap: %.4f\n", energybudgetperlap);
-                fprintf(stderr, "Carry over energy: %.4f\n", carryoverenergy);
-                fprintf(stderr, "Total lap distance: %.4f\n", totallapdistance);
-                fprintf(stderr, "Lap energy spent: %.4f\n", lapenergyspent);
-                fflush(stderr);  // Critical: flush after every print block
-            }
-            
-            // Reload JSON config less frequently (every 100 iterations = 1 second)
-            // This prevents JSON parsing from blocking the main loop
-            if (loop_count % 100 == 0) {
-                const char* json_config_path = "json_files/struct_members_output.json";
-                
-                // Check for reset flag file (created by Python when updating config for new CSV row)
-                bool should_reset = FALSE;
-                FILE* reset_flag = fopen("json_files/reset_efficiency.flag", "r");
-                if (reset_flag != NULL) {
-                    should_reset = TRUE;
-                    fclose(reset_flag);
-                    // Delete the flag file after reading it (ignore errors)
-                    remove("json_files/reset_efficiency.flag");
-                }
-                
-                // Parse JSON config (with error handling to prevent hangs)
-                int parse_result = parse_struct_values_from_json(json_config_path, pl, mcm0, tps);
-                
-                if (parse_result == 0) {
-                    // Save the TPS values that were parsed from JSON
-                    saved_tps_travelPercent = tps->travelPercent;
-                    saved_tps0_percent = tps->tps0_percent;
-                    saved_tps1_percent = tps->tps1_percent;
-                    
-                    // Reset efficiency values when reset flag is present (new CSV row processed)
-                    // This resets per-lap variables but keeps event-level variables (lapCounter, carryOverEnergy)
-                    // and totalLapDistance_km (so laps can complete across CSV rows in continuous race)
-                    if (should_reset) {
-                        eff->timeInStraights_s = 0.0f;
-                        eff->timeInCorners_s = 0.0f;
-                        eff->energySpentInCorners_kWh = 0.0f;
-                        eff->energySpentInStraights_kWh = 0.0f;
-                        eff->lapEnergySpent_kWh = 0.0f;
-                        // Don't reset totalLapDistance_km - allow laps to complete across CSV rows
-                        // Don't reset lapCounter or carryOverEnergy - those are event-level
-                        eff->finishedLap = FALSE;
-                    }
-                }
-            }
-            #endif
-        }
-        
+                printf("{\"efficiency\":{"
+                    "\"mcm_motorRPM\":%.4f,"
+                    "\"time_in_straight\":%.4f,"
+                    "\"time_in_corners\":%.4f,"
+                    "\"lap_counter\":%.4f,"
+                    "\"pl_target\":%.4f,"
+                    "\"energy_consumption_per_lap\":%.4f,"
+                    "\"energy_budget_per_lap\":%.4f,"
+                    "\"carry_over_energy\":%.4f,"
+                    "\"total_lap_distance\":%.4f"
+                    "}}\n",
+                    mcm_motorRPM,
+                    timeinstraight,
+                    timeincorners,
+                    lapcounter,
+                    pltarget,
+                    energyconsumptionperlap,
+                    energybudgetperlap,
+                    carryoverenergy,
+                    totallapdistance);
+             
+                fflush(stdout);
+        #endif
         
     } //end of main loop
 
