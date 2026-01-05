@@ -618,6 +618,8 @@ void main(void)
                 float4 energyconsumptionperlap = eff->lapEnergySpent_kWh;
                 float4 energybudgetperlap = eff->energyBudget_kWh;
                 float4 carryoverenergy = eff->carryOverEnergy_kWh;
+                float4 totallapdistance = eff->totalLapDistance_km;
+                float4 lapenergyspent = eff->lapEnergySpent_kWh;
 
                 fprintf(stderr, "time in straight: %.4f\n", timeinstraight);
                 fprintf(stderr, "time in corners: %.4f\n", timeincorners);
@@ -626,18 +628,115 @@ void main(void)
                 fprintf(stderr, "Energy consumption per lap: %.4f\n",energyconsumptionperlap);
                 fprintf(stderr, "Energy budget per lap: %.4f\n", energybudgetperlap);
                 fprintf(stderr, "Carry over energy: %.4f\n", carryoverenergy);
+                fprintf(stderr, "Total lap distance: %.4f\n", totallapdistance);
+                fprintf(stderr, "Lap energy spent: %.4f\n", lapenergyspent);
                 fflush(stderr);  // Ensure output is flushed before exit
 
                 values_printed = TRUE;
+            }
+            
+            // In SIL_BUILD mode, check for stop flag and periodically print efficiency values
+            #ifdef SIL_BUILD
+            // Check for stop flag file and print efficiency values every 10 iterations (0.1 second)
+            // Print efficiency values every 10 iterations (0.1 second)
+            // This is the critical path - keep it fast and simple
+            if (loop_count % 10 == 0) {
+                // Always print loop_count first to verify we're still running
+                fprintf(stderr, "loop_count: %d\n", loop_count);
+                fflush(stderr);  // Flush immediately to prevent buffer blocking
                 
-                // Exit after printing efficiency data in SIL mode
-                // But allow more iterations to accumulate energy
-                #ifdef SIL_BUILD
-                if (loop_count >= 100) {  // Run for 100 iterations (1 second) to accumulate energy
+                // Check stop flag (quick check, no file operations that could block)
+                FILE* stop_file = fopen("json_files/stop_flag.flag", "r");
+                if (stop_file != NULL) {
+                    fclose(stop_file);
+                    // Print final efficiency values before exiting
+                    float4 timeinstraight = eff->timeInStraights_s;
+                    float4 timeincorners = eff->timeInCorners_s;
+                    float4 lapcounter = eff->lapCounter;
+                    float4 pltarget = pl->plTargetPower;
+                    float4 energyconsumptionperlap = eff->lapEnergySpent_kWh;
+                    float4 energybudgetperlap = eff->energyBudget_kWh;
+                    float4 carryoverenergy = eff->carryOverEnergy_kWh;
+                    float4 totallapdistance = eff->totalLapDistance_km;
+                    float4 lapenergyspent = eff->lapEnergySpent_kWh;
+                    
+                    fprintf(stderr, "time in straight: %.4f\n", timeinstraight);
+                    fprintf(stderr, "time in corners: %.4f\n", timeincorners);
+                    fprintf(stderr, "lap counter: %.4f\n", lapcounter);
+                    fprintf(stderr, "PL Target: %.4f\n", pltarget);
+                    fprintf(stderr, "Energy consumption per lap: %.4f\n",energyconsumptionperlap);
+                    fprintf(stderr, "Energy budget per lap: %.4f\n", energybudgetperlap);
+                    fprintf(stderr, "Carry over energy: %.4f\n", carryoverenergy);
+                    fprintf(stderr, "Total lap distance: %.4f\n", totallapdistance);
+                    fprintf(stderr, "Lap energy spent: %.4f\n", lapenergyspent);
+                    fflush(stderr);
+                    
                     break;  // Exit the main loop
                 }
-                #endif
+                
+                // Print efficiency values (always do this, even if JSON parsing fails)
+                float4 timeinstraight = eff->timeInStraights_s;
+                float4 timeincorners = eff->timeInCorners_s;
+                float4 lapcounter = eff->lapCounter;
+                float4 pltarget = pl->plTargetPower;
+                float4 energyconsumptionperlap = eff->lapEnergySpent_kWh;
+                float4 energybudgetperlap = eff->energyBudget_kWh;
+                float4 carryoverenergy = eff->carryOverEnergy_kWh;
+                float4 totallapdistance = eff->totalLapDistance_km;
+                float4 lapenergyspent = eff->lapEnergySpent_kWh;
+                
+                fprintf(stderr, "time in straight: %.4f\n", timeinstraight);
+                fprintf(stderr, "time in corners: %.4f\n", timeincorners);
+                fprintf(stderr, "lap counter: %.4f\n", lapcounter);
+                fprintf(stderr, "PL Target: %.4f\n", pltarget);
+                fprintf(stderr, "Energy consumption per lap: %.4f\n",energyconsumptionperlap);
+                fprintf(stderr, "Energy budget per lap: %.4f\n", energybudgetperlap);
+                fprintf(stderr, "Carry over energy: %.4f\n", carryoverenergy);
+                fprintf(stderr, "Total lap distance: %.4f\n", totallapdistance);
+                fprintf(stderr, "Lap energy spent: %.4f\n", lapenergyspent);
+                fflush(stderr);  // Critical: flush after every print block
             }
+            
+            // Reload JSON config less frequently (every 100 iterations = 1 second)
+            // This prevents JSON parsing from blocking the main loop
+            if (loop_count % 100 == 0) {
+                const char* json_config_path = "json_files/struct_members_output.json";
+                
+                // Check for reset flag file (created by Python when updating config for new CSV row)
+                bool should_reset = FALSE;
+                FILE* reset_flag = fopen("json_files/reset_efficiency.flag", "r");
+                if (reset_flag != NULL) {
+                    should_reset = TRUE;
+                    fclose(reset_flag);
+                    // Delete the flag file after reading it (ignore errors)
+                    remove("json_files/reset_efficiency.flag");
+                }
+                
+                // Parse JSON config (with error handling to prevent hangs)
+                int parse_result = parse_struct_values_from_json(json_config_path, pl, mcm0, tps);
+                
+                if (parse_result == 0) {
+                    // Save the TPS values that were parsed from JSON
+                    saved_tps_travelPercent = tps->travelPercent;
+                    saved_tps0_percent = tps->tps0_percent;
+                    saved_tps1_percent = tps->tps1_percent;
+                    
+                    // Reset efficiency values when reset flag is present (new CSV row processed)
+                    // This resets per-lap variables but keeps event-level variables (lapCounter, carryOverEnergy)
+                    // and totalLapDistance_km (so laps can complete across CSV rows in continuous race)
+                    if (should_reset) {
+                        eff->timeInStraights_s = 0.0f;
+                        eff->timeInCorners_s = 0.0f;
+                        eff->energySpentInCorners_kWh = 0.0f;
+                        eff->energySpentInStraights_kWh = 0.0f;
+                        eff->lapEnergySpent_kWh = 0.0f;
+                        // Don't reset totalLapDistance_km - allow laps to complete across CSV rows
+                        // Don't reset lapCounter or carryOverEnergy - those are event-level
+                        eff->finishedLap = FALSE;
+                    }
+                }
+            }
+            #endif
         }
         
         
