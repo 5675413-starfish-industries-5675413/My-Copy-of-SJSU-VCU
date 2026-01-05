@@ -65,20 +65,17 @@ def test_Efficiency_closed_loop(timeout_per_row=2.0, save_progress_every=100):
     with open(struct_members_path, 'r') as f:
         struct_members_base = json.load(f)
 
-    # Load configs
-    configs = {}
-    struct_config_files = {
-        'PowerLimit': 'PL_config.json',
-        'MotorController': 'MCM_config.json',
-        'TorqueEncoder': 'TorqueEncoder_config.json',
-    }
-
-    for struct_name, config_file in struct_config_files.items():
-        with open(json_files_dir / config_file, 'r') as f:
-            configs[struct_name] = json.load(f)
-
-    # In-memory MCM config
-    mcm_config = configs['MotorController'].copy()
+    # Load PowerLimit config from JSON file (set once, not per row)
+    pl_config_path = json_files_dir / 'PL_config.json'
+    pl_config_struct = None
+    if pl_config_path.exists():
+        with open(pl_config_path, 'r') as f:
+            pl_config_data = json.load(f)
+            if pl_config_data.get("name") == "PowerLimit":
+                pl_config_struct = {
+                    "name": "PowerLimit",
+                    "parameters": pl_config_data.get("parameters", {})
+                }
 
     # Compile once
     test_main.test_run_main(compile_only=True)
@@ -104,7 +101,7 @@ def test_Efficiency_closed_loop(timeout_per_row=2.0, save_progress_every=100):
     stop_event = threading.Event()
     stdout_queue = queue.Queue()
 
-    # Start of thread 1
+    # Start of child process
     def run_main_process():
         import subprocess as sp
 
@@ -113,7 +110,7 @@ def test_Efficiency_closed_loop(timeout_per_row=2.0, save_progress_every=100):
             cwd=str(build_dir.resolve()),
             stdin=sp.PIPE,
             stdout=sp.PIPE,
-            stderr=sp.PIPE,
+            stderr=None,
             text=True,
             bufsize=1,
         )
@@ -146,7 +143,7 @@ def test_Efficiency_closed_loop(timeout_per_row=2.0, save_progress_every=100):
                 except sp.TimeoutExpired:
                     process.kill()
                     process.wait()
-    # End of thread 1
+    # End of child process
     
     process_thread = threading.Thread(target=run_main_process, daemon=True)
     process_thread.start()
@@ -155,42 +152,72 @@ def test_Efficiency_closed_loop(timeout_per_row=2.0, save_progress_every=100):
         pytest.fail("Process failed to start")
 
     process = process_holder[0]
+    
+    # Send PowerLimit config once at startup (if available)
+    if pl_config_struct:
+        try:
+            pl_init_json = json.dumps({"row_id": -1, "structs": [pl_config_struct]}, separators=(",", ":"))
+            process.stdin.write(pl_init_json + '\n')
+            process.stdin.flush()
+            # Give it a moment to process the initial config
+            import time
+            time.sleep(0.1)
+        except Exception as e:
+            print(f"Warning: Failed to send PowerLimit config: {e}")
 
-    # Build struct template
-    struct_members_template = []
-    for struct_item in struct_members_base:
-        struct_name = struct_item.get('name')
-        if struct_name in configs and struct_name != 'MotorController':
-            struct_copy = json.loads(json.dumps(struct_item))
-            for field, value in configs[struct_name].get('parameters', {}).items():
-                if field in struct_copy.get('parameters', {}):
-                    struct_copy['parameters'][field] = value
-            struct_members_template.append(struct_copy)
-        elif struct_name not in configs:
-            struct_members_template.append(struct_item)
-
-    # Start of thread 2
+    # Map CSV columns to struct parameters
+    CSV_TO_MCM_PARAMS = {
+        "MCM DC Bus Voltage": "DC_Voltage",
+        "MCM DC Bus Current": "DC_Current",
+        "MCM Motor Speed": "motorRPM",
+        "MCM Torque Command": "commandedTorque",
+    }
+    
+    CSV_TO_TPS_PARAMS = {
+        "TPS0ThrottlePercent0FF": "tps0_percent",
+        "TPS1ThrottlePercent0FF": "tps1_percent",
+    }
+    
+    def fast_parse(x):
+        if x is None:
+            return None
+        s = str(x).strip().strip('"')
+        if not s:
+            return None
+        try:
+            f = float(s)
+        except ValueError:
+            return None
+        return int(f) if f.is_integer() else f
+    
     def generate_json_string(csv_row, row_id):
-        test_main.update_mcm_config_from_csv_row(mcm_config, csv_row)
+        structs = []
+        
+        # MotorController parameters
+        mcm_params = {}
+        for csv_key, param_key in CSV_TO_MCM_PARAMS.items():
+            val = fast_parse(csv_row.get(csv_key))
+            if val is not None:
+                mcm_params[param_key] = val
+        if mcm_params:
+            structs.append({
+                "name": "MotorController",
+                "parameters": mcm_params
+            })
+        
+        # TorqueEncoder parameters
+        tps_params = {}
+        for csv_key, param_key in CSV_TO_TPS_PARAMS.items():
+            val = fast_parse(csv_row.get(csv_key))
+            if val is not None:
+                tps_params[param_key] = val
+        if tps_params:
+            structs.append({
+                "name": "TorqueEncoder",
+                "parameters": tps_params
+            })
 
-        struct_members = json.loads(json.dumps(struct_members_template))
-        mcm_struct_item = next(
-            (s for s in struct_members_base if s.get('name') == 'MotorController'),
-            None
-        )
-
-        if mcm_struct_item:
-            mcm_struct = json.loads(json.dumps(mcm_struct_item))
-            for field, value in mcm_config.get('parameters', {}).items():
-                if field in mcm_struct.get('parameters', {}):
-                    mcm_struct['parameters'][field] = value
-            struct_members.append(mcm_struct)
-
-        return json.dumps(
-            {'row_id': row_id, 'structs': struct_members},
-            separators=(',', ':')
-        )
-    # End of thread 2
+        return json.dumps({"row_id": row_id, "structs": structs}, separators=(",", ":"))
     
     results_written = 0
     with open(output_csv_file, 'w', newline='', encoding='utf-8') as f:
@@ -221,10 +248,7 @@ def test_Efficiency_closed_loop(timeout_per_row=2.0, save_progress_every=100):
             except ValueError:
                 motor_rpm_value = None
 
-            writer.writerow({
-                'MCM Motor Speed': motor_rpm_value,
-                **{k: efficiency_data.get(k) for k in fieldnames[1:]}
-            })
+            writer.writerow({k: efficiency_data.get(k) for k in fieldnames})
 
             results_written += 1
             if save_progress_every and results_written % save_progress_every == 0:
