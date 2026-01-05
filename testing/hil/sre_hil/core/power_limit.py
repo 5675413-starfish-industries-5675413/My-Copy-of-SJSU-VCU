@@ -1,0 +1,97 @@
+from dataclasses import dataclass
+
+
+@dataclass
+class PowerLimitStatus:
+    initialization_threshold: int = 0
+    mode: int = 0
+    status: bool = False
+    pid_total_error: int = 0
+    pid_proportional: int = 0
+    pid_integral: int = 0
+    torque_command: float = 0.0
+    target_power: int = 0
+    pid_output: int = 0
+    clamping_method: int = 0
+
+
+class PowerLimitDecoder:
+    MSG_STATUS_A = "VCU_Power_Limit_Status_AMsg"
+    MSG_STATUS_B = "VCU_Power_Limit_Status_BMsg"
+    
+    def __init__(self, dbc):
+        self.dbc = dbc
+        self._status = PowerLimitStatus()
+        
+        self._id_status_a = dbc.get_message(self.MSG_STATUS_A).frame_id
+        self._id_status_b = dbc.get_message(self.MSG_STATUS_B).frame_id
+    
+    def is_pl_message(self, msg) -> bool:
+        if msg is None:
+            return False
+        return msg.arbitration_id in (self._id_status_a, self._id_status_b)
+    
+    def decode(self, msg) -> PowerLimitStatus:
+        if msg is None:
+            return self._status
+            
+        decoded = self.dbc.decode_message(msg)
+        signals = decoded['signals']
+        
+        if msg.arbitration_id == self._id_status_a:
+            self._status.initialization_threshold = int(signals.get(
+                "VCU_POWERLIMIT_getInitialisationThreshold_W", 0))
+            self._status.mode = int(signals.get(
+                "VCU_POWERLIMIT_getMode_W", 0))
+            self._status.status = bool(signals.get(
+                "VCU_POWERLIMIT_getStatus_W", 0))
+            self._status.pid_total_error = int(signals.get(
+                "VCU_POWERLIMIT_PID_getTotalError", 0))
+            self._status.pid_proportional = int(signals.get(
+                "VCU_POWERLIMIT_PID_getProportional", 0))
+                
+        elif msg.arbitration_id == self._id_status_b:
+            self._status.pid_integral = int(signals.get(
+                "VCU_POWERLIMIT_PID_getIntegral", 0))
+            self._status.torque_command = float(signals.get(
+                "VCU_POWERLIMIT_getTorqueCommand_Nm", 0))
+            self._status.target_power = int(signals.get(
+                "VCU_POWERLIMIT_getTargetPower_W", 0))
+            self._status.pid_output = int(signals.get(
+                "VCU_POWERLIMIT_PID_getOutput", 0))
+            self._status.clamping_method = int(signals.get(
+                "VCU_POWERLIMIT_getClampingMethod_W", 0))
+        
+        return self._status
+    
+    def get_status(self) -> PowerLimitStatus:
+        return self._status
+    
+    def reset(self):
+        self._status = PowerLimitStatus()
+
+
+class PowerLimitMonitor:
+    """Small helper to receive + decode Power Limit status frames."""
+
+    def __init__(self, dbc, can_interface):
+        self.can = can_interface
+        self.decoder = PowerLimitDecoder(dbc)
+
+    def recv(self, timeout: float = 0.0):
+        """Receive one CAN frame; decode and return status if it is a PL message."""
+        msg = self.can.receive(timeout=timeout)
+        if not self.decoder.is_pl_message(msg):
+            return None
+        return self.decoder.decode(msg)
+
+    def wait_for_status(self, timeout_s: float = 1.0, poll_timeout_s: float = 0.01):
+        """Block until any PL status A/B frame is received or timeout expires."""
+        import time
+
+        t_end = time.time() + timeout_s
+        while time.time() < t_end:
+            status = self.recv(timeout=poll_timeout_s)
+            if status is not None:
+                return status
+        return None
