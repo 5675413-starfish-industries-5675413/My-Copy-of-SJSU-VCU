@@ -351,3 +351,79 @@ int parse_struct_values_from_json(const char* json_file_path,
     return 0;
 }
 
+/**
+ * Main function to parse JSON string and assign values to structs
+ */
+int parse_struct_values_from_string(const char* json_string, 
+                                     PowerLimit* pl, 
+                                     MotorController* mcm, 
+                                     TorqueEncoder* tps)
+{
+    if (json_string == NULL) {
+        return -1; // Invalid input
+    }
+    
+    // Parse JSON
+    cJSON* json = cJSON_Parse(json_string);
+    if (json == NULL) {
+        // Get error info if available
+        const char* error_ptr = cJSON_GetErrorPtr();
+        if (error_ptr != NULL) {
+            // Error info available, but we can't return it easily, so just return -1
+        }
+        return -1; // Failed to parse JSON
+    }
+    
+    // Handle two formats:
+    // 1. Direct array: [{...}, {...}]
+    // 2. Object with "structs" key: {"structs": [{...}, {...}], "row_id": ...}
+    cJSON* structs_array = NULL;
+    if (cJSON_IsArray(json)) {
+        // Format 1: Direct array
+        structs_array = json;
+    } else if (cJSON_IsObject(json)) {
+        // Format 2: Object with "structs" key
+        structs_array = cJSON_GetObjectItem(json, "structs");
+        if (structs_array == NULL || !cJSON_IsArray(structs_array)) {
+            cJSON_Delete(json);
+            return -2; // "structs" key not found or not an array
+        }
+    } else {
+        cJSON_Delete(json);
+        return -3; // Invalid format (not array or object)
+    }
+    
+    // Iterate through array to find the structs we need
+    int array_size = cJSON_GetArraySize(structs_array);
+    for (int i = 0; i < array_size; i++) {
+        cJSON* struct_item = cJSON_GetArrayItem(structs_array, i);
+        if (struct_item == NULL) {
+            continue;
+        }
+        
+        cJSON* name_item = cJSON_GetObjectItem(struct_item, "name");
+        if (name_item == NULL || !cJSON_IsString(name_item)) {
+            continue;
+        }
+        
+        const char* struct_name = name_item->valuestring;
+        cJSON* params = cJSON_GetObjectItem(struct_item, "parameters");
+        
+        if (params == NULL) {
+            continue;
+        }
+        
+        // Parse based on struct name
+        if (strcmp(struct_name, "PowerLimit") == 0 && pl != NULL) {
+            parse_PowerLimit_from_json(pl, params);
+        } else if (strcmp(struct_name, "MotorController") == 0 && mcm != NULL) {
+            parse_MotorController_from_json(mcm, params);
+        } else if (strcmp(struct_name, "TorqueEncoder") == 0 && tps != NULL) {
+            parse_TorqueEncoder_from_json(tps, params);
+        }
+    }
+    
+    cJSON_Delete(json);
+    return 0;
+}
+

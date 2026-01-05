@@ -25,6 +25,19 @@ int parse_struct_values_from_json(const char* json_file_path,
                                    TorqueEncoder* tps);
 
 /**
+ * Parse values from a JSON string and assign them to struct instances
+ * @param json_string JSON string containing struct configuration (must be a JSON array)
+ * @param pl PowerLimit struct pointer (can be NULL if not needed)
+ * @param mcm MotorController struct pointer (can be NULL if not needed)
+ * @param tps TorqueEncoder struct pointer (can be NULL if not needed)
+ * @return 0 on success, -1 on error
+ */
+int parse_struct_values_from_string(const char* json_string, 
+                                     PowerLimit* pl, 
+                                     MotorController* mcm, 
+                                     TorqueEncoder* tps);
+
+/**
  * Parse PowerLimit struct values from JSON object
  * @param pl PowerLimit struct pointer
  * @param json_params JSON object containing PowerLimit parameters
