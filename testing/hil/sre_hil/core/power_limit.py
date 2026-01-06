@@ -46,19 +46,27 @@ class PowerLimitDecoder:
             self._status.status = bool(signals.get(
                 "VCU_POWERLIMIT_getStatus_W", 0))
             self._status.pid_total_error = int(signals.get(
-                "VCU_POWERLIMIT_PID_getTotalError", 0))
+                "VCU_POWERLIMIT_PID_getTotalError",
+                signals.get("VCU_PID_getTotalError", 0),
+            ))
             self._status.pid_proportional = int(signals.get(
-                "VCU_POWERLIMIT_PID_getProportional", 0))
+                "VCU_POWERLIMIT_PID_getProportional",
+                signals.get("VCU_PID_getProportional", 0),
+            ))
                 
         elif msg.arbitration_id == self._id_status_b:
             self._status.pid_integral = int(signals.get(
-                "VCU_POWERLIMIT_PID_getIntegral", 0))
+                "VCU_POWERLIMIT_PID_getIntegral",
+                signals.get("VCU_PID_getIntegral", 0),
+            ))
             self._status.torque_command = float(signals.get(
                 "VCU_POWERLIMIT_getTorqueCommand_Nm", 0))
             self._status.target_power = int(signals.get(
                 "VCU_POWERLIMIT_getTargetPower_W", 0))
             self._status.pid_output = int(signals.get(
-                "VCU_POWERLIMIT_PID_getOutput", 0))
+                "VCU_POWERLIMIT_PID_getOutput",
+                signals.get("VCU_PID_getOutput", 0),
+            ))
             self._status.clamping_method = int(signals.get(
                 "VCU_POWERLIMIT_getClampingMethod_W", 0))
         
@@ -72,21 +80,21 @@ class PowerLimitDecoder:
 
 
 class PowerLimitMonitor:
-    """Small helper to receive + decode Power Limit status frames."""
+    """Receives and decodes Power Limit status frames."""
 
     def __init__(self, dbc, can_interface):
         self.can = can_interface
         self.decoder = PowerLimitDecoder(dbc)
 
     def recv(self, timeout: float = 0.0):
-        """Receive one CAN frame; decode and return status if it is a PL message."""
+        """Receive one frame and decode if it is PL."""
         msg = self.can.receive(timeout=timeout)
         if not self.decoder.is_pl_message(msg):
             return None
         return self.decoder.decode(msg)
 
     def wait_for_status(self, timeout_s: float = 1.0, poll_timeout_s: float = 0.01):
-        """Block until any PL status A/B frame is received or timeout expires."""
+        """Wait for any PL status frame or timeout."""
         import time
 
         t_end = time.time() + timeout_s
