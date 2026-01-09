@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 
-
 @dataclass
 class PowerLimitStatus:
     initialization_threshold: int = 0
