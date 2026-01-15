@@ -49,3 +49,13 @@ cc3232a
 cc12248a
 
 .vscode/settings.json
+
+# macOS ignore
+.DS_Store
+
+# Python ignores
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
