@@ -9,8 +9,11 @@ testing of the VCU firmware.
 import click
 import time
 from pathlib import Path
+from typing import Dict, Optional, Any
+from dataclasses import dataclass
 from rich.console import Console
 from rich.table import Table
+from rich.live import Live
 
 from sre_test.hil.core.can_interface import CANInterface
 from sre_test.hil.core.dbc_loader import DBCLoader
@@ -19,6 +22,22 @@ __version__ = "0.1.0"  # TODO: Use shared version from pyproject.toml
 
 console = Console()
 
+@dataclass
+class SignalState:
+    """ Tracks state of watched signal """
+    name: str                               # CAN signal name
+    message_name: str                       # CAN parent message name
+    message_id: int                         # CAN ID
+    unit: str = "-"                         # e.g., RPM, Nm...
+    value: Optional[float] = None           # Decoded value
+    last_update: Optional[float] = None     # Timestamp of last update
+
+    @property
+    def age_ms(self) -> Optional[int]:
+        """ Returns age (in ms) since last update """
+        if self.last_update is None:
+            return None
+        return int((time.time() - self.last_update) * 1000)
 
 @click.group()
 @click.version_option(version=__version__, prog_name='sre-hil')
@@ -148,6 +167,26 @@ def listen(ctx, duration, decode, filter_id, message):
             elapsed = time.time() - start_time
             console.print(f"[dim]Elapsed time: {elapsed:.1f}s[/dim]")
 
+@cli.command('signal-watch')
+@click.option('--signal', 
+              '-s', 
+              'signals', 
+              multiple=True, 
+              required=True, 
+              help='Specify signal(s) to watch')
+@click.option('--refresh-rate', 
+              '-r',
+              type=float,
+              default=10.0,
+              help='Specify display refresh rate in Hz (default: 10.0)')
+@click.option('--duration',
+              '-d',
+              type=float,
+              help='Specify watch duration in seconds')
+@click.pass_context
+def signal_watch(ctx, signals, refresh_rate, duration):
+    # TODO
+    return
 
 @cli.command()
 def version():
