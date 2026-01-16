@@ -22,7 +22,7 @@ main_exe = build_dir / 'main.exe'
 # JSON file path for PL_config.json
 file_path = script_dir / 'json_files/PL_config.json'
 
-def test_Efficiency_closed_loop(timeout_per_row=2.0, save_progress_every=100):
+def test_Efficiency_closed_loop(timeout_per_row=2.0, save_progress_every=100, sil_output_mode=0x01):
     """
     Closed-loop test system with two threads:
     - Thread 1: Runs main.c continuously
@@ -31,6 +31,8 @@ def test_Efficiency_closed_loop(timeout_per_row=2.0, save_progress_every=100):
     Args:
         timeout_per_row: Timeout for reading output per CSV row (seconds)
         save_progress_every: Save progress every N rows
+        sil_output_mode: SIL output mode configuration (0x01=efficiency, 0x02=power_limit, 
+                         0x04=motor_controller, 0x07=all). Default is 0x01 (efficiency only).
     """
 
     test_main.extract_struct_members.main()
@@ -77,8 +79,8 @@ def test_Efficiency_closed_loop(timeout_per_row=2.0, save_progress_every=100):
                     "parameters": pl_config_data.get("parameters", {})
                 }
 
-    # Compile once
-    test_main.test_run_main(compile_only=True)
+    # Compile once with specified output mode
+    test_main.test_run_main(compile_only=True, sil_output_mode=sil_output_mode)
 
     # Output CSV columns
     fieldnames = [
@@ -248,7 +250,10 @@ def test_Efficiency_closed_loop(timeout_per_row=2.0, save_progress_every=100):
             except ValueError:
                 motor_rpm_value = None
 
-            writer.writerow({k: efficiency_data.get(k) for k in fieldnames})
+            # Build result row with motor RPM from input CSV and efficiency data from C process
+            result_row = {k: efficiency_data.get(k) for k in fieldnames}
+            result_row['MCM Motor Speed'] = motor_rpm_value  # Override with value from input CSV
+            writer.writerow(result_row)
 
             results_written += 1
             if save_progress_every and results_written % save_progress_every == 0:

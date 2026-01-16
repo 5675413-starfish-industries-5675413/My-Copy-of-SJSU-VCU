@@ -211,12 +211,14 @@ def apply_config_to_structs(struct_config_files, json_files_dir=None):
     with open(struct_members_path, 'w') as f:
         json.dump(struct_members, f, indent=2)
 
-def test_run_main(compile_only=False):
+def test_run_main(compile_only=False, sil_output_mode=0x01):
     """
     Compile main.c with SIL headers and optionally run it.
     
     Args:
         compile_only: If True, only compile and don't run the executable
+        sil_output_mode: SIL output mode configuration (0x01=efficiency, 0x02=power_limit, 
+                         0x04=motor_controller, 0x07=all). Default is 0x01 (efficiency only).
     """
     # Note: Run pytest with -s flag to see output: pytest -s test_main.py::test_PL
     # Check if gcc is available
@@ -255,6 +257,7 @@ def test_run_main(compile_only=False):
         dev_dir / 'avlTree.c',
         dev_dir / 'watchdog.c',
         dev_dir / 'mathFunctions.c',
+        dev_dir / 'sil.c',  # SIL JSON input/output functions
         # SIL stub files
         sil_inc_dir / 'cstart_sil.c',  # Stub for _cstart function
         # Note: sensors_sil_stubs.c removed - Sensor variables are defined in initializations.c
@@ -303,6 +306,14 @@ def test_run_main(compile_only=False):
         '-DRTS_TTC_FLASH_DATE_MINUTE=0',
         # Define SIL_BUILD to enable SIL-specific code
         '-DSIL_BUILD',
+        # Optional: Set SIL output mode (defaults to SIL_OUTPUT_ALL if not defined)
+        # Examples:
+        #   '-DSIL_OUTPUT_MODE_CONFIG=0x01',  # Only efficiency (SIL_OUTPUT_EFFICIENCY)
+        #   '-DSIL_OUTPUT_MODE_CONFIG=0x02',  # Only power limit (SIL_OUTPUT_POWERLIMIT)
+        #   '-DSIL_OUTPUT_MODE_CONFIG=0x04',  # Only motor controller (SIL_OUTPUT_MOTORCTRL)
+        #   '-DSIL_OUTPUT_MODE_CONFIG=0x07',  # All outputs (SIL_OUTPUT_ALL)
+        #   '-DSIL_OUTPUT_MODE_CONFIG=0x03',  # Efficiency + Power Limit (0x01 | 0x02)
+        f'-DSIL_OUTPUT_MODE_CONFIG={sil_output_mode:#x}',  # Dynamic output mode
     ]
     # Math library - must come after source files for linking
     ldflags = ['-lm']
