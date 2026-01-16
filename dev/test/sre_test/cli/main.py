@@ -6,6 +6,7 @@ import click
 
 from sre_test.version import __version__
 from sre_test.hil.cli.main import cli as hil_group
+from sre_test.sil.cli.main import cli as sil_group
 
 @click.group()
 @click.version_option(version=__version__, prog_name='sre')
@@ -15,6 +16,9 @@ def sre():
 
 # HIL commands subgroup
 sre.add_command(hil_group, name='hil')
+
+# SIL commands subgroup
+sre.add_command(sil_group, name='sil')
 
 if __name__ == '__main__':
     sre()

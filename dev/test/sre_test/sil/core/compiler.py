@@ -1,0 +1,158 @@
+"""
+SIL Compiler - Compiles VCU source code into a native executable.
+"""
+
+import subprocess
+from pathlib import Path
+from typing import List, Optional
+
+
+class SILCompiler:
+    """Compiles VCU C code with SIL stubs into a native executable."""
+
+    def __init__(self,
+                 dev_dir: Optional[Path] = None,
+                 inc_dir: Optional[Path] = None,
+                 sil_inc_dir: Optional[Path] = None,
+                 sil_output_mode: int = 0x01):
+        """
+        Initialize compiler with source directories.
+
+        Args:
+            dev_dir: Path to dev/ directory containing VCU source files
+            inc_dir: Path to inc/ directory containing VCU headers
+            sil_inc_dir: Path to SIL stub directory (dev/test/sre_test/sil/inc (retained)/)
+            sil_output_mode: SIL output mode configuration (0x01=efficiency, 0x02=power_limit, 
+                             0x04=motor_controller, 0x07=all). Default is 0x01 (efficiency only).
+        """
+        # Auto-detect paths relative to this file
+        self.script_dir = Path(__file__).parent.parent  # dev/test/sre_test/sil/
+        self.sil_inc_dir = sil_inc_dir or self.script_dir / 'inc (retained)'
+
+        # Navigate up to find dev/ and inc/
+        sil_dir = self.script_dir  # dev/test/sre_test/sil/
+        sre_test_dir = sil_dir.parent  # dev/test/sre_test/
+        test_dir = sre_test_dir.parent  # dev/test/
+        # test_dir.parent is dev/, parent of that is VCU root
+        self.root_dir = test_dir.parent.parent  # VCU root
+        self.dev_dir = dev_dir or self.root_dir / 'dev'
+        self.inc_dir = inc_dir or self.root_dir / 'inc'
+
+        # Build output
+        self.build_dir = self.script_dir / 'build'
+        self.executable = self.build_dir / self._get_exe_name()
+        
+        # Store output mode for compilation
+        self.sil_output_mode = sil_output_mode
+
+    def _get_exe_name(self) -> str:
+        """Get platform-appropriate executable name."""
+        import platform
+        if platform.system() == 'Windows':
+            return 'main.exe'
+        return 'main'
+
+    def get_source_files(self) -> List[Path]:
+        """Get list of all source files needed for compilation."""
+        # VCU source files
+        vcu_sources = [
+            'main.c', 'initializations.c', 'sensors.c', 'canManager.c',
+            'motorController.c', 'instrumentCluster.c', 'readyToDriveSound.c',
+            'torqueEncoder.c', 'brakePressureSensor.c', 'wheelSpeeds.c',
+            'safety.c', 'sensorCalculations.c', 'serial.c', 'cooling.c',
+            'bms.c', 'LaunchControl.c', 'regen.c', 'drs.c', 'powerLimit.c',
+            'PID.c', 'efficiency.c', 'hashTable.c', 'avlTree.c',
+            'watchdog.c', 'mathFunctions.c', 'sil.c',
+        ]
+
+        # SIL stub files
+        sil_sources = [
+            'cstart_sil.c', 'IO_Driver_sil.c', 'IO_RTC_sil.c', 'IO_UART_sil.c',
+            'IO_ADC_sil.c', 'IO_CAN_sil.c', 'IO_DIO_sil.c', 'IO_PWM_sil.c',
+            'IO_EEPROM_sil.c', 'IO_POWER_sil.c', 'IO_PWD_sil.c',
+            'IO_WDTimer_sil.c', 'DIAG_Functions_sil.c', 'cJSON.c',
+        ]
+
+        sources = []
+        sources.extend(self.dev_dir / f for f in vcu_sources)
+        sources.extend(self.sil_inc_dir / f for f in sil_sources)
+
+        # Add parse_values.c from build_main_sil (retained)/
+        parse_values = self.script_dir / 'build_main_sil (retained)' / 'parse_values.c'
+        if parse_values.exists():
+            sources.append(parse_values)
+
+        return [f for f in sources if f.exists()]
+
+    def get_compiler_flags(self) -> List[str]:
+        """Get GCC compiler flags."""
+        flags = [
+            '-O2', '-Wall',
+            '-Wno-unused-variable',
+            '-Wno-main',
+            '-Wno-pointer-sign',
+            '-Wno-incompatible-pointer-types',
+            '-Wno-format-overflow',
+            '-Wno-array-bounds',
+            '-Wno-unused-function',
+            '-Wno-implicit-function-declaration',
+            '-Wno-builtin-declaration-mismatch',
+            '-DRTS_TTC_FLASH_DATE_YEAR=2025',
+            '-DRTS_TTC_FLASH_DATE_MONTH=1',
+            '-DRTS_TTC_FLASH_DATE_DAY=1',
+            '-DRTS_TTC_FLASH_DATE_HOUR=0',
+            '-DRTS_TTC_FLASH_DATE_MINUTE=0',
+            '-DSIL_BUILD',
+            f'-DSIL_OUTPUT_MODE_CONFIG={self.sil_output_mode:#x}',  # Dynamic output mode
+        ]
+        return flags
+
+    def get_include_paths(self) -> List[str]:
+        """Get include paths (SIL headers take precedence)."""
+        paths = [
+            f'-I{self.sil_inc_dir.resolve()}',
+            f'-I{self.inc_dir.resolve()}',
+            f'-I{self.dev_dir.resolve()}',
+        ]
+        # Also include build_main_sil (retained) for parse_values.h
+        parse_values_dir = self.script_dir / 'build_main_sil (retained)'
+        if parse_values_dir.exists():
+            paths.append(f'-I{parse_values_dir.resolve()}')
+        return paths
+
+    def compile(self, verbose: bool = False) -> bool:
+        """
+        Compile the SIL executable.
+
+        Returns:
+            True if compilation succeeded, False otherwise
+        """
+        self.build_dir.mkdir(parents=True, exist_ok=True)
+
+        sources = [str(f.resolve()) for f in self.get_source_files()]
+        cmd = (
+            ['gcc'] +
+            self.get_compiler_flags() +
+            self.get_include_paths() +
+            sources +
+            ['-o', str(self.executable.resolve())] +
+            ['-lm']  # Math library
+        )
+
+        if verbose:
+            print(f"Compiling {len(sources)} source files...")
+
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+        except subprocess.TimeoutExpired:
+            if verbose:
+                print("Compilation timed out")
+            return False
+
+        if result.returncode != 0:
+            if verbose:
+                print(f"Compilation failed:\n{result.stderr}")
+            return False
+
+        return self.executable.exists()
+
