@@ -351,7 +351,7 @@ BO_ 1286 VCU_Safety_Checker: 8 VCU
 BO_ 1287 Low_Voltage: 8 DAQ
  SG_ Voltage : 0|16@1+ (0.001,0) [0|20] "V" VCU
  SG_ VCU_RegenTq : 16|16@1- (1,0) [-32768|32767] "Nm" VCU
- SG_ VCU_Effiency_TimeinStriahgts : 32|16@1- (1,0) [-32768|32767] "t" VCU
+ SG_ VCU_Efficiency_StraightTime : 32|16@1- (1,0) [-32768|32767] "t" VCU
 
 BO_ 1288 VCU_Regen_Settings: 8 VCU
  SG_ VCU_BPS0_Voltage : 0|16@1+ (1,0) [0|65535] "mV" VCU
@@ -365,9 +365,9 @@ BO_ 1289 MCM_RTD_HVIL: 8 VCU
 
 BO_ 1290 VCU_Efficiency_Settings: 8 VCU
  SG_ VCU_Efficiency_LapCounter : 0|8@1+ (1,0) [0|255] "laps" VCU
- SG_ VCU_Efficiency_EnergySpentInCorners : 16|16@1- (1,0) [-32768|32767] "Wh" VCU
- SG_ VCU_Efficiency_LapEnergySpent : 32|16@1+ (1,0) [0|65535] "Wh" VCU
- SG_ VCU_Efficiency_TotalLapDistance : 48|16@1+ (1,0) [0|65535] "" VCU
+ SG_ VCU_Efficiency_CornerEnergy : 16|16@1- (1,0) [-32768|32767] "Wh" VCU
+ SG_ VCU_Efficiency_LapEnergy : 32|16@1+ (1,0) [0|65535] "Wh" VCU
+ SG_ VCU_Efficiency_LapDistance : 48|16@1+ (1,0) [0|65535] "" VCU
  
 BO_ 1291 VCU_LC_Status_A: 8 VCU
  SG_ VCU_LaunchControl_TorqueCommand_Nm : 0|16@1- (1,0) [-32768|32767] "Nm" VCU

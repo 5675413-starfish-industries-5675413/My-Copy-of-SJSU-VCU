@@ -688,8 +688,8 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     canMessages[canMessageCount - 1].data[byteNum++] = Sensor_LVBattery.sensorValue >> 8;
     canMessages[canMessageCount - 1].data[byteNum++] =  (sbyte2)(Regen_get_torqueCommand(regen));
     canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(Regen_get_torqueCommand(regen))) >> 8;
-    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(Efficiency_getTimeInStraights_s(eff) * 10); // Convert to 0.1s units
-    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(Efficiency_getTimeInStraights_s(eff) * 10)) >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(Efficiency_getStraightTime_s(eff) * 10); // Convert to 0.1s units
+    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(Efficiency_getStraightTime_s(eff) * 10)) >> 8;
     canMessages[canMessageCount - 1].data[byteNum++] = 0;
     canMessages[canMessageCount - 1].data[byteNum++] = 0;
     canMessages[canMessageCount - 1].length = byteNum;
@@ -730,13 +730,13 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     canMessages[canMessageCount - 1].id_format = IO_CAN_STD_FRAME;
     canMessages[canMessageCount - 1].id = canMessageID + canMessageCount - 1;
     canMessages[canMessageCount - 1].data[byteNum++] = (sbyte1)(Efficiency_getLapCounter(eff));
-    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(Efficiency_getEnergySpentInCorners_kWh(eff) * 1000); // Convert to Wh
-    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(Efficiency_getEnergySpentInCorners_kWh(eff) * 1000)) >> 8;
-    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(Efficiency_getLapEnergySpent_kWh(eff) * 1000); // Convert to Wh
-    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(Efficiency_getLapEnergySpent_kWh(eff) * 1000)) >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(Efficiency_getCornerEnergy_kWh(eff) * 1000); // Convert to Wh
+    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(Efficiency_getCornerEnergy_kWh(eff) * 1000)) >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(Efficiency_getLapEnergy_kWh(eff) * 1000); // Convert to Wh
+    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(Efficiency_getLapEnergy_kWh(eff) * 1000)) >> 8;
     canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(Efficiency_getFinishedLap(eff) ? 1 : 0);
-    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(Efficiency_getTotalLapDistance_km(eff) * 100); // Convert to 0.01km units
-    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(Efficiency_getTotalLapDistance_km(eff) * 100)) >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(Efficiency_getLapDistance_km(eff) * 100); // Convert to 0.01km units
+    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(Efficiency_getLapDistance_km(eff) * 100)) >> 8;
     canMessages[canMessageCount - 1].length = byteNum;
 
     //50B: Launch Control Status A
