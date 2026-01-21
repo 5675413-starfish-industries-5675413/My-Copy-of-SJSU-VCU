@@ -62,6 +62,7 @@
 
 // SIL (Software-In-the-Loop) includes
 #ifdef SIL_BUILD
+#include "sil.h"
 #include "parse_values.h"
 #endif
 
@@ -268,80 +269,12 @@ void main(void)
     static float4 saved_tps0_percent = 0.0f;
     static float4 saved_tps1_percent = 0.0f;
     
-
-    {
-        // Use a large buffer for JSON (up to 256KB)
-        #define JSON_BUFFER_SIZE (256 * 1024)
-        char* json_buffer = (char*)malloc(JSON_BUFFER_SIZE);
-        if (json_buffer == NULL) {
-            fprintf(stderr, "SIL: Failed to allocate JSON buffer\n");
-            fflush(stderr);
-        } else {
-            size_t total_read = 0;
-            int brace_count = 0;
-            int in_string = 0;
-            int escape_next = 0;
-            
-            // Read until we have a complete JSON object
-            while (total_read < JSON_BUFFER_SIZE - 1) {
-                int c = fgetc(stdin);
-                if (c == EOF) {
-                    break;
-                }
-                
-                json_buffer[total_read++] = (char)c;
-                
-                // Track braces to know when JSON is complete
-                if (!escape_next && c == '"' && total_read > 1 && json_buffer[total_read-2] != '\\') {
-                    in_string = !in_string;
-                }
-                escape_next = (!escape_next && c == '\\' && in_string);
-                
-                if (!in_string) {
-                    if (c == '{') brace_count++;
-                    else if (c == '}') {
-                        brace_count--;
-                        if (brace_count == 0) {
-                            // Complete JSON object found
-                            break;
-                        }
-                    }
-                }
-            }
-            
-            json_buffer[total_read] = '\0';
-            
-            // Remove trailing newline if present
-            if (total_read > 0 && json_buffer[total_read - 1] == '\n') {
-                json_buffer[total_read - 1] = '\0';
-                total_read--;
-            }
-            
-            if (total_read > 0) {
-                int parse_result =
-                    parse_struct_values_from_string(json_buffer, pl, mcm0, tps);
-        
-                if (parse_result != 0) {
-                    fprintf(stderr,
-                            "SIL: Failed to parse JSON from stdin (error: %d, length: %zu)\n",
-                            parse_result, total_read);
-                    fprintf(stderr, "SIL: Received JSON (first 200 chars): %.200s\n", json_buffer);
-                    if (total_read > 200) {
-                        fprintf(stderr, "SIL: Received JSON (last 200 chars): %.200s\n", json_buffer + total_read - 200);
-                    }
-                    fflush(stderr);
-                } else {
-                    saved_tps_travelPercent = tps->travelPercent;
-                    saved_tps0_percent = tps->tps0_percent;
-                    saved_tps1_percent = tps->tps1_percent;
-                }
-            } else {
-                fprintf(stderr, "SIL: No JSON data read from stdin\n");
-                fflush(stderr);
-            }
-            
-            free(json_buffer);
-        }
+    // Read initial JSON configuration
+    int parse_result = sil_read_initial_json(pl, mcm0, tps);
+    if (parse_result == 0) {
+        saved_tps_travelPercent = tps->travelPercent;
+        saved_tps0_percent = tps->tps0_percent;
+        saved_tps1_percent = tps->tps1_percent;
     }
     #endif
 
@@ -478,11 +411,7 @@ void main(void)
 
         // In SIL mode, restore the JSON-parsed TPS values that were overwritten by TorqueEncoder_update
         #ifdef SIL_BUILD
-        if (saved_tps_travelPercent != 0.0f) {
-            tps->travelPercent = saved_tps_travelPercent;
-            tps->tps0_percent = saved_tps0_percent;
-            tps->tps1_percent = saved_tps1_percent;
-        }
+        sil_restore_tps_values(tps, &saved_tps_travelPercent, &saved_tps0_percent, &saved_tps1_percent);
         #endif 
     
         //Every cycle: if the calibration was started and hasn't finished, check the values again
@@ -625,70 +554,12 @@ void main(void)
     /*******************************************/
     #ifdef SIL_BUILD
     // Non-blocking JSON reader for main loop
-    {
-        fd_set readfds;
-        struct timeval timeout;
-        FD_ZERO(&readfds);
-        FD_SET(0, &readfds); // stdin is file descriptor 0
-        timeout.tv_sec = 0;
-        timeout.tv_usec = 0; // Non-blocking check
-        
-        if (select(1, &readfds, NULL, NULL, &timeout) > 0 && FD_ISSET(0, &readfds)) {
-            // Data available, read JSON
-            #define JSON_BUFFER_SIZE (256 * 1024)
-            char* json_buffer = (char*)malloc(JSON_BUFFER_SIZE);
-            if (json_buffer != NULL) {
-                size_t total_read = 0;
-                int brace_count = 0;
-                int in_string = 0;
-                int escape_next = 0;
-                
-                // Read until we have a complete JSON object
-                while (total_read < JSON_BUFFER_SIZE - 1) {
-                    int c = fgetc(stdin);
-                    if (c == EOF) {
-                        break;
-                    }
-                    
-                    json_buffer[total_read++] = (char)c;
-                    
-                    // Track braces to know when JSON is complete
-                    if (!escape_next && c == '"' && total_read > 1 && json_buffer[total_read-2] != '\\') {
-                        in_string = !in_string;
-                    }
-                    escape_next = (!escape_next && c == '\\' && in_string);
-                    
-                    if (!in_string) {
-                        if (c == '{') brace_count++;
-                        else if (c == '}') {
-                            brace_count--;
-                            if (brace_count == 0) {
-                                // Complete JSON object found
-                                break;
-                            }
-                        }
-                    }
-                }
-                
-                json_buffer[total_read] = '\0';
-                
-                // Remove trailing newline if present
-                if (total_read > 0 && json_buffer[total_read - 1] == '\n') {
-                    json_buffer[total_read - 1] = '\0';
-                    total_read--;
-                }
-                
-                if (total_read > 0) {
-                    int parse_result = parse_struct_values_from_string(json_buffer, pl, mcm0, tps);
-                    if (parse_result != 0) {
-                        fprintf(stderr, "SIL: Failed to parse JSON in loop (error: %d)\n", parse_result);
-                        fflush(stderr);
-                    }
-                }
-                
-                free(json_buffer);
-            }
-        }
+    int json_result = sil_read_json_input(pl, mcm0, tps);
+    if (json_result == 0) {
+        // Successfully parsed JSON, update saved TPS values
+        saved_tps_travelPercent = tps->travelPercent;
+        saved_tps0_percent = tps->tps0_percent;
+        saved_tps1_percent = tps->tps1_percent;
     }
     #endif
 
@@ -696,74 +567,8 @@ void main(void)
     /*              SIL OUTPUTS                */
     /*******************************************/
     #ifdef SIL_BUILD
-                // Debug: Check MCM values
-                // sbyte4 mcm_voltage = MCM_getDCVoltage(mcm0);
-                // sbyte4 mcm_current = MCM_getDCCurrent(mcm0);
-                // sbyte4 mcm_rpm = MCM_getMotorRPM(mcm0);
-                // sbyte2 mcm_apps_torque = MCM_commands_getAppsTorque(mcm0);
-                // sbyte4 mcm_power_kw = (mcm_voltage * mcm_current) / 1000;
-                
-                // fprintf(stderr, "MCM DC_Voltage: %d V\n", mcm_voltage);
-                // fprintf(stderr, "MCM DC_Current: %d A\n", mcm_current);
-                // fprintf(stderr, "MCM motorRPM: %d\n", mcm_rpm);
-                // ubyte2 mcm_max_torque = MCM_getMaxTorqueDNm(mcm0);
-                // fprintf(stderr, "MCM torqueMaximumDNm: %d\n", mcm_max_torque);
-                // float4 tps_travel_percent = tps->travelPercent;
-                // float4 tps_output_curve = tps->outputCurveExponent;
-                // float4 tps_output_percent = 0.0f;
-                // TorqueEncoder_getOutputPercent(tps, &tps_output_percent);
-                // fprintf(stderr, "TPS travelPercent: %.4f\n", tps_travel_percent);
-                // fprintf(stderr, "TPS outputCurveExponent: %.4f\n", tps_output_curve);
-                // fprintf(stderr, "TPS outputPercent: %.4f\n", tps_output_percent);
-                // fprintf(stderr, "MCM appsTorque: %d (expected: %d)\n", mcm_apps_torque, (sbyte2)(mcm_max_torque * tps_output_percent));
-                // fprintf(stderr, "MCM Power (V*I/1000): %d kW\n", mcm_power_kw);
-                // fprintf(stderr, "PL plToggle: %s\n", (pl->plToggle ? "True" : "False"));
-                // fprintf(stderr, "PL plStatus: %s\n", POWERLIMIT_getStatus(pl) ? "True" : "False");
-                // fprintf(stderr, "PL TorqueCommand: %d\n", POWERLIMIT_getTorqueCommand(pl));
-                
-                // // Calculate power: power = (torque_command/10) * angular_speed * 0.9345
-                // // angular_speed = RPM * 2 * PI / 60
-                // float angular_speed = (float)mcm_rpm * 2.0f * 3.14159265358979323846f / 60.0f;
-                // float power = ((float)POWERLIMIT_getTorqueCommand(pl) / 10.0f) * angular_speed;
-                // float electrical_power = power * 0.9345f;  // Convert to electrical power
-                // fprintf(stderr, "MCM Power (calculated): %.0fkW\n", electrical_power);
-                // fprintf(stderr, "===================\n\n");
-                // fflush(stderr);  // Force output to be written immediately
-
-                float4 mcm_motorRPM = MCM_getMotorRPM(mcm0);
-                float4 timeinstraight = eff->timeInStraights_s;
-                float4 timeincorners = eff->timeInCorners_s;
-                float4 lapcounter = eff->lapCounter;
-                float4 pltarget = pl->plTargetPower;
-                float4 energyconsumptionperlap = eff->lapEnergySpent_kWh;
-                float4 energybudgetperlap = eff->energyBudget_kWh;
-                float4 carryoverenergy = eff->carryOverEnergy_kWh;
-                float4 totallapdistance = eff->totalLapDistance_km;
-                float4 lapenergyspent = eff->lapEnergySpent_kWh;
-
-                printf("{\"efficiency\":{"
-                    "\"mcm_motorRPM\":%.4f,"
-                    "\"time_in_straight\":%.4f,"
-                    "\"time_in_corners\":%.4f,"
-                    "\"lap_counter\":%.4f,"
-                    "\"pl_target\":%.4f,"
-                    "\"energy_consumption_per_lap\":%.4f,"
-                    "\"energy_budget_per_lap\":%.4f,"
-                    "\"carry_over_energy\":%.4f,"
-                    "\"total_lap_distance\":%.4f"
-                    "}}\n",
-                    mcm_motorRPM,
-                    timeinstraight,
-                    timeincorners,
-                    lapcounter,
-                    pltarget,
-                    energyconsumptionperlap,
-                    energybudgetperlap,
-                    carryoverenergy,
-                    totallapdistance);
-             
-                fflush(stdout);
-        #endif
+    sil_write_json_output(mcm0, pl, eff);
+    #endif
         
     } //end of main loop
 
