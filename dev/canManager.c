@@ -69,7 +69,13 @@ struct _CanManager {
     //WARNING: These values are not initialized - be careful to only access
     //pointers that have been previously assigned
     //AVLNode* canMessageHistory[0x7FF];
+    #ifdef SIL_BUILD
+    AVLNode* canMessageHistory[0x800];
+    #endif
+
+    #ifndef SIL_BUILD
     AVLNode* canMessageHistory[0x7FF];
+    #endif
 };
 
 //Keep track of CAN message IDs, their data, and when they were last sent.
