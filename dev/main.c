@@ -27,8 +27,14 @@
 #include <stdlib.h>
 #include <string.h>
 #ifdef SIL_BUILD
-#include <sys/select.h>
-#include <unistd.h>
+    // Platform-specific includes for select()
+    #ifdef _WIN32
+        #include <winsock2.h>  // MinGW/MSYS2 provides POSIX-compatible select()
+        #define STDIN_FILENO 0
+    #else
+        #include <sys/select.h>
+        #include <unistd.h>
+    #endif
 #endif
 #include "APDB.h"
 #include "IO_DIO.h"

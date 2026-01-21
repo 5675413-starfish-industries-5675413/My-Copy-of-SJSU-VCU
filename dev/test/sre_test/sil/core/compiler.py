@@ -120,6 +120,17 @@ class SILCompiler:
             paths.append(f'-I{parse_values_dir.resolve()}')
         return paths
 
+    def _get_compiler(self) -> str:
+        """Get platform-appropriate compiler command."""
+        import shutil
+        
+        # Try to find GCC
+        compiler_names = ['gcc', 'gcc.exe']
+        for compiler in compiler_names:
+            if shutil.which(compiler):
+                return compiler
+        return 'gcc'  # Default, will fail with clear error if not found
+    
     def compile(self, verbose: bool = False) -> bool:
         """
         Compile the SIL executable.
@@ -127,31 +138,41 @@ class SILCompiler:
         Returns:
             True if compilation succeeded, False otherwise
         """
+        import platform
+        
         self.build_dir.mkdir(parents=True, exist_ok=True)
 
         sources = [str(f.resolve()) for f in self.get_source_files()]
+        compiler = self._get_compiler()
+        
+        # Build command
         cmd = (
-            ['gcc'] +
+            [compiler] +
             self.get_compiler_flags() +
             self.get_include_paths() +
             sources +
-            ['-o', str(self.executable.resolve())] +
-            ['-lm']  # Math library
+            ['-o', str(self.executable.resolve())]
         )
+        
+        # Platform-specific library linking
+        if platform.system() == 'Windows':
+            cmd.append('-lws2_32')  # Winsock for select()
+        cmd.append('-lm')  # Math library (works on both platforms)
 
         if verbose:
             print(f"Compiling {len(sources)} source files...")
 
         try:
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+        except FileNotFoundError:
+            print(f"Error: Compiler '{compiler}' not found")
+            return False
         except subprocess.TimeoutExpired:
-            if verbose:
-                print("Compilation timed out")
+            print("Compilation timed out")
             return False
 
         if result.returncode != 0:
-            if verbose:
-                print(f"Compilation failed:\n{result.stderr}")
+            print(f"Compilation failed:\n{result.stderr}")
             return False
 
         return self.executable.exists()

@@ -10,8 +10,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/select.h>
-#include <unistd.h>
+
+// Platform-specific includes for select() and file I/O
+#ifdef _WIN32
+    // Windows: MinGW/MSYS2 provides POSIX-compatible select()
+    #include <winsock2.h>
+    #define STDIN_FILENO 0
+#else
+    // POSIX (Linux/WSL/macOS)
+    #include <sys/select.h>
+    #include <unistd.h>
+#endif
 
 // Include parse_values.h - the build system should handle the include path
 #ifdef SIL_BUILD
@@ -98,76 +107,76 @@ int sil_read_initial_json(PowerLimit* pl, MotorController* mcm, TorqueEncoder* t
 
 int sil_read_json_input(PowerLimit* pl, MotorController* mcm, TorqueEncoder* tps)
 {
+    // Non-blocking check for stdin data
     fd_set readfds;
     struct timeval timeout;
     FD_ZERO(&readfds);
-    FD_SET(0, &readfds); // stdin is file descriptor 0
+    FD_SET(STDIN_FILENO, &readfds);
     timeout.tv_sec = 0;
-    timeout.tv_usec = 0; // Non-blocking check
+    timeout.tv_usec = 0;
     
-    if (select(1, &readfds, NULL, NULL, &timeout) > 0 && FD_ISSET(0, &readfds)) {
-        // Data available, read JSON
-        #define JSON_BUFFER_SIZE (256 * 1024)
-        char* json_buffer = (char*)malloc(JSON_BUFFER_SIZE);
-        if (json_buffer == NULL) {
-            return -1;
+    if (select(STDIN_FILENO + 1, &readfds, NULL, NULL, &timeout) <= 0 || !FD_ISSET(STDIN_FILENO, &readfds)) {
+        return 1;  // No data available
+    }
+    
+    // Data available, read JSON
+    #define JSON_BUFFER_SIZE (256 * 1024)
+    char* json_buffer = (char*)malloc(JSON_BUFFER_SIZE);
+    if (json_buffer == NULL) {
+        return -1;
+    }
+    
+    size_t total_read = 0;
+    int brace_count = 0;
+    int in_string = 0;
+    int escape_next = 0;
+    
+    // Read until we have a complete JSON object
+    while (total_read < JSON_BUFFER_SIZE - 1) {
+        int c = fgetc(stdin);
+        if (c == EOF) {
+            break;
         }
         
-        size_t total_read = 0;
-        int brace_count = 0;
-        int in_string = 0;
-        int escape_next = 0;
+        json_buffer[total_read++] = (char)c;
         
-        // Read until we have a complete JSON object
-        while (total_read < JSON_BUFFER_SIZE - 1) {
-            int c = fgetc(stdin);
-            if (c == EOF) {
-                break;
-            }
-            
-            json_buffer[total_read++] = (char)c;
-            
-            // Track braces to know when JSON is complete
-            if (!escape_next && c == '"' && total_read > 1 && json_buffer[total_read-2] != '\\') {
-                in_string = !in_string;
-            }
-            escape_next = (!escape_next && c == '\\' && in_string);
-            
-            if (!in_string) {
-                if (c == '{') brace_count++;
-                else if (c == '}') {
-                    brace_count--;
-                    if (brace_count == 0) {
-                        // Complete JSON object found
-                        break;
-                    }
+        // Track braces to know when JSON is complete
+        if (!escape_next && c == '"' && total_read > 1 && json_buffer[total_read-2] != '\\') {
+            in_string = !in_string;
+        }
+        escape_next = (!escape_next && c == '\\' && in_string);
+        
+        if (!in_string) {
+            if (c == '{') brace_count++;
+            else if (c == '}') {
+                brace_count--;
+                if (brace_count == 0) {
+                    // Complete JSON object found
+                    break;
                 }
             }
         }
-        
-        json_buffer[total_read] = '\0';
-        
-        // Remove trailing newline if present
-        if (total_read > 0 && json_buffer[total_read - 1] == '\n') {
-            json_buffer[total_read - 1] = '\0';
-            total_read--;
-        }
-        
-        int parse_result = -1;
-        if (total_read > 0) {
-            parse_result = parse_struct_values_from_string(json_buffer, pl, mcm, tps);
-            if (parse_result != 0) {
-                fprintf(stderr, "SIL: Failed to parse JSON in loop (error: %d)\n", parse_result);
-                fflush(stderr);
-            }
-        }
-        
-        free(json_buffer);
-        return parse_result;
     }
     
-    // No data available (non-blocking)
-    return 1;
+    json_buffer[total_read] = '\0';
+    
+    // Remove trailing newline if present
+    if (total_read > 0 && json_buffer[total_read - 1] == '\n') {
+        json_buffer[total_read - 1] = '\0';
+        total_read--;
+    }
+    
+    int parse_result = -1;
+    if (total_read > 0) {
+        parse_result = parse_struct_values_from_string(json_buffer, pl, mcm, tps);
+        if (parse_result != 0) {
+            fprintf(stderr, "SIL: Failed to parse JSON in loop (error: %d)\n", parse_result);
+            fflush(stderr);
+        }
+    }
+    
+    free(json_buffer);
+    return parse_result;
 }
 
 // Static variable to store output mode (set via compile-time define SIL_OUTPUT_MODE_CONFIG)
@@ -211,7 +220,7 @@ void sil_write_json_output(MotorController* mcm, PowerLimit* pl, Efficiency* eff
             printf("\"time_in_corners\":%.4f", eff->timeInCorners_s);
             
             if (!first_eff) printf(",");
-            printf("\"lap_counter\":%.4f", eff->lapCounter);
+            printf("\"lap_counter\":%d", eff->lapCounter);
             
             // pl_target is optional - only output if pl is available
             if (pl != NULL) {
