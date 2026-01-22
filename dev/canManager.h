@@ -35,7 +35,7 @@ CanManager *CanManager_new(ubyte2 can0_busSpeed, ubyte1 can0_read_messageLimit, 
 IO_ErrorType CanManager_send(CanManager *me, CanChannel channel, IO_CAN_DATA_FRAME canMessages[], ubyte1 canMessageCount);
 
 //Reads and distributes can messages to their appropriate subsystem objects so they can updates themselves
-void CanManager_read(CanManager *me, CanChannel channel, MotorController *mcm, InstrumentCluster *ic, BatteryManagementSystem *bms, SafetyChecker *sc, WheelSpeeds *wss);
+void CanManager_read(CanManager *me, CanChannel channel, MotorController *mcm, InstrumentCluster *ic, BatteryManagementSystem *bms, SafetyChecker *sc, WheelSpeeds *wss, PowerLimit *pl, LaunchControl *lc, Regen *regen, Efficiency *eff);
 
 void canOutput_sendSensorMessages(CanManager *me);
 void can1utput_sendSensorMessages(CanManager *me);

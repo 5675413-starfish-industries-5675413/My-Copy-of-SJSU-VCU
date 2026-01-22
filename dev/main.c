@@ -377,7 +377,7 @@ void main(void)
         sensors_updateSensors();
 
         //Pull messages from CAN FIFO and update our object representations.
-        CanManager_read(canMan, CAN0_HIPRI, mcm0, ic0, bms, sc, wss);
+        CanManager_read(canMan, CAN0_HIPRI, mcm0, ic0, bms, sc, wss, pl, lc, regen, eff);
 
         // if (Sensor_TestButton.sensorValue == TRUE ) {
         //     // TODO rewire Sensor_TestButton 
