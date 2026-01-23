@@ -11,37 +11,354 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Platform-specific includes for select() and file I/O
+// Platform-specific includes for select()
 #ifdef _WIN32
-    // Windows: MinGW/MSYS2 provides POSIX-compatible select()
     #include <winsock2.h>
     #define STDIN_FILENO 0
 #else
-    // POSIX (Linux/WSL/macOS)
     #include <sys/select.h>
     #include <unistd.h>
 #endif
 
-// Include parse_values.h - the build system should handle the include path
-#ifdef SIL_BUILD
-// Forward declaration - parse_values.h should be available via build system include paths
-extern int parse_struct_values_from_string(const char* json_string, 
-                                           PowerLimit* pl, 
-                                           MotorController* mcm, 
-                                           TorqueEncoder* tps);
-#endif
+// JSON parsing includes
+#include "cJSON.h"
+#include "PID.h"
 
-int sil_read_initial_json(PowerLimit* pl, MotorController* mcm, TorqueEncoder* tps)
+// JSON buffer size for reading from stdin
+#define JSON_BUFFER_SIZE (256 * 1024)
+
+/*****************************************************************************
+ * JSON Parsing Functions
+ * Parse JSON configuration values into structs
+ *****************************************************************************/
+
+/**
+ * Helper function to safely get integer value from JSON, skipping if null
+ */
+static int get_json_int_safe(cJSON* item, const char* key, int* out_value)
 {
-    // Use a large buffer for JSON (up to 256KB)
-    #define JSON_BUFFER_SIZE (256 * 1024)
-    char* json_buffer = (char*)malloc(JSON_BUFFER_SIZE);
-    if (json_buffer == NULL) {
-        fprintf(stderr, "SIL: Failed to allocate JSON buffer\n");
-        fflush(stderr);
+    cJSON* json_item = cJSON_GetObjectItem(item, key);
+    if (json_item == NULL || cJSON_IsNull(json_item)) {
+        return 0; // Field not found or null, skip
+    }
+    if (cJSON_IsNumber(json_item)) {
+        *out_value = json_item->valueint;
+        return 1; // Success
+    }
+    return 0; // Invalid type
+}
+
+/**
+ * Helper function to safely get double value from JSON, skipping if null
+ */
+static int get_json_double_safe(cJSON* item, const char* key, double* out_value)
+{
+    cJSON* json_item = cJSON_GetObjectItem(item, key);
+    if (json_item == NULL || cJSON_IsNull(json_item)) {
+        return 0; // Field not found or null, skip
+    }
+    if (cJSON_IsNumber(json_item)) {
+        *out_value = json_item->valuedouble;
+        return 1; // Success
+    }
+    return 0; // Invalid type
+}
+
+/**
+ * Helper function to safely get boolean value from JSON, skipping if null
+ */
+static int get_json_bool_safe(cJSON* item, const char* key, bool* out_value)
+{
+    cJSON* json_item = cJSON_GetObjectItem(item, key);
+    if (json_item == NULL || cJSON_IsNull(json_item)) {
+        return 0; // Field not found or null, skip
+    }
+    if (cJSON_IsBool(json_item)) {
+        *out_value = (bool)cJSON_IsTrue(json_item);
+        return 1; // Success
+    }
+    return 0; // Invalid type
+}
+
+/**
+ * Parse PID nested structure from JSON
+ */
+static void parse_PID_from_json(PID* pid, cJSON* pid_json)
+{
+    if (pid == NULL || pid_json == NULL) {
+        return;
+    }
+    
+    int int_val;
+    
+    if (get_json_int_safe(pid_json, "Kp", &int_val)) {
+        pid->Kp = (sbyte1)int_val;
+    }
+    if (get_json_int_safe(pid_json, "Ki", &int_val)) {
+        pid->Ki = (sbyte2)int_val;
+    }
+    if (get_json_int_safe(pid_json, "Kd", &int_val)) {
+        pid->Kd = (sbyte1)int_val;
+    }
+    if (get_json_int_safe(pid_json, "saturation", &int_val)) {
+        pid->saturationValue = (sbyte2)int_val;
+    }
+    if (get_json_int_safe(pid_json, "gain", &int_val)) {
+        pid->scalefactor = (sbyte2)int_val;
+    }
+}
+
+/**
+ * Parse PowerLimit struct values from JSON object
+ */
+static int parse_PowerLimit_from_json(PowerLimit* pl, cJSON* params)
+{
+    if (pl == NULL || params == NULL) {
         return -1;
     }
     
+    int int_val;
+    double double_val;
+    bool bool_val;
+    
+    // Parse nested PID structure
+    cJSON* pid_json = cJSON_GetObjectItem(params, "pid");
+    if (pid_json != NULL && !cJSON_IsNull(pid_json) && pl->pid != NULL) {
+        parse_PID_from_json(pl->pid, pid_json);
+    }
+    
+    // Parse simple fields (skip if null)
+    if (get_json_bool_safe(params, "plToggle", &bool_val)) {
+        pl->plToggle = bool_val;
+    }
+    if (get_json_bool_safe(params, "plStatus", &bool_val)) {
+        pl->plStatus = bool_val;
+    }
+    if (get_json_int_safe(params, "plMode", &int_val)) {
+        pl->plMode = (ubyte1)int_val;
+    }
+    if (get_json_int_safe(params, "plTargetPower", &int_val)) {
+        pl->plTargetPower = (ubyte1)int_val;
+    }
+    if (get_json_int_safe(params, "plKwLimit", &int_val)) {
+        pl->plKwLimit = (ubyte1)int_val;
+    }
+    if (get_json_int_safe(params, "plInitializationThreshold", &int_val)) {
+        pl->plInitializationThreshold = (ubyte1)int_val;
+    }
+    if (get_json_int_safe(params, "plTorqueCommand", &int_val)) {
+        pl->plTorqueCommand = (sbyte2)int_val;
+    }
+    if (get_json_int_safe(params, "clampingMethod", &int_val)) {
+        pl->clampingMethod = (ubyte1)int_val;
+    }
+    if (get_json_double_safe(params, "previousPower", &double_val)) {
+        pl->previousPower = (float)double_val;
+    }
+    if (get_json_double_safe(params, "powerChangeRate", &double_val)) {
+        pl->powerChangeRate = (float)double_val;
+    }
+    if (get_json_int_safe(params, "settlingCounter", &int_val)) {
+        pl->settlingCounter = (ubyte2)int_val;
+    }
+    if (get_json_bool_safe(params, "usePowerPID", &bool_val)) {
+        pl->usePowerPID = bool_val;
+    }
+    if (get_json_int_safe(params, "SETTLING_THRESHOLD", &int_val)) {
+        pl->SETTLING_THRESHOLD = (ubyte2)int_val;
+    }
+    if (get_json_double_safe(params, "POWER_CHANGE_THRESHOLD", &double_val)) {
+        pl->POWER_CHANGE_THRESHOLD = (float)double_val;
+    }
+    if (get_json_double_safe(params, "POWER_BELOW_SETPOINT_THRESHOLD", &double_val)) {
+        pl->POWER_BELOW_SETPOINT_THRESHOLD = (float)double_val;
+    }
+    if (get_json_int_safe(params, "vFloorRFloor", &int_val)) {
+        pl->vFloorRFloor = (ubyte1)int_val;
+    }
+    if (get_json_int_safe(params, "vFloorRCeiling", &int_val)) {
+        pl->vFloorRCeiling = (ubyte1)int_val;
+    }
+    if (get_json_int_safe(params, "vCeilingRFloor", &int_val)) {
+        pl->vCeilingRFloor = (ubyte1)int_val;
+    }
+    if (get_json_int_safe(params, "vCeilingRCeiling", &int_val)) {
+        pl->vCeilingRCeiling = (ubyte1)int_val;
+    }
+    if (get_json_bool_safe(params, "plAlwaysOn", &bool_val)) {
+        pl->plAlwaysOn = bool_val;
+    }
+    if (get_json_int_safe(params, "plThresholdDiscrepancy", &int_val)) {
+        pl->plThresholdDiscrepancy = (ubyte1)int_val;
+    }
+    
+    return 0;
+}
+
+/**
+ * Parse MotorController struct values from JSON object
+ * Uses increment functions from motorController.h to set values
+ */
+static int parse_MotorController_from_json(MotorController* mcm, cJSON* params)
+{
+    if (mcm == NULL || params == NULL) {
+        return -1;
+    }
+    
+    int int_val;
+    
+    // Set DC Voltage (increment from initial value of 13)
+    if (get_json_int_safe(params, "DC_Voltage", &int_val)) {
+        sbyte4 increment = (sbyte4)(int_val - 13);
+        MCM_incrementVoltageForTesting(mcm, increment);
+    }
+    
+    // Set DC Current (increment from initial value of 13)
+    if (get_json_int_safe(params, "DC_Current", &int_val)) {
+        sbyte4 increment = (sbyte4)(int_val - 13);
+        MCM_incrementCurrentForTesting(mcm, increment);
+    }
+    
+    // Set Motor RPM (increment from initial value of 0)
+    if (get_json_int_safe(params, "motorRPM", &int_val)) {
+        MCM_incrementRPMForTesting(mcm, (sbyte4)int_val);
+    }
+    
+    return 0;
+}
+
+/**
+ * Parse TorqueEncoder struct values from JSON object
+ */
+static int parse_TorqueEncoder_from_json(TorqueEncoder* tps, cJSON* params)
+{
+    if (tps == NULL || params == NULL) {
+        return -1;
+    }
+    
+    int int_val;
+    double double_val;
+    bool bool_val;
+    
+    if (get_json_int_safe(params, "tps0_calibMin", &int_val)) {
+        tps->tps0_calibMin = (ubyte4)int_val;
+    }
+    if (get_json_int_safe(params, "tps0_calibMax", &int_val)) {
+        tps->tps0_calibMax = (ubyte4)int_val;
+    }
+    if (get_json_bool_safe(params, "tps0_reverse", &bool_val)) {
+        tps->tps0_reverse = bool_val;
+    }
+    if (get_json_double_safe(params, "tps0_percent", &double_val)) {
+        tps->tps0_percent = (float4)double_val;
+    }
+    if (get_json_int_safe(params, "tps1_calibMin", &int_val)) {
+        tps->tps1_calibMin = (ubyte4)int_val;
+    }
+    if (get_json_int_safe(params, "tps1_calibMax", &int_val)) {
+        tps->tps1_calibMax = (ubyte4)int_val;
+    }
+    if (get_json_bool_safe(params, "tps1_reverse", &bool_val)) {
+        tps->tps1_reverse = bool_val;
+    }
+    if (get_json_double_safe(params, "tps1_percent", &double_val)) {
+        tps->tps1_percent = (float4)double_val;
+    }
+    if (get_json_double_safe(params, "travelPercent", &double_val)) {
+        tps->travelPercent = (float4)double_val;
+    }
+    if (get_json_double_safe(params, "outputCurveExponent", &double_val)) {
+        tps->outputCurveExponent = (float4)double_val;
+    }
+    if (get_json_bool_safe(params, "calibrated", &bool_val)) {
+        tps->calibrated = bool_val;
+    }
+    if (get_json_bool_safe(params, "implausibility", &bool_val)) {
+        tps->implausibility = bool_val;
+    }
+    
+    return 0;
+}
+
+/**
+ * Parse JSON string and assign values to structs
+ * This is the main function used by sil_read_initial_json and sil_read_json_input
+ */
+static int parse_struct_values_from_string(const char* json_string, 
+                                           PowerLimit* pl, 
+                                           MotorController* mcm, 
+                                           TorqueEncoder* tps)
+{
+    if (json_string == NULL) {
+        return -1; // Invalid input
+    }
+    
+    // Parse JSON
+    cJSON* json = cJSON_Parse(json_string);
+    if (json == NULL) {
+        return -1; // Failed to parse JSON
+    }
+    
+    // Handle two formats:
+    // 1. Direct array: [{...}, {...}]
+    // 2. Object with "structs" key: {"structs": [{...}, {...}], "row_id": ...}
+    cJSON* structs_array = NULL;
+    if (cJSON_IsArray(json)) {
+        // Format 1: Direct array
+        structs_array = json;
+    } else if (cJSON_IsObject(json)) {
+        // Format 2: Object with "structs" key
+        structs_array = cJSON_GetObjectItem(json, "structs");
+        if (structs_array == NULL || !cJSON_IsArray(structs_array)) {
+            cJSON_Delete(json);
+            return -2; // "structs" key not found or not an array
+        }
+    } else {
+        cJSON_Delete(json);
+        return -3; // Invalid format (not array or object)
+    }
+    
+    // Iterate through array to find the structs we need
+    int array_size = cJSON_GetArraySize(structs_array);
+    for (int i = 0; i < array_size; i++) {
+        cJSON* struct_item = cJSON_GetArrayItem(structs_array, i);
+        if (struct_item == NULL) {
+            continue;
+        }
+        
+        cJSON* name_item = cJSON_GetObjectItem(struct_item, "name");
+        if (name_item == NULL || !cJSON_IsString(name_item)) {
+            continue;
+        }
+        
+        const char* struct_name = name_item->valuestring;
+        cJSON* params = cJSON_GetObjectItem(struct_item, "parameters");
+        
+        if (params == NULL) {
+            continue;
+        }
+        
+        // Parse based on struct name
+        if (strcmp(struct_name, "PowerLimit") == 0 && pl != NULL) {
+            parse_PowerLimit_from_json(pl, params);
+        } else if (strcmp(struct_name, "MotorController") == 0 && mcm != NULL) {
+            parse_MotorController_from_json(mcm, params);
+        } else if (strcmp(struct_name, "TorqueEncoder") == 0 && tps != NULL) {
+            parse_TorqueEncoder_from_json(tps, params);
+        }
+    }
+    
+    cJSON_Delete(json);
+    return 0;
+}
+
+/**
+ * Helper function to read a complete JSON object from stdin
+ * @param json_buffer Buffer to store JSON (must be at least JSON_BUFFER_SIZE)
+ * @return Number of bytes read, or -1 on error
+ */
+static int read_json_from_stdin(char* json_buffer)
+{
     size_t total_read = 0;
     int brace_count = 0;
     int in_string = 0;
@@ -82,17 +399,31 @@ int sil_read_initial_json(PowerLimit* pl, MotorController* mcm, TorqueEncoder* t
         total_read--;
     }
     
+    return (int)total_read;
+}
+
+int sil_read_initial_json(PowerLimit* pl, MotorController* mcm, TorqueEncoder* tps)
+{
+    char* json_buffer = (char*)malloc(JSON_BUFFER_SIZE);
+    if (json_buffer == NULL) {
+        fprintf(stderr, "SIL: Failed to allocate JSON buffer\n");
+        fflush(stderr);
+        return -1;
+    }
+    
+    int total_read = read_json_from_stdin(json_buffer);
     int result = -1;
+    
     if (total_read > 0) {
         result = parse_struct_values_from_string(json_buffer, pl, mcm, tps);
         
         if (result != 0) {
-            fprintf(stderr,
-                    "SIL: Failed to parse JSON from stdin (error: %d, length: %zu)\n",
+            fprintf(stderr, "SIL: Failed to parse JSON from stdin (error: %d, length: %d)\n",
                     result, total_read);
             fprintf(stderr, "SIL: Received JSON (first 200 chars): %.200s\n", json_buffer);
             if (total_read > 200) {
-                fprintf(stderr, "SIL: Received JSON (last 200 chars): %.200s\n", json_buffer + total_read - 200);
+                fprintf(stderr, "SIL: Received JSON (last 200 chars): %.200s\n", 
+                        json_buffer + total_read - 200);
             }
             fflush(stderr);
         }
@@ -115,58 +446,20 @@ int sil_read_json_input(PowerLimit* pl, MotorController* mcm, TorqueEncoder* tps
     timeout.tv_sec = 0;
     timeout.tv_usec = 0;
     
-    if (select(STDIN_FILENO + 1, &readfds, NULL, NULL, &timeout) <= 0 || !FD_ISSET(STDIN_FILENO, &readfds)) {
+    if (select(STDIN_FILENO + 1, &readfds, NULL, NULL, &timeout) <= 0 || 
+        !FD_ISSET(STDIN_FILENO, &readfds)) {
         return 1;  // No data available
     }
     
     // Data available, read JSON
-    #define JSON_BUFFER_SIZE (256 * 1024)
     char* json_buffer = (char*)malloc(JSON_BUFFER_SIZE);
     if (json_buffer == NULL) {
         return -1;
     }
     
-    size_t total_read = 0;
-    int brace_count = 0;
-    int in_string = 0;
-    int escape_next = 0;
-    
-    // Read until we have a complete JSON object
-    while (total_read < JSON_BUFFER_SIZE - 1) {
-        int c = fgetc(stdin);
-        if (c == EOF) {
-            break;
-        }
-        
-        json_buffer[total_read++] = (char)c;
-        
-        // Track braces to know when JSON is complete
-        if (!escape_next && c == '"' && total_read > 1 && json_buffer[total_read-2] != '\\') {
-            in_string = !in_string;
-        }
-        escape_next = (!escape_next && c == '\\' && in_string);
-        
-        if (!in_string) {
-            if (c == '{') brace_count++;
-            else if (c == '}') {
-                brace_count--;
-                if (brace_count == 0) {
-                    // Complete JSON object found
-                    break;
-                }
-            }
-        }
-    }
-    
-    json_buffer[total_read] = '\0';
-    
-    // Remove trailing newline if present
-    if (total_read > 0 && json_buffer[total_read - 1] == '\n') {
-        json_buffer[total_read - 1] = '\0';
-        total_read--;
-    }
-    
+    int total_read = read_json_from_stdin(json_buffer);
     int parse_result = -1;
+    
     if (total_read > 0) {
         parse_result = parse_struct_values_from_string(json_buffer, pl, mcm, tps);
         if (parse_result != 0) {

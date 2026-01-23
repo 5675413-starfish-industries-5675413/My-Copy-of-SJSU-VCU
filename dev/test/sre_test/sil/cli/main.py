@@ -2,8 +2,17 @@
 SIL CLI Commands
 """
 
-import click
+import csv
+import json
+import subprocess
+import time
 from pathlib import Path
+
+import click
+
+from sre_test.sil.core.compiler import SILCompiler
+from sre_test.sil.core.simulator import SILSimulator
+from sre_test.sil.core.struct_parser import extract_struct_definitions
 
 try:
     from rich.console import Console
@@ -31,8 +40,6 @@ def cli():
 @click.option('--output-mode', type=str, default='0x01', help='SIL output mode (0x01=efficiency, 0x07=all)')
 def build(verbose, output_mode):
     """Compile the SIL executable."""
-    from sre_test.sil.core.compiler import SILCompiler
-
     # Parse output mode
     try:
         sil_output_mode = int(output_mode, 0)  # Allow hex (0x01) or decimal (1)
@@ -54,8 +61,6 @@ def build(verbose, output_mode):
 @click.option('--output', '-o', type=click.Path(), help='Output JSON file')
 def extract(output):
     """Extract struct definitions from C headers."""
-    from sre_test.sil.core.struct_parser import extract_struct_definitions
-
     # Determine paths
     script_dir = Path(__file__).parent.parent  # dev/test/sre_test/sil/
     sre_test_dir = script_dir.parent  # dev/test/sre_test/
@@ -87,10 +92,6 @@ def extract(output):
 @click.option('--timeout', '-t', type=float, default=2.0, help='Run timeout in seconds')
 def run(config, timeout):
     """Run a single SIL simulation."""
-    from sre_test.sil.core.compiler import SILCompiler
-    from sre_test.sil.core.simulator import SILSimulator
-    import json
-
     compiler = SILCompiler()
     if not compiler.executable.exists():
         console.print("[yellow]Executable not found. Building...[/yellow]")
@@ -131,13 +132,6 @@ def efficiency(csv_file, output, config, timeout_per_row, save_progress_every, o
     Reads motor data from CSV, sends to SIL simulator row-by-row,
     and collects efficiency results.
     """
-    from sre_test.sil.core.compiler import SILCompiler
-    from sre_test.sil.core.simulator import SILSimulator
-    from sre_test.sil.core.struct_parser import extract_struct_definitions
-    import csv
-    import json
-    import time
-
     # Parse output mode
     try:
         sil_output_mode = int(output_mode, 0)
@@ -340,8 +334,6 @@ def efficiency(csv_file, output, config, timeout_per_row, save_progress_every, o
 @click.option('-v', '--verbose', is_flag=True, help='Verbose output')
 def test(expression, verbose):
     """Run SIL pytest tests."""
-    import subprocess
-
     cmd = ['pytest', 'sre_test/sil/tests/']
     if expression:
         cmd.extend(['-k', expression])

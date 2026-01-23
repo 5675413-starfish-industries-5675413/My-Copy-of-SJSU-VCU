@@ -77,11 +77,6 @@ class SILCompiler:
         sources.extend(self.dev_dir / f for f in vcu_sources)
         sources.extend(self.sil_inc_dir / f for f in sil_sources)
 
-        # Add parse_values.c from build_main_sil (retained)/
-        parse_values = self.script_dir / 'build_main_sil (retained)' / 'parse_values.c'
-        if parse_values.exists():
-            sources.append(parse_values)
-
         return [f for f in sources if f.exists()]
 
     def get_compiler_flags(self) -> List[str]:
@@ -114,10 +109,6 @@ class SILCompiler:
             f'-I{self.inc_dir.resolve()}',
             f'-I{self.dev_dir.resolve()}',
         ]
-        # Also include build_main_sil (retained) for parse_values.h
-        parse_values_dir = self.script_dir / 'build_main_sil (retained)'
-        if parse_values_dir.exists():
-            paths.append(f'-I{parse_values_dir.resolve()}')
         return paths
 
     def _get_compiler(self) -> str:

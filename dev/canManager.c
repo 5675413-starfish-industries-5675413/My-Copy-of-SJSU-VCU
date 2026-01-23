@@ -408,8 +408,9 @@ void CanManager_read(CanManager* me, CanChannel channel, MotorController* mcm, I
         case 0x604:
         case 0x608:
         case 0x610:
+        mcm
         case 0x611:
-        case 0x612:
+        case 0x612: 
         case 0x613:
         case 0x620:
         case 0x621:
