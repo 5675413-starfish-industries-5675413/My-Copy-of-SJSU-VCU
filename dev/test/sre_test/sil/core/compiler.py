@@ -21,13 +21,13 @@ class SILCompiler:
         Args:
             dev_dir: Path to dev/ directory containing VCU source files
             inc_dir: Path to inc/ directory containing VCU headers
-            sil_inc_dir: Path to SIL stub directory (dev/test/sre_test/sil/inc (retained)/)
+            sil_inc_dir: Path to SIL stub directory (dev/test/sre_test/sil/inc/)
             sil_output_mode: SIL output mode configuration (0x01=efficiency, 0x02=power_limit, 
                              0x04=motor_controller, 0x07=all). Default is 0x01 (efficiency only).
         """
         # Auto-detect paths relative to this file
         self.script_dir = Path(__file__).parent.parent  # dev/test/sre_test/sil/
-        self.sil_inc_dir = sil_inc_dir or self.script_dir / 'inc (retained)'
+        self.sil_inc_dir = sil_inc_dir or self.script_dir / 'inc'
 
         # Navigate up to find dev/ and inc/
         sil_dir = self.script_dir  # dev/test/sre_test/sil/
