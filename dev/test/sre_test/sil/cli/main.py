@@ -13,7 +13,7 @@ from sre_test.sil.cli.efficiency_commands import efficiency
 from sre_test.sil.core.compiler import SILCompiler
 from sre_test.sil.core.simulator import SILSimulator
 from sre_test.sil.core.struct_parser import extract_struct_definitions
-from sre_test.sil.cli.test_commands import *
+import sre_test.sil.cli.test_commands as test_cmds
 
 
 @click.group()
@@ -25,7 +25,13 @@ def cli():
     """
     pass
 
+# Register commands from other modules
+cli.add_command(efficiency)
 
+# Automatically register all discovered test commandsimport sre_test.sil.cli.test_commands as test_cmds
+for test_name in test_cmds.TEST_COMMANDS:
+    test_command = getattr(test_cmds, test_name)
+    cli.add_command(test_command)
 
 @cli.command()
 @click.option('--verbose', '-v', is_flag=True, help='Show compilation output')
@@ -108,18 +114,3 @@ def run(config, timeout):
             console.print(json.dumps(response, indent=2))
         else:
             console.print("[yellow]No response received within timeout[/yellow]")
-
-
-@cli.command()
-@click.option('-k', 'expression', help='Only run tests matching expression')
-@click.option('-v', '--verbose', is_flag=True, help='Verbose output')
-def test(expression, verbose):
-    """Run SIL pytest tests."""
-    cmd = ['pytest', 'sre_test/sil/tests/']
-    if expression:
-        cmd.extend(['-k', expression])
-    if verbose:
-        cmd.append('-v')
-
-    subprocess.run(cmd)
-

@@ -51,7 +51,7 @@ def efficiency(csv_file, output, config, timeout_per_row, save_progress_every, o
     # Extract struct definitions if needed
     if not struct_members_path.exists():
         console.print("[cyan]Extracting struct definitions...[/cyan]")
-        extract_struct_definitions(dev_dir, inc_dir, struct_members_path)
+        extract_struct_definitions()
     
     # Read CSV file
     csv_file_path = Path(csv_file)

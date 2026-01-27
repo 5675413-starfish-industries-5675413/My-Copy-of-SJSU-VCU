@@ -7,11 +7,10 @@ import json
 from pathlib import Path
 from typing import List, Dict, Any
 
-try:
-    from pycparser import parse_file, c_ast
-    import pycparser
-except ImportError:
-    raise ImportError("pycparser is not installed. Install it with: pip install pycparser")
+from pycparser import parse_file, c_ast
+import pycparser
+
+from sre_test.sil.core.helpers.path import DEV, INC, CONFIG, STRUCT_MEMBERS
 
 
 def strip_comments_and_directives(content: str) -> str:
@@ -361,20 +360,29 @@ def format_output(structs_data: List[Dict[str, Any]], output_file: Path) -> None
         json.dump(json_data, f, indent=2, ensure_ascii=False)
 
 
-def extract_struct_definitions(dev_dir: Path, inc_dir: Path, output_file: Path) -> Dict[str, Any]:
+def extract_struct_definitions(output_file: Path = None) -> Dict[str, Any]:
     """
     Extract all struct definitions from C headers.
+    Uses global path constants from helpers.path.
 
     Args:
-        dev_dir: Path to dev/ directory
-        inc_dir: Path to inc/ directory
-        output_file: Path to write struct_members_output.json
+        output_file: Optional custom output file path. 
+                     Defaults to STRUCT_MEMBERS from helpers.path.
 
     Returns:
         Dictionary of struct definitions
     """
     all_structs = []
     
+    # Use global path constants
+    dev_dir = DEV
+    inc_dir = INC
+    
+    # Use provided output_file or default to STRUCT_MEMBERS
+    if output_file is None:
+        output_file = STRUCT_MEMBERS
+        CONFIG.mkdir(exist_ok=True)
+        
     # Scan dev directory
     if dev_dir.exists():
         print(f"Scanning {dev_dir}...")
