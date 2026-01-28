@@ -65,6 +65,9 @@
 #include "parse_values.h"
 #endif
 
+// HIL includes
+#include "hilParameter.h"
+
 //Application Database, needed for TTC-Downloader
 APDB appl_db =
     {
@@ -346,6 +349,11 @@ void main(void)
     #endif
 
     /*******************************************/
+    /*           HIL CONFIGURATION             */
+    /*******************************************/
+    HIL_initParamTable(mcm0, pl, lc, bms, regen, eff);
+
+    /*******************************************/
     /*       PERIODIC APPLICATION CODE         */
     /*******************************************/
     /* main loop, executed periodically with a defined cycle time (here: 5 ms) */
@@ -377,7 +385,7 @@ void main(void)
         sensors_updateSensors();
 
         //Pull messages from CAN FIFO and update our object representations.
-        CanManager_read(canMan, CAN0_HIPRI, mcm0, ic0, bms, sc, wss, pl, lc, regen, eff);
+        CanManager_read(canMan, CAN0_HIPRI, mcm0, ic0, bms, sc, wss);
 
         // if (Sensor_TestButton.sensorValue == TRUE ) {
         //     // TODO rewire Sensor_TestButton 
