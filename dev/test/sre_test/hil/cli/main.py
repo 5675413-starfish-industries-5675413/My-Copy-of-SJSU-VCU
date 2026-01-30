@@ -189,6 +189,39 @@ def signal_watch(ctx, signals, refresh_rate, duration):
     return
 
 @cli.command()
+@click.argument('name')
+@click.argument('value', type=int)
+@click.pass_context
+def inject(ctx, name, value):
+    """
+    Inject a parameter value into the VCU.
+
+    Examples:
+        hil inject pltog 1
+        hil inject plmode 2
+        hil inject pltarg 80
+    """
+    from sre_test.hil.core import HILParamInjector
+
+    try:
+        can_interface = CANInterface()
+        console.print(f"[green]✓[/green] Connected to {can_interface.channel_info}")
+    except Exception as e:
+        console.print(f"[red]✗[/red] CAN hardware not available: {e}")
+        return
+
+    try:
+        injector = HILParamInjector(can_interface)
+        result = injector.inject(name, value)
+
+        if result:
+            console.print(f"[green]✓[/green] {name} <- {value}")
+        else:
+            console.print(f"[red]✗[/red] Failed to send {name} <- {value}")
+    finally:
+        can_interface.shutdown()
+
+@cli.command()
 def version():
     """Show version information."""
     console.print(f"[bold]sre-hil[/bold] version {__version__}")
