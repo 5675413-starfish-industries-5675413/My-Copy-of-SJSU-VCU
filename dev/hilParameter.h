@@ -6,6 +6,7 @@
 typedef struct _MotorController MotorController;
 typedef struct _PowerLimit PowerLimit;
 typedef struct _LaunchControl LaunchControl;
+typedef struct _WheelSpeeds WheelSpeeds;
 typedef struct _BatteryManagementSystem BatteryManagementSystem;
 typedef struct _Regen Regen;
 typedef struct _Efficiency Efficiency;
@@ -38,7 +39,7 @@ typedef struct {
 /*** Populate parameter mapping table during runtime after struct   ***/ 
 /*** object creation and before while loop                          ***/
 /**********************************************************************/
-void HIL_initParamTable(MotorController *mcm, PowerLimit *pl, LaunchControl *lc, BatteryManagementSystem *bms, Regen *regen, Efficiency *eff);
+void HIL_initParamTable(MotorController *mcm, PowerLimit *pl, LaunchControl *lc, WheelSpeeds *wss, BatteryManagementSystem *bms, Regen *regen, Efficiency *eff);
 
 /**********************************************************************/
 /*** Parse injected parameter from CAN (called from canManager.c)   ***/

@@ -1,6 +1,7 @@
 #include "hilParameter.h"
 #include "powerLimit.h"
 #include "LaunchControl.h"
+#include "wheelSpeeds.h"
 #include "bms.h"
 #include "motorController.h"
 #include "regen.h"
@@ -84,7 +85,7 @@ static size_t hilParamCount = 0;
     } while(0)
 
 // Called at runtime
-void HIL_initParamTable(MotorController *mcm, PowerLimit *pl, LaunchControl *lc, BatteryManagementSystem *bms, Regen *regen, Efficiency *eff)
+void HIL_initParamTable(MotorController *mcm, PowerLimit *pl, LaunchControl *lc, WheelSpeeds *wss, BatteryManagementSystem *bms, Regen *regen, Efficiency *eff)
 {
     hilParamCount = 0;
 
@@ -102,8 +103,24 @@ void HIL_initParamTable(MotorController *mcm, PowerLimit *pl, LaunchControl *lc,
     HIL_ADD_PARAM("plclmp",     &(pl->clampingMethod),              TYPE_UBYTE1);
     // !! Modify parameters as needed !!
 
-    // LaunchControl parameters
-    HIL_ADD_PARAM("lcToggle",   &(lc->lcToggle),                    TYPE_BOOL);
+    // LaunchControl (and WheelSpeedSensor) parameters
+    HIL_ADD_PARAM("lctog",      &(lc->lcToggle),                    TYPE_BOOL);
+    HIL_ADD_PARAM("lcstat",     &(lc->state),                       TYPE_SBYTE4);   // !! Need to check type !!
+    HIL_ADD_PARAM("lcmode",     &(lc->mode),                        TYPE_SBYTE4);   // !! Need to check type !!
+    HIL_ADD_PARAM("lckp",       &(lc->Kp),                          TYPE_SBYTE1);
+    HIL_ADD_PARAM("lcki",       &(lc->Ki),                          TYPE_SBYTE1);
+    HIL_ADD_PARAM("lckd",       &(lc->Kd),                          TYPE_SBYTE1);
+    HIL_ADD_PARAM("lcsrt",      &(lc->slipRatioTarget),             TYPE_FLOAT4);
+    HIL_ADD_PARAM("lcinit",     &(lc->initialTorque),               TYPE_FLOAT4);
+    HIL_ADD_PARAM("lcmaxt",     &(lc->maxTorque),                   TYPE_FLOAT4);
+    HIL_ADD_PARAM("lck",        &(lc->k),                           TYPE_FLOAT4);
+    HIL_ADD_PARAM("lcfilt",     &(lc->useFilter),                   TYPE_BOOL);
+
+    // Placeholders for WSS RPM and speed parameters
+    //HIL_ADD_PARAM("fastestrearrpm",    &(wss->fastestRearRPM),          TYPE_FLOAT4);
+    //HIL_ADD_PARAM("groundspeedrpm,     &(wss->groundSpeedRPM),          TYPE_FLOAT4);
+    //HIL_ADD_PARAM("groundspeedmps",    &(wss->groundSpeedMPS),          TYPE_FLOAT4);
+    //HIL_ADD_PARAM("fastestrearmps",    &(wss->fastestRearMPS),          TYPE_FLOAT4);
     // !! Modify parameters as needed !!
 
     // BMS parameters
