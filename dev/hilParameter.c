@@ -155,7 +155,7 @@ static void HIL_writeParam(void *addr, ParamType type, sbyte4 value)
         case TYPE_SBYTE1:   *(sbyte1*)(addr) = (sbyte1)value;             break;
         case TYPE_SBYTE2:   *(sbyte2*)(addr) = (sbyte2)value;             break;
         case TYPE_SBYTE4:   *(sbyte4*)(addr) = value;                     break;
-        case TYPE_FLOAT4:   *(float4*)(addr) = (float4)value;             break;
+        case TYPE_FLOAT4:   memcpy(addr, &value, sizeof(float4));         break;
     }
 }
 
