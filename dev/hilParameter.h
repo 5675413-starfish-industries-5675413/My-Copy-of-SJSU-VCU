@@ -1,15 +1,13 @@
 #include <stddef.h>
 #include "IO_CAN.h"
 #include "IO_Driver.h"
-
-// Forward declarations for struct types (avoids circular dependencies for powerlimit.h, motorcontroller.h, etc.)
-typedef struct _MotorController MotorController;
-typedef struct _PowerLimit PowerLimit;
-typedef struct _LaunchControl LaunchControl;
-typedef struct _WheelSpeeds WheelSpeeds;
-typedef struct _BatteryManagementSystem BatteryManagementSystem;
-typedef struct _Regen Regen;
-typedef struct _Efficiency Efficiency;
+#include "powerLimit.h"
+#include "LaunchControl.h"
+#include "wheelSpeeds.h"
+#include "bms.h"
+#include "motorController.h"
+#include "regen.h"
+#include "efficiency.h"
 
 // Parameter data types
 typedef enum {

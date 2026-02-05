@@ -351,7 +351,7 @@ void main(void)
     /*******************************************/
     /*           HIL CONFIGURATION             */
     /*******************************************/
-    HIL_initParamTable(mcm0, pl, lc, bms, regen, eff);
+    HIL_initParamTable(mcm0, pl, lc, wss, bms, regen, eff);
 
     /*******************************************/
     /*       PERIODIC APPLICATION CODE         */
