@@ -6,8 +6,8 @@ Auto-discovers test functions and creates CLI commands dynamically.
 import pytest
 import click
 import inspect
-from pathlib import Path
 from sre_test.sil.cli.console import console
+from sre_test.sil.core.helpers.path import CLI_TESTS
 
 
 def discover_test_functions():
@@ -15,13 +15,12 @@ def discover_test_functions():
     Step 1: Find all test functions and their docstrings.
     Returns a dict mapping test names to their descriptions.
     """
-    script_dir = Path(__file__).parent.parent
-    test_dir = script_dir / 'core' / 'tests'
+    test_dir = CLI_TESTS
     
     test_info = {}  # {test_name: description}
     
     for test_file in test_dir.glob('test_*.py'):
-        module_name = f"sre_test.sil.core.tests.{test_file.stem}"
+        module_name = f"sre_test.sil.cli.tests.{test_file.stem}"
         try:
             module = __import__(module_name, fromlist=[''])
             for name, obj in inspect.getmembers(module, inspect.isfunction):
@@ -54,8 +53,7 @@ def create_test_command(test_name, description):
     )
     @click.option('-v', '--verbose', is_flag=True, help='Verbose output')
     def test_command(verbose):
-        script_dir = Path(__file__).parent.parent
-        test_dir = script_dir / 'core' / 'tests'
+        test_dir = CLI_TESTS
         
         args = [str(test_dir), '-k', test_name, '-s']  # -s disables output capturing
         if verbose:
