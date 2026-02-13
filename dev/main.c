@@ -562,7 +562,9 @@ void main(void)
     /*              SIL OUTPUTS                */
     /*******************************************/
     #ifdef SIL_BUILD
-    sil_write_json_output(mcm0, pl, eff);
+    // Use requested output mode if set, otherwise use default (0 = use default)
+    ubyte1 requested_mode = sil_get_requested_output_mode();
+    sil_write_json_output(mcm0, pl, eff, requested_mode);
     #endif
         
     } //end of main loop
