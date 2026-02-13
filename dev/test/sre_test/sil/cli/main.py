@@ -35,19 +35,11 @@ for test_name in test_cmds.TEST_COMMANDS:
 
 @cli.command()
 @click.option('--verbose', '-v', is_flag=True, help='Show compilation output')
-@click.option('--output-mode', type=str, default='0x01', help='SIL output mode (0x01=efficiency, 0x07=all)')
-def build(verbose, output_mode):
+def build(verbose):
     """Compile the SIL executable."""
-    # Parse output mode
-    try:
-        sil_output_mode = int(output_mode, 0)  # Allow hex (0x01) or decimal (1)
-    except ValueError:
-        console.print(f"[red]Invalid output mode: {output_mode}[/red]")
-        raise SystemExit(1)
-
     console.print("[cyan]Compiling SIL executable...[/cyan]")
 
-    compiler = SILCompiler(sil_output_mode=sil_output_mode)
+    compiler = SILCompiler()
     if compiler.compile(verbose=verbose):
         console.print(f"[green]Success![/green] Executable: {compiler.executable}")
     else:
@@ -59,26 +51,18 @@ def build(verbose, output_mode):
 @click.option('--output', '-o', type=click.Path(), help='Output JSON file')
 def extract(output):
     """Extract struct definitions from C headers."""
-    # Determine paths
-    script_dir = Path(__file__).parent.parent  # dev/test/sre_test/sil/
-    sre_test_dir = script_dir.parent  # dev/test/sre_test/
-    test_dir = sre_test_dir.parent  # dev/test/
-    dev_dir = test_dir.parent / 'dev'
-    root_dir = dev_dir.parent
-    inc_dir = root_dir / 'inc'
-    
     # Determine output file
     if output:
         output_file = Path(output)
     else:
-        config_dir = script_dir / 'config'
-        config_dir.mkdir(exist_ok=True)
-        output_file = config_dir / 'struct_members_output.json'
-
+        from sre_test.sil.core.helpers.path import CONFIG, STRUCT_MEMBERS
+        CONFIG.mkdir(exist_ok=True)
+        output_file = STRUCT_MEMBERS
+    
     console.print("[cyan]Extracting struct definitions...[/cyan]")
     
     try:
-        extract_struct_definitions(dev_dir, inc_dir, output_file)
+        extract_struct_definitions(output_file)
         console.print(f"[green]Done![/green] Output written to {output_file}")
     except Exception as e:
         console.print(f"[red]Error: {e}[/red]")
