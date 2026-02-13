@@ -45,6 +45,12 @@ void sil_set_output_mode(ubyte1 mode);
 ubyte1 sil_get_output_mode(void);
 
 /**
+ * Get the runtime-requested output mode (set via JSON)
+ * @return Requested output mode bitmask (0 if not set)
+ */
+ubyte1 sil_get_requested_output_mode(void);
+
+/**
  * Read initial JSON configuration from stdin during initialization
  * @param pl PowerLimit struct pointer (can be NULL if not needed)
  * @param mcm MotorController struct pointer (can be NULL if not needed)
@@ -72,8 +78,9 @@ int sil_read_json_input(PowerLimit* pl, MotorController* mcm, TorqueEncoder* tps
  * @param mcm MotorController struct pointer (can be NULL)
  * @param pl PowerLimit struct pointer (can be NULL)
  * @param eff Efficiency struct pointer (can be NULL)
+ * @param output_mode Optional bitmask for output mode. If 0, uses current sil_output_mode
  */
-void sil_write_json_output(MotorController* mcm, PowerLimit* pl, Efficiency* eff);
+void sil_write_json_output(MotorController* mcm, PowerLimit* pl, Efficiency* eff, ubyte1 output_mode);
 
 /**
  * Restore TPS values after TorqueEncoder_update overwrites them
