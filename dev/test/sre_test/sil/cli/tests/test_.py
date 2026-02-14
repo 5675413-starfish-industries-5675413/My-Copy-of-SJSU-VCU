@@ -78,7 +78,7 @@ def test_single_point():
     assert received == True
     print(f"✓ received {received}")
     
-    
+    # Useless dummy test
     def awesome_test():
         """This is the best test ever"""
         print("Hurray!!!")
