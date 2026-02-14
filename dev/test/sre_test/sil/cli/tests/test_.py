@@ -79,3 +79,6 @@ def test_single_point():
     print(f"✓ received {received}")
     
     
+    def awesome_test():
+        """This is the best test ever"""
+        print("Hurray!!!")
