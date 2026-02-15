@@ -48,8 +48,8 @@ BO_ 1285 VCU_WSS_RPM_Filtered: 8 VCU
 BO_ 1288 VCU_Regen_Settings: 8 VCU
  SG_ VCU_BPS0_mV : 0|16@1+ (1,0) [0|65535] "mV" VCU
  SG_ VCU_BPS1_mV : 16|16@1+ (1,0) [0|65535] "mV" VCU
- SG_ VCU_Pressure_BPS0 : 32|16@1+ (1,0) [0|65535] "Nm" VCU
- SG_ VCU_Pressire_BPS1 : 48|16@1+ (1,0) [0|65535] "" VCU
+ SG_ VCU_Pressure_BPS0 : 32|16@1+ (1,0) [0|65535] "kPa" VCU
+ SG_ VCU_Pressure_BPS1 : 48|16@1+ (1,0) [0|65535] "kPa" VCU
 
 BO_ 1291 VCU_LC_Status_A: 8 VCU
  SG_ VCU_LaunchControl_TorqueCommand_Nm : 0|16@1- (1,0) [-32768|32767] "Nm" VCU

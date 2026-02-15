@@ -15,7 +15,7 @@
 // Backcalc: mV to kPa
 #define MAX_RATED_PRESSURE      13789.5f    // kPa
 #define mV_TO_V                   0.001f
-#define MIN_V                       0.1f    // V
+#define MIN_V                       0.5f    // V
 #define V_RANGE                     4.0f    // 4.1V - 0.1V
 
 // TODO: #94 Make this CAN configurable and store in EEPROM
@@ -67,8 +67,8 @@ BrakePressureSensor *BrakePressureSensor_new(void)
 
 void BrakePressureSensor_setPressure(BrakePressureSensor *me){
     // backcalc: Voltage (mV) to Pressure (kPa)
-    me->bps0_Pressure = MAX_RATED_PRESSURE * (me->bps0_voltage * mV_TO_V - MIN_V) / V_RANGE;
-    me->bps1_Pressure = MAX_RATED_PRESSURE * (me->bps1_voltage * mV_TO_V - MIN_V) / V_RANGE;
+    me->bps0_Pressure = MAX_RATED_PRESSURE * ((me->bps0_voltage * mV_TO_V) - MIN_V) / V_RANGE;
+    me->bps1_Pressure = MAX_RATED_PRESSURE * ((me->bps1_voltage * mV_TO_V) - MIN_V) / V_RANGE;
 }
 
 //Updates all values based on sensor readings, safety checks, etc
