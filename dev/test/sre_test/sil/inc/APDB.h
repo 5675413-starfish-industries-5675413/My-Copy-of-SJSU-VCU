@@ -16,7 +16,8 @@ extern void _cstart( void );
  *
  **************************************************************************/
 
-#define APPL_START      ((ubyte4) &_cstart)
+// #define APPL_START      ((ubyte4) &_cstart)
+#define APPL_START      0 // SIL: use 0 as placeholder for main address
 
 #define APDB_ADDRESS    0xC10000
 

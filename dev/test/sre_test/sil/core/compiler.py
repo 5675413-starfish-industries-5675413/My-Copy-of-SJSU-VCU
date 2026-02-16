@@ -77,11 +77,20 @@ class SILCompiler:
         sources.extend(self.dev_dir / f for f in vcu_sources)
         sources.extend(self.sil_inc_dir / f for f in sil_sources)
 
-        return [f for f in sources if f.exists()]
+        found = [f for f in sources if f.exists()]
+        missing = [f for f in sources if not f.exists()]
+        
+        if missing:
+            print(f"Warning: {len(missing)} source files not found:")
+            for f in missing:
+                print(f"  - {f}")
+
+        return found
 
     def get_compiler_flags(self) -> List[str]:
         """Get GCC compiler flags."""
         flags = [
+            '-std=c11',  # Use C11 standard to avoid C23's built-in bool keyword
             '-O2', '-Wall',
             '-Wno-unused-variable',
             '-Wno-main',
@@ -152,6 +161,11 @@ class SILCompiler:
 
         if verbose:
             print(f"Compiling {len(sources)} source files...")
+            print(f"Dev dir: {self.dev_dir}")
+            print(f"Inc dir: {self.inc_dir}")
+            print(f"SIL inc dir: {self.sil_inc_dir}")
+            print(f"Build dir: {self.build_dir}")
+            print(f"Executable: {self.executable}")
 
         try:
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
@@ -163,8 +177,21 @@ class SILCompiler:
             return False
 
         if result.returncode != 0:
-            print(f"Compilation failed:\n{result.stderr}")
+            # Always print errors, even if verbose=False
+            print(f"\n{'='*60}")
+            print("COMPILATION FAILED")
+            print(f"{'='*60}")
+            if result.stdout:
+                print("STDOUT:")
+                print(result.stdout)
+            if result.stderr:
+                print("STDERR:")
+                print(result.stderr)
+            print(f"{'='*60}\n")
             return False
+
+        if verbose:
+            print(f"Compilation successful! Executable: {self.executable}")
 
         return self.executable.exists()
 
