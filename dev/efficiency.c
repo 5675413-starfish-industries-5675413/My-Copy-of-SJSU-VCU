@@ -104,6 +104,21 @@ void Efficiency_completedLap(Efficiency *me, MotorController *mcm)
     }
 }
 
+float Efficiency_getScoreError(Efficiency* me) {
+    if (me->energyBudget_kWh < 0.001f) return 0.0f;
+
+    // What fraction of the lap is done based on distance?
+    float lapFraction = me->lapDistance_km; // 0.0 → 1.0 km
+
+    // How much energy should we have spent by now (linear budget)?
+    float expectedEnergy = lapFraction * me->energyBudget_kWh;
+
+    // Error normalized to lap budget → gives a fraction like +0.06 or -0.04
+    return (me->lapEnergy_kWh - expectedEnergy) / me->energyBudget_kWh;
+}
+
+
+
 void Efficiency_resetLap(Efficiency *me)
 {
     me->straightTime_s = 0.0f;

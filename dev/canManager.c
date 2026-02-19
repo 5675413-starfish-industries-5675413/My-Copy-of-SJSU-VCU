@@ -690,8 +690,9 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(Regen_get_torqueCommand(regen))) >> 8;
     canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(Efficiency_getStraightTime_s(eff) * 10); // Convert to 0.1s units
     canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(Efficiency_getStraightTime_s(eff) * 10)) >> 8;
-    canMessages[canMessageCount - 1].data[byteNum++] = 0;
-    canMessages[canMessageCount - 1].data[byteNum++] = 0;
+    int16_t eff_score = (int16_t)(Efficiency_getScoreError(eff) * 10000.0f);
+    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(eff_score);
+    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(eff_score >> 8);
     canMessages[canMessageCount - 1].length = byteNum;
 
     //508: Regen settings
@@ -873,6 +874,7 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(PID_getOutput(lc->pid));
     canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(PID_getOutput(lc->pid))) >> 8;
     canMessages[canMessageCount - 1].length = byteNum;
+
 
 
     CanManager_send(me, CAN0_HIPRI, canMessages, canMessageCount); 
