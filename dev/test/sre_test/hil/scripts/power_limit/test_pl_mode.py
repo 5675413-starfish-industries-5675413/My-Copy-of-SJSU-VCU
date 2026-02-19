@@ -1,4 +1,5 @@
 import time
+
 from sre_test.hil.core import (
     CANInterface,
     DBCLoader,

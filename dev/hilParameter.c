@@ -73,16 +73,16 @@ ubyte4 HIL_encodeName(const char *name)
 static ParamMapping hilParamTable[HIL_MAX_PARAMS];
 static size_t hilParamCount = 0;
 
-// Helper macro for adding parameters to the table
-#define HIL_ADD_PARAM(nameStr, ptr, paramType) \
-    do { \
-        if (hilParamCount < HIL_MAX_PARAMS) { \
-            hilParamTable[hilParamCount].name = nameStr; \
-            hilParamTable[hilParamCount].address = (void*)(ptr); \
-            hilParamTable[hilParamCount].type = paramType; \
-            hilParamCount++; \
-        } \
-    } while(0)
+// Add parameters to the lookup table
+static void HIL_addParam(const char *nameStr, void *ptr, ParamType paramType)
+{
+    if (hilParamCount < HIL_MAX_PARAMS) {
+        hilParamTable[hilParamCount].name = nameStr;
+        hilParamTable[hilParamCount].address = ptr;
+        hilParamTable[hilParamCount].type = paramType;
+        hilParamCount++;
+    }
+}
 
 // Called at runtime
 void HIL_initParamTable(MotorController *mcm, PowerLimit *pl, LaunchControl *lc, WheelSpeeds *wss, BatteryManagementSystem *bms, Regen *regen, Efficiency *eff)
@@ -93,34 +93,34 @@ void HIL_initParamTable(MotorController *mcm, PowerLimit *pl, LaunchControl *lc,
     // !! Modify parameters as needed !!
     
     // PowerLimit parameters
-    HIL_ADD_PARAM("pltog",      &(pl->plToggle),                    TYPE_BOOL);
-    HIL_ADD_PARAM("plstat",     &(pl->plStatus),                    TYPE_BOOL);
-    HIL_ADD_PARAM("plmode",     &(pl->plMode),                      TYPE_UBYTE1);
-    HIL_ADD_PARAM("pltarg",     &(pl->plTargetPower),               TYPE_UBYTE1);
-    HIL_ADD_PARAM("plkwlm",     &(pl->plKwLimit),                   TYPE_UBYTE1);
-    HIL_ADD_PARAM("plinit",     &(pl->plInitializationThreshold),   TYPE_UBYTE1);
-    HIL_ADD_PARAM("pltqcm",     &(pl->plTorqueCommand),             TYPE_SBYTE2);
-    HIL_ADD_PARAM("plclmp",     &(pl->clampingMethod),              TYPE_UBYTE1);
+    HIL_addParam("pltog",      &(pl->plToggle),                    TYPE_BOOL);
+    HIL_addParam("plstat",     &(pl->plStatus),                    TYPE_BOOL);
+    HIL_addParam("plmode",     &(pl->plMode),                      TYPE_UBYTE1);
+    HIL_addParam("pltarg",     &(pl->plTargetPower),               TYPE_UBYTE1);
+    HIL_addParam("plkwlm",     &(pl->plKwLimit),                   TYPE_UBYTE1);
+    HIL_addParam("plinit",     &(pl->plInitializationThreshold),   TYPE_UBYTE1);
+    HIL_addParam("pltqcm",     &(pl->plTorqueCommand),             TYPE_SBYTE2);
+    HIL_addParam("plclmp",     &(pl->clampingMethod),              TYPE_UBYTE1);
     // !! Modify parameters as needed !!
 
     // LaunchControl (and WheelSpeedSensor) parameters
-    HIL_ADD_PARAM("lctog",      &(lc->lcToggle),                    TYPE_BOOL);
-    HIL_ADD_PARAM("lcstat",     &(lc->state),                       TYPE_SBYTE4);   // !! Need to check type !!
-    HIL_ADD_PARAM("lcmode",     &(lc->mode),                        TYPE_SBYTE4);   // !! Need to check type !!
-    HIL_ADD_PARAM("lckp",       &(lc->Kp),                          TYPE_SBYTE1);
-    HIL_ADD_PARAM("lcki",       &(lc->Ki),                          TYPE_SBYTE1);
-    HIL_ADD_PARAM("lckd",       &(lc->Kd),                          TYPE_SBYTE1);
-    HIL_ADD_PARAM("lcsrt",      &(lc->slipRatioTarget),             TYPE_FLOAT4);
-    HIL_ADD_PARAM("lcinit",     &(lc->initialTorque),               TYPE_FLOAT4);
-    HIL_ADD_PARAM("lcmaxt",     &(lc->maxTorque),                   TYPE_FLOAT4);
-    HIL_ADD_PARAM("lck",        &(lc->k),                           TYPE_FLOAT4);
-    HIL_ADD_PARAM("lcfilt",     &(lc->useFilter),                   TYPE_BOOL);
+    HIL_addParam("lctog",      &(lc->lcToggle),                    TYPE_BOOL);
+    HIL_addParam("lcstat",     &(lc->state),                       TYPE_SBYTE4);   // !! Need to check type !!
+    HIL_addParam("lcmode",     &(lc->mode),                        TYPE_SBYTE4);   // !! Need to check type !!
+    HIL_addParam("lckp",       &(lc->Kp),                          TYPE_SBYTE1);
+    HIL_addParam("lcki",       &(lc->Ki),                          TYPE_SBYTE1);
+    HIL_addParam("lckd",       &(lc->Kd),                          TYPE_SBYTE1);
+    HIL_addParam("lcsrt",      &(lc->slipRatioTarget),             TYPE_FLOAT4);
+    HIL_addParam("lcinit",     &(lc->initialTorque),               TYPE_FLOAT4);
+    HIL_addParam("lcmaxt",     &(lc->maxTorque),                   TYPE_FLOAT4);
+    HIL_addParam("lck",        &(lc->k),                           TYPE_FLOAT4);
+    HIL_addParam("lcfilt",     &(lc->useFilter),                   TYPE_BOOL);
 
     // Placeholders for WSS RPM and speed parameters
-    //HIL_ADD_PARAM("fastestrearrpm",    &(wss->fastestRearRPM),          TYPE_FLOAT4);
-    //HIL_ADD_PARAM("groundspeedrpm,     &(wss->groundSpeedRPM),          TYPE_FLOAT4);
-    //HIL_ADD_PARAM("groundspeedmps",    &(wss->groundSpeedMPS),          TYPE_FLOAT4);
-    //HIL_ADD_PARAM("fastestrearmps",    &(wss->fastestRearMPS),          TYPE_FLOAT4);
+    //HIL_addParam("fastestrearrpm",    &(wss->fastestRearRPM),          TYPE_FLOAT4);
+    //HIL_addParam("groundspeedrpm",     &(wss->groundSpeedRPM),          TYPE_FLOAT4);
+    //HIL_addParam("groundspeedmps",    &(wss->groundSpeedMPS),          TYPE_FLOAT4);
+    //HIL_addParam("fastestrearmps",    &(wss->fastestRearMPS),          TYPE_FLOAT4);
     // !! Modify parameters as needed !!
 
     // BMS parameters
