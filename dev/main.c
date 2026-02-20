@@ -55,6 +55,11 @@
 #include "powerLimit.h"
 #include "PID.h"
 #include "efficiency.h"
+#include "derating.h"
+
+#ifndef ENABLE_THERMAL_DERATING
+#define ENABLE_THERMAL_DERATING FALSE
+#endif
 
 // SIL (Software-In-the-Loop) includes
 #ifdef SIL_BUILD
@@ -135,6 +140,21 @@ extern Sensor Sensor_TestButton;
 extern Sensor Sensor_TEMP_BrakingSwitch;
 extern Sensor Sensor_EcoButton;
 extern Sensor Sensor_DRSButton;
+
+static float4 clampToRange(float4 value, float4 minimum, float4 maximum)
+{
+    if (value < minimum)
+    {
+        return minimum;
+    }
+    if (value > maximum)
+    {
+        return maximum;
+    }
+    return value;
+}
+
+static volatile bool thermalDeratingEnabled = ENABLE_THERMAL_DERATING;
 
 /*****************************************************************************
 * Main!
@@ -238,6 +258,30 @@ void main(void)
     DRS *drs = DRS_new();
     PowerLimit *pl = POWERLIMIT_new(TRUE);
     Efficiency *eff = EFFICIENCY_new(TRUE);  // Enable efficiency calculations
+    DeratingConfig thermalDeratingConfig;
+    DeratingState thermalDeratingState;
+    DeratingInputs thermalDeratingInputs;
+    ThermalModelOutputs thermalModelOutputs;
+    DeratingOutputs thermalDeratingOutputs;
+    const float4 invalidTemperatureC = -1000.0f;
+
+    thermalDeratingConfig.driveTorqueHardLimitNm = 231.0f;
+    thermalDeratingConfig.regenTorqueHardLimitNm = 120.0f;
+
+    thermalDeratingConfig.motorTempLimit.warningTempC = 120.0f;
+    thermalDeratingConfig.motorTempLimit.hardLimitTempC = 160.0f;
+    thermalDeratingConfig.inverterTempLimit.warningTempC = 75.0f;
+    thermalDeratingConfig.inverterTempLimit.hardLimitTempC = 100.0f;
+    thermalDeratingConfig.batteryTempLimit.warningTempC = 50.0f;
+    thermalDeratingConfig.batteryTempLimit.hardLimitTempC = 60.0f;
+
+    thermalDeratingConfig.torqueLimitRiseRateNmPerS = 200.0f;
+    thermalDeratingConfig.torqueLimitFallRateNmPerS = 2000.0f;
+
+    thermalDeratingConfig.failsafeDriveTorqueLimitNm = 60.0f;
+    thermalDeratingConfig.failsafeRegenTorqueLimitNm = 30.0f;
+
+    Derating_Init(&thermalDeratingState, &thermalDeratingConfig);
 //---------------------------------------------------------------------------------------------------------
     //----------------------------------------------------------------------------
     // TODO: Additional Initial Power-up functions
@@ -494,6 +538,44 @@ void main(void)
         PowerLimit_calculateCommands(pl, mcm0, tps);
         Efficiency_calculateCommands(eff, mcm0, pl);
         MCM_calculateCommands(mcm0, tps, bps);
+
+        if (thermalDeratingEnabled == TRUE)
+        {
+            thermalDeratingInputs.requestedTorqueNm = ((float4)MCM_commands_getTorque(mcm0)) / 10.0f;
+            thermalDeratingInputs.motorTempMeasuredC = (float4)MCM_getMotorTemp(mcm0);
+            thermalDeratingInputs.motorRtdTempsC[0] = invalidTemperatureC;
+            thermalDeratingInputs.motorRtdTempsC[1] = invalidTemperatureC;
+            thermalDeratingInputs.motorRtdTempsC[2] = invalidTemperatureC;
+            thermalDeratingInputs.motorRtdTempsC[3] = invalidTemperatureC;
+            thermalDeratingInputs.motorRtdTempsC[4] = invalidTemperatureC;
+            thermalDeratingInputs.inverterModuleATempC = (float4)MCM_getTemp(mcm0);
+            thermalDeratingInputs.inverterModuleBTempC = (float4)MCM_getTemp(mcm0);
+            thermalDeratingInputs.inverterModuleCTempC = (float4)MCM_getTemp(mcm0);
+            thermalDeratingInputs.inverterGateDriverTempC = (float4)MCM_getTemp(mcm0);
+            thermalDeratingInputs.batteryMaxCellTempC = (float4)BMS_getHighestCellTemp_degC(bms);
+            thermalDeratingInputs.coolantInletTempC = invalidTemperatureC;
+            thermalDeratingInputs.coolantOutletTempC = invalidTemperatureC;
+            thermalDeratingInputs.motorIdA = 0.0f;
+            thermalDeratingInputs.motorIqA = 0.0f;
+            thermalDeratingInputs.dcBusVoltageV = (float4)MCM_getDCVoltage(mcm0);
+            thermalDeratingInputs.dcBusCurrentA = (float4)MCM_getDCCurrent(mcm0);
+            thermalDeratingInputs.motorSpeedRpm = (float4)MCM_getMotorRPM(mcm0);
+
+            ThermalModel_UpdateStub(&thermalDeratingInputs, &thermalModelOutputs);
+            Derating_Update(&thermalDeratingConfig,
+                            &thermalDeratingState,
+                            &thermalDeratingInputs,
+                            &thermalModelOutputs,
+                            0.010f,
+                            &thermalDeratingOutputs);
+
+            {
+                float4 clampedDeratedTorqueNm = clampToRange(thermalDeratingInputs.requestedTorqueNm,
+                                                             thermalDeratingOutputs.negativeTorqueLimitNm,
+                                                             thermalDeratingOutputs.positiveTorqueLimitNm);
+                MCM_commands_setTorqueDNm(mcm0, (sbyte2)(clampedDeratedTorqueNm * 10.0f));
+            }
+        }
         
         SafetyChecker_update(sc, mcm0, bms, tps, bps, &Sensor_HVILTerminationSense, &Sensor_LVBattery);
 
