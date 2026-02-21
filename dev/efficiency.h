@@ -47,5 +47,6 @@ float Efficiency_getStraightEnergy_kWh(Efficiency *me);
 float Efficiency_getLapEnergy_kWh(Efficiency *me);
 float Efficiency_getLapDistance_km(Efficiency *me);
 float Efficiency_getStraightTime_s(Efficiency *me);
+float Efficiency_getScoreError(Efficiency* me);
 
 #endif // _EFFICIENCY_H
