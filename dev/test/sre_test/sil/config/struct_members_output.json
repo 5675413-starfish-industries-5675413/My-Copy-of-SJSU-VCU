@@ -101,7 +101,33 @@
   },
   {
     "name": "CanManager",
-    "parameters": {}
+    "parameters": {
+      "sm": null,
+      "canMessageLimit": null,
+      "can0_busSpeed": null,
+      "can0_readHandle": null,
+      "can0_read_messageLimit": null,
+      "can0_writeHandle": null,
+      "can0_write_messageLimit": null,
+      "can1_busSpeed": null,
+      "can1_readHandle": null,
+      "can1_read_messageLimit": null,
+      "can1_writeHandle": null,
+      "can1_write_messageLimit": null,
+      "ioErr_can0_Init": null,
+      "ioErr_can1_Init": null,
+      "ioErr_can0_fifoInit_R": null,
+      "ioErr_can0_fifoInit_W": null,
+      "ioErr_can1_fifoInit_R": null,
+      "ioErr_can1_fifoInit_W": null,
+      "ioErr_can0_read": null,
+      "ioErr_can0_write": null,
+      "ioErr_can1_read": null,
+      "ioErr_can1_write": null,
+      "sendDelayus": null,
+      "canMessageHistory[0x800]": null,
+      "canMessageHistory[0x7FF]": null
+    }
   },
   {
     "name": "CanMessageNode",
@@ -139,8 +165,8 @@
   {
     "name": "Efficiency",
     "parameters": {
-      "efficiencyToggle": true,
-      "energyBudget_kWh": 0.3,
+      "efficiencyToggle": null,
+      "energyBudget_kWh": null,
       "carryOverEnergy_kWh": null,
       "lapCounter": null,
       "timeInStraights_s": null,
@@ -222,12 +248,12 @@
       "startRTDS": null,
       "faultHistory[8]": null,
       "motor_temp": null,
-      "DC_Voltage": 1500,
-      "DC_Current": 800,
+      "DC_Voltage": null,
+      "DC_Current": null,
       "commandedTorque": null,
       "feedbackTorque": null,
       "currentPower": null,
-      "motorRPM": 1800,
+      "motorRPM": null,
       "timeStamp_lastCommandSent": null,
       "updateCount": null,
       "commands_torque": null,
@@ -269,7 +295,7 @@
     "name": "PowerLimit",
     "parameters": {
       "pid": null,
-      "plToggle": true,
+      "plToggle": null,
       "plStatus": null,
       "plMode": null,
       "plTargetPower": null,
@@ -374,8 +400,8 @@
       "timestamp_calibrationStart": null,
       "calibrationRunTime": null,
       "outputCurveExponent": null,
-      "calibrated": true,
-      "travelPercent": 0.5,
+      "calibrated": null,
+      "travelPercent": null,
       "implausibility": null
     }
   },
