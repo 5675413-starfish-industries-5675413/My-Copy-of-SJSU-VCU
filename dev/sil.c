@@ -541,6 +541,71 @@ ubyte1 sil_get_requested_output_mode(void)
     return 0;
 }
 
+void sil_write_json_output_cJSON_version(MotorController* mcm, PowerLimit* pl, Efficiency* eff, ubyte1 output_mode) {
+    if (sil_requested_count > 0) {
+        cJSON *root = cJSON_CreateObject();
+        if (root == NULL) {
+            return ;
+        }
+
+        if (is_struct_requested("MotorController") && mcm != NULL) {
+            cJSON *mcm_json = cJSON_CreateObject();
+            if (mcm_json != NULL) {
+                cJSON_AddNumberToObject(mcm_json, "motorRPM", MCM_getMotorRPM(mcm));
+                cJSON_AddNumberToObject(mcm_json, "DC_Voltage", MCM_getDCVoltage(mcm));
+                cJSON_AddNumberToObject(mcm_json, "DC_Current", MCM_getDCCurrent(mcm));
+                cJSON_AddNumberToObject(mcm_json, "power_kw", (MCM_getDCVoltage(mcm) * MCM_getDCCurrent(mcm)) / 1000);
+                cJSON_AddNumberToObject(mcm_json, "commandedTorque", MCM_getCommandedTorque(mcm) / 10.0f);
+                cJSON_AddNumberToObject(mcm_json, "appsTorque", MCM_commands_getAppsTorque(mcm) / 10.0f);
+                cJSON_AddNumberToObject(mcm_json, "plTorqueCommand", MCM_get_PL_torqueCommand(mcm) / 10.0f);
+                cJSON_AddNumberToObject(mcm_json, "maxTorque", MCM_getMaxTorqueDNm(mcm) / 10.0f);
+                cJSON_AddNumberToObject(mcm_json, "ground_speed_kph", MCM_getGroundSpeedKPH(mcm));
+                cJSON_AddItemToObject(root, "motor_controller", mcm_json);
+            }
+        }
+        if (is_struct_requested("PowerLimit") && pl != NULL) {
+            cJSON *pl_json = cJSON_CreateObject();
+            if (pl_json != NULL) {
+                cJSON_AddBoolToObject(pl_json, "plStatus", pl->plStatus);
+                cJSON_AddNumberToObject(pl_json, "plMode", pl->plMode);
+                cJSON_AddNumberToObject(pl_json, "plTargetPower", pl->plTargetPower);
+                cJSON_AddNumberToObject(pl_json, "plInitializationThreshold", pl->plInitializationThreshold);
+                cJSON_AddNumberToObject(pl_json, "plTorqueCommand", pl->plTorqueCommand / 10.0f);
+                cJSON_AddNumberToObject(pl_json, "clampingMethod", pl->clampingMethod);
+                cJSON_AddBoolToObject(pl_json, "plAlwaysOn", pl->plAlwaysOn);
+                if (mcm != NULL) {
+                    cJSON_AddNumberToObject(pl_json, "current_power_kw", (MCM_getDCVoltage(mcm) * MCM_getDCCurrent(mcm)) / 1000);
+                }
+                cJSON_AddItemToObject(root, "power_limit", pl_json);
+            }
+        }
+        if (is_struct_requested("Efficiency") && eff != NULL) {
+            cJSON *eff_json = cJSON_CreateObject();
+            if (eff_json != NULL) {
+                cJSON_AddNumberToObject(eff_json, "timeInStraight_s", eff->timeInStraights_s);
+                cJSON_AddNumberToObject(eff_json, "timeInCorners_s", eff->timeInCorners_s);
+                cJSON_AddNumberToObject(eff_json, "lapCounter", eff->lapCounter);
+                if (pl != NULL) {
+                    cJSON_AddNumberToObject(eff_json, "pl_target", pl->plTargetPower);
+                }
+                cJSON_AddNumberToObject(eff_json, "lapEnergySpent_kWh", eff->lapEnergySpent_kWh);
+                cJSON_AddNumberToObject(eff_json, "energyBudget_kWh", eff->energyBudget_kWh);
+                cJSON_AddNumberToObject(eff_json, "carryOverEnergy_kWh", eff->carryOverEnergy_kWh);
+                cJSON_AddItemToObject(root, "efficiency", eff_json);
+            }
+        }
+        char* json_output = cJSON_PrintUnformatted(root);
+        if (json_output != NULL) {
+            printf("%s\n", json_output);
+            fflush(stdout);
+            free(json_output);
+        }
+        cJSON_Delete(root);
+
+    }
+    
+}
+
 void sil_write_json_output(MotorController* mcm, PowerLimit* pl, Efficiency* eff, ubyte1 output_mode)
 {
     int first_field = 1;  // Track if this is the first field in JSON
