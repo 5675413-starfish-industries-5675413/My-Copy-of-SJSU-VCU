@@ -5,6 +5,7 @@ To save space on the VCU CAN bus, this module uses one CAN ID to manipulate subs
 Flow: Pass parameter name as string → encode string to 32-bit value → inject value into CAN → VCU decodes value then maps to struct parameter.
 """
 
+import struct
 from typing import Optional
 import can
 
@@ -60,16 +61,12 @@ def decode_name(encoded: int) -> str:
     
     return ''.join(chars)
 
-def build_inject_message(name: str, value: int) -> can.Message:
+def build_inject_message(name: str, value: int | float) -> can.Message:
     """
     Build parameter injection CAN message.
     """
 
     encoded_name = encode_name(name)
-
-    if value < 0:
-        value = (1 << 32) + value
-    value &= 0xFFFFFFFF
 
     data = bytearray(8)
 
@@ -80,10 +77,20 @@ def build_inject_message(name: str, value: int) -> can.Message:
     data[3] = encoded_name & 0xFF
 
     # Bytes 4-7: Parameter value (little-endian)
-    data[4] = value & 0xFF
-    data[5] = (value >> 8) & 0xFF
-    data[6] = (value >> 16) & 0xFF
-    data[7] = (value >> 24) & 0xFF
+    if isinstance(value, float):
+        # Pack float as IEEE 754 32-bit (little-endian)
+        float_bytes = struct.pack("<f", value)
+        data[4:8] = float_bytes
+    else:
+        # Pack integer
+        if value < 0:
+            value = (1 << 32) + value
+        value &= 0xFFFFFFFF
+
+        data[4] = value & 0xFF
+        data[5] = (value >> 8) & 0xFF
+        data[6] = (value >> 16) & 0xFF
+        data[7] = (value >> 24) & 0xFF
 
     return can.Message(
         arbitration_id=HIL_CAN_ID_INJECT,
@@ -104,7 +111,7 @@ class HILParamInjector:
         self.can = can_interface
         self.timeout = response_timeout
 
-    def inject(self, name: str, value: int, wait_response: bool = False):
+    def inject(self, name: str, value: int | float, wait_response: bool = False):
         """
         Inject parameter into VCU.
         """

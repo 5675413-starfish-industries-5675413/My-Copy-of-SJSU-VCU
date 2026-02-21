@@ -130,6 +130,10 @@ void HIL_initParamTable(MotorController *mcm, PowerLimit *pl, LaunchControl *lc,
     // !! Modify parameters as needed !!
 
     // Efficiency parameters
+    HIL_addParam("eftog",      &(eff->efficiencyToggle),           TYPE_BOOL);
+    HIL_addParam("efbudg",     &(eff->energyBudget_kWh),           TYPE_FLOAT4);
+    HIL_addParam("effin",      &(eff->finishedLap),                TYPE_BOOL);
+    HIL_addParam("efdist",     &(eff->lapDistance_km),             TYPE_FLOAT4);
     // !! Modify parameters as needed !!
 }
 

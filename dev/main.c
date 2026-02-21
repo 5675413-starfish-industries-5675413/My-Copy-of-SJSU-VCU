@@ -240,11 +240,11 @@ void main(void)
     WheelSpeeds *wss = WheelSpeeds_new(WHEEL_DIAMETER, WHEEL_DIAMETER, NUM_BUMPS, NUM_BUMPS);
     SafetyChecker *sc = SafetyChecker_new(serialMan, 320, 32); //Must match amp limits
     CoolingSystem *cs = CoolingSystem_new(serialMan);
-    Regen *regen = Regen_new(TRUE);
+    Regen *regen = Regen_new(FALSE);
     LaunchControl *lc = LaunchControl_new(FALSE);
     DRS *drs = DRS_new();
-    PowerLimit *pl = POWERLIMIT_new(FALSE);
-    Efficiency *eff = Efficiency_new(FALSE);
+    PowerLimit *pl = POWERLIMIT_new(TRUE);
+    Efficiency *eff = Efficiency_new(TRUE);
 //---------------------------------------------------------------------------------------------------------
     //----------------------------------------------------------------------------
     // TODO: Additional Initial Power-up functions
@@ -739,15 +739,15 @@ void main(void)
                 // fflush(stderr);  // Force output to be written immediately
 
                 float4 mcm_motorRPM = MCM_getMotorRPM(mcm0);
-                float4 timeinstraight = eff->timeInStraights_s;
-                float4 timeincorners = eff->timeInCorners_s;
+                float4 timeinstraight = eff->straightTime_s;
+                float4 timeincorners = eff->cornerTime_s;
                 float4 lapcounter = eff->lapCounter;
                 float4 pltarget = pl->plTargetPower;
-                float4 energyconsumptionperlap = eff->lapEnergySpent_kWh;
+                float4 energyconsumptionperlap = eff->lapEnergy_kWh;
                 float4 energybudgetperlap = eff->energyBudget_kWh;
                 float4 carryoverenergy = eff->carryOverEnergy_kWh;
-                float4 totallapdistance = eff->totalLapDistance_km;
-                float4 lapenergyspent = eff->lapEnergySpent_kWh;
+                float4 totallapdistance = eff->lapDistance_km;
+                float4 lapenergyspent = eff->lapEnergy_kWh;
 
                 printf("{\"efficiency\":{"
                     "\"mcm_motorRPM\":%.4f,"
