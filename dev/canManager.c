@@ -138,54 +138,54 @@ CanManager* CanManager_new(ubyte2 can0_busSpeed, ubyte1 can0_read_messageLimit, 
     // NOTE: This initialization code tries to access canMessageHistory[messageID] directly
     // but the nodes are never allocated (they're all NULL). This would cause a crash.
     // In SIL mode, skip this initialization since CAN message history isn't critical for basic testing.
-    // #ifndef SIL_BUILD
-    // ubyte2 messageID;
-    // //Outgoing ----------------------------
-    // messageID = 0xC0;  //MCM Command Message
-    // me->canMessageHistory[messageID]->timeBetweenMessages_Min = 25000;
-    // me->canMessageHistory[messageID]->timeBetweenMessages_Max = 125000;
-    // me->canMessageHistory[messageID]->required = TRUE;
-    // for (ubyte1 i = 0; i <= 7; i++) { me->canMessageHistory[messageID]->data[i] = 0; }
-    // IO_RTC_StartTime(&me->canMessageHistory[messageID]->lastMessage_timeStamp);
+    #ifndef SIL_BUILD
+    ubyte2 messageID;
+    //Outgoing ----------------------------
+    messageID = 0xC0;  //MCM Command Message
+    me->canMessageHistory[messageID]->timeBetweenMessages_Min = 25000;
+    me->canMessageHistory[messageID]->timeBetweenMessages_Max = 125000;
+    me->canMessageHistory[messageID]->required = TRUE;
+    for (ubyte1 i = 0; i <= 7; i++) { me->canMessageHistory[messageID]->data[i] = 0; }
+    IO_RTC_StartTime(&me->canMessageHistory[messageID]->lastMessage_timeStamp);
 
-    // for (messageID = 0x500; messageID <= 0x515; messageID++)
-    // {
-    //     me->canMessageHistory[messageID]->timeBetweenMessages_Min = 50000;
-    //     me->canMessageHistory[messageID]->timeBetweenMessages_Max = 250000;
-    //     me->canMessageHistory[messageID]->required = TRUE;
-    //     for (ubyte1 i = 0; i <= 7; i++) { me->canMessageHistory[messageID]->data[i] = 0; }
-    //     IO_RTC_StartTime(&me->canMessageHistory[messageID]->lastMessage_timeStamp);
-    // }
+    for (messageID = 0x500; messageID <= 0x515; messageID++)
+    {
+        me->canMessageHistory[messageID]->timeBetweenMessages_Min = 50000;
+        me->canMessageHistory[messageID]->timeBetweenMessages_Max = 250000;
+        me->canMessageHistory[messageID]->required = TRUE;
+        for (ubyte1 i = 0; i <= 7; i++) { me->canMessageHistory[messageID]->data[i] = 0; }
+        IO_RTC_StartTime(&me->canMessageHistory[messageID]->lastMessage_timeStamp);
+    }
 
-    // //Incoming ----------------------------
-    // messageID = 0xAA;  //MCM ______
-    // me->canMessageHistory[messageID]->timeBetweenMessages_Min = 0;
-    // me->canMessageHistory[messageID]->timeBetweenMessages_Max = 500000;
-    // me->canMessageHistory[messageID]->required = TRUE;
-    // for (ubyte1 i = 0; i <= 7; i++) { me->canMessageHistory[messageID]->data[i] = 0; }
-    // IO_RTC_StartTime(&me->canMessageHistory[messageID]->lastMessage_timeStamp);
+    //Incoming ----------------------------
+    messageID = 0xAA;  //MCM ______
+    me->canMessageHistory[messageID]->timeBetweenMessages_Min = 0;
+    me->canMessageHistory[messageID]->timeBetweenMessages_Max = 500000;
+    me->canMessageHistory[messageID]->required = TRUE;
+    for (ubyte1 i = 0; i <= 7; i++) { me->canMessageHistory[messageID]->data[i] = 0; }
+    IO_RTC_StartTime(&me->canMessageHistory[messageID]->lastMessage_timeStamp);
 
-    // messageID = 0xAB;  //MCM ________
-    // me->canMessageHistory[messageID]->timeBetweenMessages_Min = 0;
-    // me->canMessageHistory[messageID]->timeBetweenMessages_Max = 500000;
-    // me->canMessageHistory[messageID]->required = TRUE;
-    // for (ubyte1 i = 0; i <= 7; i++) { me->canMessageHistory[messageID]->data[i] = 0; }
-    // IO_RTC_StartTime(&me->canMessageHistory[messageID]->lastMessage_timeStamp);
+    messageID = 0xAB;  //MCM ________
+    me->canMessageHistory[messageID]->timeBetweenMessages_Min = 0;
+    me->canMessageHistory[messageID]->timeBetweenMessages_Max = 500000;
+    me->canMessageHistory[messageID]->required = TRUE;
+    for (ubyte1 i = 0; i <= 7; i++) { me->canMessageHistory[messageID]->data[i] = 0; }
+    IO_RTC_StartTime(&me->canMessageHistory[messageID]->lastMessage_timeStamp);
 
-    // messageID = 0x623;  //BMS faults
-    // me->canMessageHistory[messageID]->timeBetweenMessages_Min = 0;
-    // me->canMessageHistory[messageID]->timeBetweenMessages_Max = 5000000;
-    // me->canMessageHistory[messageID]->required = TRUE;
-    // for (ubyte1 i = 0; i <= 7; i++) { me->canMessageHistory[messageID]->data[i] = 0; }
-    // IO_RTC_StartTime(&me->canMessageHistory[messageID]->lastMessage_timeStamp);
+    messageID = 0x623;  //BMS faults
+    me->canMessageHistory[messageID]->timeBetweenMessages_Min = 0;
+    me->canMessageHistory[messageID]->timeBetweenMessages_Max = 5000000;
+    me->canMessageHistory[messageID]->required = TRUE;
+    for (ubyte1 i = 0; i <= 7; i++) { me->canMessageHistory[messageID]->data[i] = 0; }
+    IO_RTC_StartTime(&me->canMessageHistory[messageID]->lastMessage_timeStamp);
 
-    // messageID = 0x629;  //BMS details
-    // me->canMessageHistory[messageID]->timeBetweenMessages_Min = 0;
-    // me->canMessageHistory[messageID]->timeBetweenMessages_Max = 1000000;
-    // me->canMessageHistory[messageID]->required = TRUE;
-    // for (ubyte1 i = 0; i <= 7; i++) { me->canMessageHistory[messageID]->data[i] = 0; }
-    // IO_RTC_StartTime(&me->canMessageHistory[messageID]->lastMessage_timeStamp);
-    // #endif // #ifndef SIL_BUILD
+    messageID = 0x629;  //BMS details
+    me->canMessageHistory[messageID]->timeBetweenMessages_Min = 0;
+    me->canMessageHistory[messageID]->timeBetweenMessages_Max = 1000000;
+    me->canMessageHistory[messageID]->required = TRUE;
+    for (ubyte1 i = 0; i <= 7; i++) { me->canMessageHistory[messageID]->data[i] = 0; }
+    IO_RTC_StartTime(&me->canMessageHistory[messageID]->lastMessage_timeStamp);
+    #endif // #ifndef SIL_BUILD
     
     #ifdef SIL_BUILD
     #endif
