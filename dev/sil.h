@@ -11,6 +11,28 @@
 #include "powerLimit.h"
 #include "torqueEncoder.h"
 #include "efficiency.h"
+#include "bms.h"
+#include "brakePressureSensor.h"
+#include "canManager.h"
+#include "cooling.h"
+#include "drs.h"
+#include "LaunchControl.h"
+#include "PID.h"
+#include "regen.h"
+#include "wheelSpeeds.h"
+#include "avlTree.h"
+#include "brakePressureSensor.h"
+#include "canManager.h"
+#include "hashTable.h"
+#include "instrumentCluster.h"
+#include "readyToDriveSound.h"
+#include "safety.h"
+#include "sensors.h"
+#include "serial.h"
+#include "torqueEncoder.h"
+#include "watchdog.h"
+#include "diagnostics.h"
+
 
 #ifdef SIL_BUILD
 

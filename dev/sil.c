@@ -37,6 +37,54 @@
 static char sil_requested_structs[MAX_REQUESTED_STRUCTS][64];
 static int sil_requested_count = 0;
 
+typedef struct {
+    const char* field_name;
+    double (*getter)(void*);
+} FieldDescriptor;
+
+
+static FieldDescriptor mcm_fields[] = {
+    {"motorRPM", MCM_getMotorRPM},
+    {"DC_Voltage", MCM_getDCVoltage},
+    {"DC_Current", MCM_getDCCurrent},
+    {"power_kw", NULL},  // might have to do this manually
+    {"commandedTorque", MCM_getCommandedTorque},
+    {"appsTorque", MCM_commands_getAppsTorque},
+    {"plTorqueCommand", MCM_get_PL_torqueCommand},
+    {"maxTorque", MCM_getMaxTorqueDNm},
+    {"ground_speed_kph", MCM_getGroundSpeedKPH},
+};
+
+static FieldDescriptor pl_fields[] = {
+    {"plStatus", POWERLIMIT_getStatus},
+    {"plMode", POWERLIMIT_getMode},
+    {"plTargetPower", POWERLIMIT_getTargetPower},
+    {"plKwLimit", NULL},
+    {"plInitializationThreshold", POWERLIMIT_getInitialisationThreshold},
+    {"plTorqueCommand", POWERLIMIT_getTorqueCommand},
+    {"clampingMethod", POWERLIMIT_getClampingMethod},
+    {"plAlwaysOn", NULL},
+};
+
+static FieldDescriptor efficiency_fields[] = {
+    {"timeInStraights_s", Efficiency_getTimeInStraights_s},
+    {"timeInCorners_s", NULL},
+    {"lapCounter", Efficiency_getLapCounter},
+    {"plTargetPower", POWERLIMIT_getTargetPower},
+    {"lapEnergySpent_kWh", Efficiency_getLapEnergySpent_kWh},
+    {"energyBudget_kWh", Efficiency_getEnergyBudget_kWh},
+    {"carryOverEnergy_kWh", Efficiency_getCarryOverEnergy_kWh},
+    {"energySpentInCorners_kWh", Efficiency_getEnergySpentInCorners_kWh},
+    {"totalLapDistance_km", Efficiency_getTotalLapDistance_km},
+}
+
+
+static FieldDescriptor efficiency_fields[] = {}
+
+#define mcm_fields_count (sizeof(mcm_fields) / sizeof(mcm_fields[0]))
+#define pl_fields_count (sizeof(pl_fields) / sizeof(pl_fields[0]))
+#define efficiency_fields_count (sizeof(efficiency_fields) / sizeof(efficiency_fields[0]))
+
 // Helper function to check if a struct is requested by name
 static int is_struct_requested(const char* struct_name)
 {
@@ -551,59 +599,80 @@ ubyte1 sil_get_requested_output_mode(void)
     return 0;
 }
 
-void sil_write_json_output_cJSON_version(MotorController* mcm, PowerLimit* pl, Efficiency* eff, ubyte1 output_mode) {
+void sil_write_json_output_cJSON_version(MotorController* mcm, PowerLimit* pl, Efficiency* eff, BatteryManagementSystem* bms, ubyte1 output_mode) {
     if (sil_requested_count > 0) {
         cJSON *root = cJSON_CreateObject();
         if (root == NULL) {
             return ;
         }
-
+        
         if (is_struct_requested("MotorController") && mcm != NULL) {
             cJSON *mcm_json = cJSON_CreateObject();
             if (mcm_json != NULL) {
-                cJSON_AddNumberToObject(mcm_json, "motorRPM", MCM_getMotorRPM(mcm));
-                cJSON_AddNumberToObject(mcm_json, "DC_Voltage", MCM_getDCVoltage(mcm));
-                cJSON_AddNumberToObject(mcm_json, "DC_Current", MCM_getDCCurrent(mcm));
-                cJSON_AddNumberToObject(mcm_json, "power_kw", (MCM_getDCVoltage(mcm) * MCM_getDCCurrent(mcm)) / 1000);
-                cJSON_AddNumberToObject(mcm_json, "commandedTorque", MCM_getCommandedTorque(mcm) / 10.0f);
-                cJSON_AddNumberToObject(mcm_json, "appsTorque", MCM_commands_getAppsTorque(mcm) / 10.0f);
-                cJSON_AddNumberToObject(mcm_json, "plTorqueCommand", MCM_get_PL_torqueCommand(mcm) / 10.0f);
-                cJSON_AddNumberToObject(mcm_json, "maxTorque", MCM_getMaxTorqueDNm(mcm) / 10.0f);
-                cJSON_AddNumberToObject(mcm_json, "ground_speed_kph", MCM_getGroundSpeedKPH(mcm));
+                for (size_t i = 0; i < mcm_fields_count; i++) {
+                    if (is_struct_requested(mcm_fields[i].field_name)) {
+                        
+                        if (strcmp(mcm_fields[i].field_name, "power_kw") == 0) {
+                            double power_kw = (MCM_getDCVoltage(mcm) * MCM_getDCCurrent(mcm)) / 1000.0;
+                            cJSON_AddNumberToObject(mcm_json, mcm_fields[i].field_name, power_kw);
+                            continue;
+                        }
+                        else if (strcmp(mcm_fields[i].field_name, "commandedTorque") == 0 ||
+                                 strcmp(mcm_fields[i].field_name, "appsTorque") == 0 ||
+                                 strcmp(mcm_fields[i].field_name, "plTorqueCommand") == 0 ||
+                                 strcmp(mcm_fields[i].field_name, "maxTorque") == 0) {
+                            double torque_value = mcm_fields[i].getter(mcm) / 10.0f; //we have to check for all torque values because they are all in DNm and need to be converted to Nm for the JSON output
+                            cJSON_AddNumberToObject(mcm_json, mcm_fields[i].field_name, torque_value);
+                            continue;
+                        }
+                        else {
+                            double value = mcm_fields[i].getter(mcm);
+                            cJSON_AddNumberToObject(mcm_json, mcm_fields[i].field_name, value);
+                        }
+                        
+                    }
+                }
                 cJSON_AddItemToObject(root, "motor_controller", mcm_json);
             }
         }
-        if (is_struct_requested("PowerLimit") && pl != NULL) {
+        if (is_struct_requested("Powerlimit") && pl != NULL) {
             cJSON *pl_json = cJSON_CreateObject();
             if (pl_json != NULL) {
-                cJSON_AddBoolToObject(pl_json, "plStatus", pl->plStatus);
-                cJSON_AddNumberToObject(pl_json, "plMode", pl->plMode);
-                cJSON_AddNumberToObject(pl_json, "plTargetPower", pl->plTargetPower);
-                cJSON_AddNumberToObject(pl_json, "plInitializationThreshold", pl->plInitializationThreshold);
-                cJSON_AddNumberToObject(pl_json, "plTorqueCommand", pl->plTorqueCommand / 10.0f);
-                cJSON_AddNumberToObject(pl_json, "clampingMethod", pl->clampingMethod);
-                cJSON_AddBoolToObject(pl_json, "plAlwaysOn", pl->plAlwaysOn);
-                if (mcm != NULL) {
-                    cJSON_AddNumberToObject(pl_json, "current_power_kw", (MCM_getDCVoltage(mcm) * MCM_getDCCurrent(mcm)) / 1000);
+                for (size_t i = 0; i < pl_fields_count; i++) {
+                    if (strcmp(mcm_fields[i].field_name, "plKwLimit") == 0) {
+                        cJSON_AddNumberToObject(pl_json, pl_fields[i].field_name, pl->plKwLimit); // hardcoded because getter function doesn't exist
+                    }
+                    else if (strcmp(pl_fields[i].field_name, "plAlwaysOn") == 0) {
+                        cJSON_AddBoolToObject(pl_json, pl_fields[i].field_name, pl->plAlwaysOn); // hardcoded because getter function doesn't exist
+                    }
+                    else if (strcmp(pl_fields[i].field_name, "torqueCommand") == 0) {
+                        double torque_command = POWERLIMIT_getTorqueCommand(pl) / 10.0f;
+                        cJSON_AddNumberToObject(pl_json, pl_fields[i].field_name, torque_command); // hardcoded because of the division by 10 for DNm to Nm conversion
+                    }
+                    else {
+                        cJSON_AddNumberToObject(pl_json, pl_fields[i].field_name, pl_fields[i].getter(pl));
+                    }
                 }
                 cJSON_AddItemToObject(root, "power_limit", pl_json);
             }
         }
-        if (is_struct_requested("Efficiency") && eff != NULL) {
+        
+        if (is_struct_requested("Efficiency") && eff != null) {
             cJSON *eff_json = cJSON_CreateObject();
             if (eff_json != NULL) {
-                cJSON_AddNumberToObject(eff_json, "timeInStraight_s", eff->timeInStraights_s);
-                cJSON_AddNumberToObject(eff_json, "timeInCorners_s", eff->timeInCorners_s);
-                cJSON_AddNumberToObject(eff_json, "lapCounter", eff->lapCounter);
-                if (pl != NULL) {
-                    cJSON_AddNumberToObject(eff_json, "pl_target", pl->plTargetPower);
+                for (size_t i = 0; i < efficiency_fields_count; i++) {
+                    
+                    if (strcmp(efficiency_fields[i].field_name, "plTargetPower") == 0) {
+                        cJSON_AddNumberToObject(eff_json, efficiency_fields[i].field_name, pl->plTargetPower); // hardcoded dependency, somebody has to write a getter function for plTargetPower if we want to avoid this
+                        continue
+                    }
+                    
+                    cJSON_AddNumberToObject(eff_json, efficiency_fields[i].field_name, efficiency_fields[i].getter(eff));
                 }
-                cJSON_AddNumberToObject(eff_json, "lapEnergySpent_kWh", eff->lapEnergySpent_kWh);
-                cJSON_AddNumberToObject(eff_json, "energyBudget_kWh", eff->energyBudget_kWh);
-                cJSON_AddNumberToObject(eff_json, "carryOverEnergy_kWh", eff->carryOverEnergy_kWh);
                 cJSON_AddItemToObject(root, "efficiency", eff_json);
             }
         }
+
         char* json_output = cJSON_PrintUnformatted(root);
         if (json_output != NULL) {
             printf("%s\n", json_output);
