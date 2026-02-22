@@ -11,9 +11,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Platform-specific includes for select()
+// Platform-specific includes for stdin polling
 #ifdef _WIN32
-    #include <winsock2.h>
+    #include <windows.h>
     #define STDIN_FILENO 0
 #else
     #include <sys/select.h>
@@ -488,6 +488,15 @@ int sil_read_initial_json(PowerLimit* pl, MotorController* mcm, TorqueEncoder* t
 int sil_read_json_input(PowerLimit* pl, MotorController* mcm, TorqueEncoder* tps)
 {
     // Non-blocking check for stdin data
+    #ifdef _WIN32
+    HANDLE stdin_handle = GetStdHandle(STD_INPUT_HANDLE);
+    DWORD bytes_available = 0;
+    if (stdin_handle == NULL || stdin_handle == INVALID_HANDLE_VALUE ||
+        !PeekNamedPipe(stdin_handle, NULL, 0, NULL, &bytes_available, NULL) ||
+        bytes_available == 0) {
+        return 1;  // No data available
+    }
+    #else
     fd_set readfds;
     struct timeval timeout;
     FD_ZERO(&readfds);
@@ -499,6 +508,7 @@ int sil_read_json_input(PowerLimit* pl, MotorController* mcm, TorqueEncoder* tps
         !FD_ISSET(STDIN_FILENO, &readfds)) {
         return 1;  // No data available
     }
+    #endif
     
     // Data available, read JSON
     char* json_buffer = (char*)malloc(JSON_BUFFER_SIZE);
@@ -623,7 +633,7 @@ void sil_write_json_output(MotorController* mcm, PowerLimit* pl, Efficiency* eff
             printf("\"motor_rpm\":%.4f", (float4)MCM_getMotorRPM(mcm));
             first_mcm = 0;
             
-            if (!first_mcm) printf(",");
+            if (! first_mcm) printf(",");
             printf("\"dc_voltage\":%.4f", (float4)MCM_getDCVoltage(mcm));
             
             if (!first_mcm) printf(",");
