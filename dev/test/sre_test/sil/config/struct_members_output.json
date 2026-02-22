@@ -165,8 +165,8 @@
   {
     "name": "Efficiency",
     "parameters": {
-      "efficiencyToggle": null,
-      "energyBudget_kWh": null,
+      "efficiencyToggle": true,
+      "energyBudget_kWh": 0.3,
       "carryOverEnergy_kWh": null,
       "lapCounter": null,
       "timeInStraights_s": null,
@@ -248,12 +248,12 @@
       "startRTDS": null,
       "faultHistory[8]": null,
       "motor_temp": null,
-      "DC_Voltage": null,
-      "DC_Current": null,
+      "DC_Voltage": 1500,
+      "DC_Current": 800,
       "commandedTorque": null,
       "feedbackTorque": null,
       "currentPower": null,
-      "motorRPM": null,
+      "motorRPM": 1800,
       "timeStamp_lastCommandSent": null,
       "updateCount": null,
       "commands_torque": null,
@@ -295,7 +295,7 @@
     "name": "PowerLimit",
     "parameters": {
       "pid": null,
-      "plToggle": null,
+      "plToggle": 100,
       "plStatus": null,
       "plMode": null,
       "plTargetPower": null,
@@ -400,8 +400,8 @@
       "timestamp_calibrationStart": null,
       "calibrationRunTime": null,
       "outputCurveExponent": null,
-      "calibrated": null,
-      "travelPercent": null,
+      "calibrated": true,
+      "travelPercent": 0.5,
       "implausibility": null
     }
   },

@@ -42,7 +42,6 @@ typedef struct {
     double (*getter)(void*);
 } FieldDescriptor;
 
-
 static FieldDescriptor mcm_fields[] = {
     {"motorRPM", MCM_getMotorRPM},
     {"DC_Voltage", MCM_getDCVoltage},
@@ -76,15 +75,29 @@ static FieldDescriptor efficiency_fields[] = {
     {"carryOverEnergy_kWh", Efficiency_getCarryOverEnergy_kWh},
     {"energySpentInCorners_kWh", Efficiency_getEnergySpentInCorners_kWh},
     {"totalLapDistance_km", Efficiency_getTotalLapDistance_km},
-}
+};
 
+static FieldDescriptor bms_fields[] = {
+    {"powerUW", BMS_getPower_uW},
+    {"powerW", BMS_getPower_W},
+    {"packTemp", BMS_getPackTemp},
+    {"avgTemp", BMS_getAvgTemp},
+    {"highestCellVoltage", BMS_getHighestCellVoltage_mV},
+    {"lowestCellVoltage", BMS_getLowestCellVoltage_mV},
+    {"highestCellTemp_d_degC", BMS_getHighestCellTemp_d_degC},
+    {"highestTemp_degC", BMS_getHighestCellTemp_degC},
+    {"faultFlags0", BMS_getFaultFlags0},
+    {"faultFlags1", BMS_getFaultFlags1},
+    {"getPackVoltage", BMS_getPackVoltage},
+    {"CCL", BMS_getCCL},
+    {"DCL", BMS_getDCL}
 
-static FieldDescriptor efficiency_fields[] = {}
+};
 
-#define mcm_fields_count (sizeof(mcm_fields) / sizeof(mcm_fields[0]))
-#define pl_fields_count (sizeof(pl_fields) / sizeof(pl_fields[0]))
-#define efficiency_fields_count (sizeof(efficiency_fields) / sizeof(efficiency_fields[0]))
-
+#define mcm_fields_count (sizeof(mcm_fields) / sizeof(mcm_fields[0]));
+#define pl_fields_count (sizeof(pl_fields) / sizeof(pl_fields[0]));
+#define efficiency_fields_count (sizeof(efficiency_fields) / sizeof(efficiency_fields[0]));
+#define bms_fields_count (sizeof(bms_fields) / sizeof(bms_fields[0]));
 // Helper function to check if a struct is requested by name
 static int is_struct_requested(const char* struct_name)
 {
@@ -609,29 +622,26 @@ void sil_write_json_output_cJSON_version(MotorController* mcm, PowerLimit* pl, E
         if (is_struct_requested("MotorController") && mcm != NULL) {
             cJSON *mcm_json = cJSON_CreateObject();
             if (mcm_json != NULL) {
-                for (size_t i = 0; i < mcm_fields_count; i++) {
-                    if (is_struct_requested(mcm_fields[i].field_name)) {
-                        
-                        if (strcmp(mcm_fields[i].field_name, "power_kw") == 0) {
-                            double power_kw = (MCM_getDCVoltage(mcm) * MCM_getDCCurrent(mcm)) / 1000.0;
-                            cJSON_AddNumberToObject(mcm_json, mcm_fields[i].field_name, power_kw);
-                            continue;
-                        }
-                        else if (strcmp(mcm_fields[i].field_name, "commandedTorque") == 0 ||
-                                 strcmp(mcm_fields[i].field_name, "appsTorque") == 0 ||
-                                 strcmp(mcm_fields[i].field_name, "plTorqueCommand") == 0 ||
-                                 strcmp(mcm_fields[i].field_name, "maxTorque") == 0) {
-                            double torque_value = mcm_fields[i].getter(mcm) / 10.0f; //we have to check for all torque values because they are all in DNm and need to be converted to Nm for the JSON output
-                            cJSON_AddNumberToObject(mcm_json, mcm_fields[i].field_name, torque_value);
-                            continue;
-                        }
-                        else {
-                            double value = mcm_fields[i].getter(mcm);
-                            cJSON_AddNumberToObject(mcm_json, mcm_fields[i].field_name, value);
-                        }
-                        
+                for (size_t i = 0; i < mcm_fields_count; i++) {    
+                    if (strcmp(mcm_fields[i].field_name, "power_kw") == 0) {
+                        double power_kw = (MCM_getDCVoltage(mcm) * MCM_getDCCurrent(mcm)) / 1000.0; // hard coded because power_kw getter function doesn't exist yet
+                        cJSON_AddNumberToObject(mcm_json, mcm_fields[i].field_name, power_kw);
+                        continue;
                     }
+                    else if (strcmp(mcm_fields[i].field_name, "commandedTorque") == 0 ||
+                                strcmp(mcm_fields[i].field_name, "appsTorque") == 0 ||
+                                strcmp(mcm_fields[i].field_name, "plTorqueCommand") == 0 ||
+                                strcmp(mcm_fields[i].field_name, "maxTorque") == 0) {
+                        double torque_value = mcm_fields[i].getter(mcm) / 10.0f; //we have to check for all torque values because they are all in DNm and need to be converted to Nm for the JSON output
+                        cJSON_AddNumberToObject(mcm_json, mcm_fields[i].field_name, torque_value);
+                        continue;
+                    }
+                    else {
+                        cJSON_AddNumberToObject(mcm_json, mcm_fields[i].field_name, mcm_fields[i].getter(mcm));
+                    }
+                        
                 }
+                
                 cJSON_AddItemToObject(root, "motor_controller", mcm_json);
             }
         }
@@ -664,12 +674,21 @@ void sil_write_json_output_cJSON_version(MotorController* mcm, PowerLimit* pl, E
                     
                     if (strcmp(efficiency_fields[i].field_name, "plTargetPower") == 0) {
                         cJSON_AddNumberToObject(eff_json, efficiency_fields[i].field_name, pl->plTargetPower); // hardcoded dependency, somebody has to write a getter function for plTargetPower if we want to avoid this
-                        continue
-                    }
-                    
+                        continue;
+                    }                 
                     cJSON_AddNumberToObject(eff_json, efficiency_fields[i].field_name, efficiency_fields[i].getter(eff));
                 }
                 cJSON_AddItemToObject(root, "efficiency", eff_json);
+            }
+        }
+
+        if (isStructRequested("BatteryManagementSystem") && bms != NULL) {
+            cJSON *bms_json = cJSON_CreateObject();
+            if (bms_json != NULL) {
+                for (size_t i = 0; i < bms_fields_count; i++) {
+                    cJSON_AddNumberToObject(bms_json, bms_fields[i].field_name, bms_fields[i].getter(bms));
+                }
+                cJSON_AddItemToObject(root, "battery_management_system", bms_json);
             }
         }
 
