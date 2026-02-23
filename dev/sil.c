@@ -552,7 +552,7 @@ ubyte1 sil_get_requested_output_mode(void)
 }
 
 // NOTE: cJSON ONLY ACCEPTS DOUBLE DATA TYPES FOR CONTINUOUS VALUES
-void sil_write_json_output_cJSON_version(MotorController* mcm, PowerLimit* pl, Efficiency* eff, BatteryManagementSystem* bms, LaunchControl* lc, ubyte1 output_mode) {
+void sil_write_json_output_cJSON_version(MotorController* mcm, PowerLimit* pl, Efficiency* eff, BatteryManagementSystem* bms, LaunchControl* lc, BrakePressureSensor* bps, PID* pid, ubyte1 output_mode) {
    if (sil_requested_count > 0) {
         cJSON *root = cJSON_CreateObject();
         if (root == NULL) {
@@ -570,7 +570,7 @@ void sil_write_json_output_cJSON_version(MotorController* mcm, PowerLimit* pl, E
                 cJSON_AddNumberToObject(mcm_json, "plTorqueCommand", (double) MCM_get_PL_torqueCommand(mcm) / 10.0f);
                 cJSON_AddNumberToObject(mcm_json, "maxTorque", (double) MCM_getMaxTorqueDNm(mcm) / 10.0f);
                 cJSON_AddNumberToObject(mcm_json, "ground_speed_kph", (double) MCM_getGroundSpeedKPH(mcm));
-                cJSON_AddItemToObject(root, "motor_controller", mcm_json);
+                cJSON_AddItemToObject(root, "MotorController", mcm_json);
             }
         }
         if (is_struct_requested("PowerLimit") && pl != NULL) {
@@ -586,7 +586,7 @@ void sil_write_json_output_cJSON_version(MotorController* mcm, PowerLimit* pl, E
                 if (mcm != NULL) {
                     cJSON_AddNumberToObject(pl_json, "current_power_kw", (MCM_getDCVoltage(mcm) * MCM_getDCCurrent(mcm)) / 1000);
                 }
-                cJSON_AddItemToObject(root, "power_limit", pl_json);
+                cJSON_AddItemToObject(root, "PowerLimit", pl_json);
             }
         }
         if (is_struct_requested("Efficiency") && eff != NULL) {
@@ -602,7 +602,7 @@ void sil_write_json_output_cJSON_version(MotorController* mcm, PowerLimit* pl, E
                 cJSON_AddNumberToObject(eff_json, "lapEnergySpent_kWh", (double) Efficiency_getLapEnergySpent_kWh(eff));
                 cJSON_AddNumberToObject(eff_json, "energyBudget_kWh", (double) Efficiency_getEnergyBudget_kWh(eff));
                 cJSON_AddNumberToObject(eff_json, "carryOverEnergy_kWh", (double) Efficiency_getCarryOverEnergy_kWh(eff));
-                cJSON_AddItemToObject(root, "efficiency", eff_json);
+                cJSON_AddItemToObject(root, "Efficiency", eff_json);
             }
         }
         if (is_struct_requested("BatteryManagementSystem") && bms != NULL) {
@@ -615,13 +615,14 @@ void sil_write_json_output_cJSON_version(MotorController* mcm, PowerLimit* pl, E
                 cJSON_AddNumberToObject(bms_json, "highestCellTemp_degC", (double) BMS_getHighestCellTemp_degC(bms));
                 cJSON_AddNumberToObject(bms_json, "power_uW", (double) BMS_getPower_uW(bms));
                 cJSON_AddNumberToObject(bms_json, "power_W", (double) BMS_getPower_W(bms));
-                cJSON_AddItemToObject(root, "battery_management_system", bms_json);
+                cJSON_AddItemToObject(root, "BatteryManagementSystem", bms_json);
             }
         }
         if (is_struct_requested("LaunchControl") && lc != NULL) {
             cJSON *lc_json = cJSON_CreateObject();
             if (lc_json != NULL) {
                 cJSON_AddBoolToObject(lc_json, "state", (double) LaunchControl_getState(lc));
+                cJSON_AddNumberToObject(lc_json, "phase", (double) LaunchControl_getPhase(lc));
                 cJSON_AddNumberToObject(lc_json, "torqueCommand", (double) LaunchControl_getTorqueCommand(lc));
                 cJSON_AddNumberToObject(lc_json, "slipRatio", (double) LaunchControl_getSlipRatio(lc));
                 cJSON_AddNumberToObject(lc_json, "slipRatioScaled", (double) LaunchControl_getSlipRatioScaled(lc));
@@ -630,10 +631,42 @@ void sil_write_json_output_cJSON_version(MotorController* mcm, PowerLimit* pl, E
                 cJSON_AddNumberToObject(lc_json, "phase", (double) LaunchControl_getPhase(lc));
                 cJSON_AddBoolToObject(lc_json, "filterStatus", LaunchControl_getFilterStatus(lc));
                 cJSON_AddNumberToObject(lc_json, "velocityDifferenceTarget", (double) LaunchControl_getVelocityDifferenceTarget(lc));
-                cJSON_AddNumberToObject(lc_json, "currentVelocityDifference", (double) LaunchControl_getVelocityDifference(lc));
-                cJSON_AddItemToObject(root, "launch_control", lc_json);
+                cJSON_AddNumberToObject(lc_json, "currentVelocityDifference", (double) LaunchControl_getCurrentVelocityDifference(lc));
+                cJSON_AddItemToObject(root, "LaunchControl", lc_json);
             }
         }
+        if (is_struct_requested("BrakePressureSensor") && bps != NULL) {
+            cJSON *bps_json = cJSON_CreateObject();
+            if (bps_json != NULL) {
+               cJSON_AddNumberToObject(bps_json, "BPS0_V", (double) BrakePressureSensor_getBPS0_V(bps));
+               cJSON_AddNumberToObject(bps_json, "BPS1_V", (double) BrakePressureSensor_getBPS1_V(bps));
+               cJSON_AddNumberToObject(bps_json, "BPS0_Pressure", (double) BrakePressureSensor_getBPS0_Pressure(bps));
+               cJSON_AddNumberToObject(bps_json, "BPS1_Pressure", (double) BrakePressureSensor_getBPS1_Pressure(bps));
+               cJSON_AddItemToObject(root, "BrakePressureSensor", bps_json);
+            }
+        }
+        if (is_struct_requested("PID") && pid != NULL) {
+            cJSON *pid_json = cJSON_CreateObject();
+            if (pid_json != NULL) {
+                cJSON_AddNumberToObject(pid_json, "Kp", (double) PID_getKp(pid));
+                cJSON_AddNumberToObject(pid_json, "Ki", (double) PID_getKi(pid));
+                cJSON_AddNumberToObject(pid_json, "Kd", (double) PID_getKd(pid));
+                cJSON_AddNumberToObject(pid_json, "setPoint", (double) PID_getSetpoint(pid));
+                cJSON_AddNumberToObject(pid_json, "previousError", (double) PID_getPreviousError(pid));
+                cJSON_AddNumberToObject(pid_json, "totalError", (double) PID_getTotalError(pid));
+                cJSON_AddNumberToObject(pid_json, "output", (double) PID_getOutput(pid));
+                cJSON_AddNumberToObject(pid_json, "proportional", (double) PID_getProportional(pid));
+                cJSON_AddNumberToObject(pid_json, "integral", (double) PID_getIntegral(pid));
+                cJSON_AddNumberToObject(pid_json, "derivative", (double) PID_getDerivative(pid));
+                cJSON_AddNumberToObject(pid_json, "saturationValue", (double) PID_getSaturationValue(pid));
+                cJSON_AddBoolToObject(pid_json, "antiWindupFlag", (double) PID_getAntiWindupFlag(pid));
+                cJSON_AddItemToObject(root, "PID", pid_json);
+            }
+        }
+        
+        
+        
+        
         
 
         char* json_output = cJSON_PrintUnformatted(root);
