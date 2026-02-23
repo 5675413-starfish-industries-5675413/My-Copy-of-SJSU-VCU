@@ -551,8 +551,8 @@ ubyte1 sil_get_requested_output_mode(void)
     return 0;
 }
 
-// NOTE: cJSON ONLY ACCEPTS DOUBLE DATA TYPES FOR CONTINUOUS VALUES
-void sil_write_json_output_cJSON_version(MotorController* mcm, PowerLimit* pl, Efficiency* eff, BatteryManagementSystem* bms, LaunchControl* lc, BrakePressureSensor* bps, PID* pid, ubyte1 output_mode) {
+// NOTE: cJSON ONLY ACCEPTS DOUBLE DATA TYPES FOR NUMBER VALUES
+void sil_write_json_output_cJSON_version(MotorController* mcm, PowerLimit* pl, Efficiency* eff, BatteryManagementSystem* bms, LaunchControl* lc, BrakePressureSensor* bps, PID* pid, Regen *regen, InstrumentCluster *ic, ReadyToDriveSound *rtds, SafetyChecker *sc, Sensor *sensor, TorqueEncoder *tps, WatchDog *wd, ubyte1 output_mode) {
    if (sil_requested_count > 0) {
         cJSON *root = cJSON_CreateObject();
         if (root == NULL) {
@@ -627,7 +627,6 @@ void sil_write_json_output_cJSON_version(MotorController* mcm, PowerLimit* pl, E
                 cJSON_AddNumberToObject(lc_json, "slipRatio", (double) LaunchControl_getSlipRatio(lc));
                 cJSON_AddNumberToObject(lc_json, "slipRatioScaled", (double) LaunchControl_getSlipRatioScaled(lc));
                 cJSON_AddBoolToObject(lc_json, "initialCurveStatus", LaunchControl_getInitialCurveStatus(lc));
-                cJSON_AddNumberToObject(lc_json, "pidOutput", (double) LaunchControl_getPIDOutput(lc));
                 cJSON_AddNumberToObject(lc_json, "phase", (double) LaunchControl_getPhase(lc));
                 cJSON_AddBoolToObject(lc_json, "filterStatus", LaunchControl_getFilterStatus(lc));
                 cJSON_AddNumberToObject(lc_json, "velocityDifferenceTarget", (double) LaunchControl_getVelocityDifferenceTarget(lc));
@@ -663,12 +662,119 @@ void sil_write_json_output_cJSON_version(MotorController* mcm, PowerLimit* pl, E
                 cJSON_AddItemToObject(root, "PID", pid_json);
             }
         }
+        if (is_struct_requested("Regen") && regen != NULL) {
+            cJSON *regen_json = cJSON_CreateObject();
+            if (regen_json != NULL) {
+                cJSON_AddBoolToObject(regen_json, "regenToggle", regen->regenToggle);
+                cJSON_AddNumberToObject(regen_json, "mode", (double) regen->mode);
+                cJSON_AddNumberToObject(regen_json, "torqueLimitDNm", regen->torqueLimitDNm);
+                cJSON_AddNumberToObject(regen_json, "appsTorque", (double) regen->appsTorque);
+                cJSON_AddNumberToObject(regen_json, "bpsTorqueNm", (double) regen->bpsTorqueNm);
+                cJSON_AddNumberToObject(regen_json, "torqueCommand", (double) Regen_get_torqueCommand(regen));
+                cJSON_AddNumberToObject(regen_json, "torqueAtZeroPedalDNm", (double) regen->torqueAtZeroPedalDNm);
+                cJSON_AddNumberToObject(regen_json, "percentBPSForMaxRegen", (double) regen->percentBPSForMaxRegen);
+                cJSON_AddNumberToObject(regen_json, "percentAPPSForCoasting", (double) regen->percentAPPSForCoasting);
+                cJSON_AddNumberToObject(regen_json, "padMu", (double) regen->padMu);
+                cJSON_AddNumberToObject(regen_json, "tick", (double) regen->tick);
+                cJSON_AddItemToObject(root, "Regen", regen_json);
+                
+            }
+        }
+        if (is_struct_requested("InstrumentCluster") && ic != NULL) {
+            cJSON *ic_json = cJSON_CreateObject();
+            if (ic_json != NULL) {
+                cJSON_AddNumberToObject(ic_json, "serialMan", (double) ic->serialMan);
+                cJSON_AddNumberToObject(ic_json, "canMessageBaseId", (double) ic->canMessageBaseId);
+                cJSON_AddNumberToObject(ic_json, "torqueMapMode", (double) IC_getTorqueMapMode(ic));
+                cJSON_AddNumberToObject(ic_json, "launchControlSensitivity", (double) IC_getLaunchControlSensitivity(ic));
+                cJSON(root, "InstrumentCluster", ic_json);
+            }
+        }
+        if (is_struct_requested("ReadyToDriveSound") && rtds != NULL) {
+            cJSON *rtds_json = cJSON_CreateObject();
+            if (rtds_json != NULL) {
+                cJSON_AddNumberToObject(rtds_json, "readyToDriveSoundToggle", (double) rtds->timeStamp_soundStarted);
+                cJSON_AddNumberToObject(rtds_json, "timeToSound", (double) rtds->timeToSound);
+                cJSON_AddNumberToObject(rtds_json, "timeStamp_soundStarted", (double) rtds->timeStamp_soundStarted);
+                cJSON_AddItemToObject(root, "volumePercent", (double) rtds->volumePercent);
+                cJSON_AddItemToObject(root, "ReadyToDriveSound", rtds_json);
+            }
+        }
+        if (is_struct_requested("SafetyChecker") && sc != NULL) {
+            cJSON *sc_json = cJSON_CreateObject();
+            if (sc_json != NULL) {
+                cJSON_AddBoolToObject(sc_json, "serialMan", sc->serialMan);
+                cJSON_AddBoolToObject(sc_json, "allSafe", SafetyChecker_allSafe(sc));
+                cJSON_AddNumberToObject(sc_json, "faults", (double) SafetyChecker_getFaults(sc));
+                cJSON_AddNumberToObject(sc_json, "warnings", (double) SafetyChecker_getWarnings(sc));
+                cJSON_AddNumberToObject(sc_json, "notices", (double) SafetyChecker_getNotices(sc));
+                cJSON_AddNumberToObject(sc_json, "maxAmpsCharge", (double) sc->maxAmpsCharge);
+                cJSON_AddNumberToObject(sc_json, "maxAmpsDischarge", (double) sc->maxAmpsDischarge);
+                cJSON_AddNumberToObject(sc_json, "softBSPD_bpsHigh", (double) sc->softBSPD_bpsHigh);
+                cJSON_AddNumberToObject(sc_json, "softBSPD_kwHigh", (double) sc->softBSPD_kwHigh);
+                cJSON_AddNumberToObject(sc_json, "softBSPD_fault", (double) sc->softBSPD_fault);
+                cJSON_AddBoolToObject(sc_json, "bypass", (double) sc->bypass);
+                cJSON_AddNumberToObject(sc_json, "timestamp_bypassSafetyChecks", (double) sc->timestamp_bypassSafetyChecks);
+                cJSON_AddNumberToObject(sc_json, "bypassSafetyChecksTimeout_us", (double) sc->bypassSafetyChecksTimeout_us);
+                cJSON_AddItemToObject(root, "SafetyChecker", sc_json);
+            }
+        }
+        if (is_struct_requested("Sensor") && sensor != NULL) {
+            cJSON *sensor_json = cJSON_CreateObject();
+            if (sensor_json != NULL) {
+                cJSON_AddNumberToObject(sensor_json, "specMin", (double) sensor->specMin);
+                cJSON_AddNumberToObject(sensor_json, "specMax", (double) sensor->specMax);
+                cJSON_AddNumberToObject(sensor_json, "sensorValue", (double) sensor->sensorValue);
+                cJSON_AddNumberToObject(sensor_json, "heldSensorValue", (double) sensor->heldSensorValue);
+                cJSON_AddNumberToObject(sensor_json, "timestamp", (double) sensor->timestamp);
+                cJSON_AddBoolToObject(sensor_json, "fresh", sensor->fresh);
+                cJSON_AddNumberToObject(sensor_json, "ioErr_powerInit", (double) sensor->ioErr_powerInit);
+                cJSON_AddNumberToObject(sensor_json, "ioErr_powerSet", (double) sensor->ioErr_powerSet);
+                cJSON_AddNumberToObject(sensor_json, "ioErr_signalInit", (double) sensor->ioErr_signalInit);
+                cJSON_AddNumberToObject(sensor_json, "ioErr_signalGet", (double) sensor->ioErr_signalGet);
+                cJSON_AddItemToObject(root, "Sensor", sensor_json);
+            }
+        }
+        if (is_struct_requested("TorqueEncoder") && tps != NULL) {
+            cJSON *tps_json = cJSON_CreateObject();
+            if (tps_json != NULL) {
+                cJSON_AddBoolToObject(tps_json, "bench", tps->bench);
+                cJSON_AddNumberToObject(tps_json, "specMin", (double) tps->specMin);
+                cJSON_AddNumberToObject(tps_json, "tps0", (double) tps->tps0);
+                cJSON_AddNumberToObject(tps_json, "tps1", (double) tps->tps1);
+                cJSON_AddNumberToObject(tps_json, "calibMin", (double) tps->tps0_calibMin);
+                cJSON_AddNumberToObject(tps_json, "calibMax", (double) tps->tps0_calibMax);
+                cJSON_AddNumberToObject(tps_json, "reverse", (double) tps->tps0_reverse);
+                cJSON_AddNumberToObject(tps_json, "value", (double) tps->tps0_value);
+                cJSON_AddNumberToObject(tps_json, "percent", (double) tps->tps0_percent);
+                cJSON_AddNumberToObject(tps_json, "calibMin", (double) tps->tps1_calibMin);
+                cJSON_AddNumberToObject(tps_json, "calibMax", (double) tps->tps1_calibMax);
+                cJSON_AddNumberToObject(tps_json, "reverse", (double) tps->tps1_reverse);
+                cJSON_AddNumberToObject(tps_json, "value", (double) tps->tps1_value);
+                cJSON_AddNumberToObject(tps_json, "percent", (double) tps->tps1_percent);
+                cJSON_AddNumberToObject(tps_json, "runCalibration", (double) tps->runCalibration);
+                cJSON_AddNumberToObject(tps_json, "timestamp_calibrationStart", (double) tps->timestamp_calibrationStart);
+                cJSON_AddNumberToObject(tps_json, "calibrationRunTime", (double) tps->calibrationRunTime);
+                cJSON_AddNumberToObject(tps_json, "outputCurveExponent", (double) tps->outputCurveExponent);
+                cJSON_AddNumberToObject(tps_json, "calibrated", (double) tps->calibrated);
+                cJSON_AddNumberToObject(tps_json, "travelPercent", (double) tps->travelPercent);
+                cJSON_AddNumberToObject(sensor_json, "specMin", (double) sensor->implausibility);
+                
+                cJSON_AddItemToObject(root, "TorqueEncoder", tps_json);
+            }
+        }
+        if (is_struct_requested("WatchDog") && wd != NULL) {
+            cJSON *wd_json = cJSON_CreateObject();
+            if (wd_json != NULL) {
+                cJSON_AddNumberToObject(wd_json, "timestamp", (double) wd->timestamp);
+                cJSON_AddNumberToObject(wd_json, "timeout", (double) wd->timeout);
+                cJSON_AddNumberToObject(wd_json, "running", (double) wd->running);
+                cJSON_AddItemToObject(root, "WatchDog", wd_json);
+            }
+        }
         
         
         
-        
-        
-
         char* json_output = cJSON_PrintUnformatted(root);
         if (json_output != NULL) {
             printf("%s\n", json_output);
