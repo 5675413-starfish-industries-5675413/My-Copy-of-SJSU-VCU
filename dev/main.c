@@ -61,6 +61,9 @@
 #include "sil.h"
 #endif
 
+// HIL includes
+#include "hilParameter.h"
+
 //Application Database, needed for TTC-Downloader
 APDB appl_db =
     {
@@ -233,11 +236,11 @@ void main(void)
     WheelSpeeds *wss = WheelSpeeds_new(WHEEL_DIAMETER, WHEEL_DIAMETER, NUM_BUMPS, NUM_BUMPS);
     SafetyChecker *sc = SafetyChecker_new(serialMan, 320, 32); //Must match amp limits
     CoolingSystem *cs = CoolingSystem_new(serialMan);
-    Regen *regen = Regen_new(TRUE);
+    Regen *regen = Regen_new(FALSE);
     LaunchControl *lc = LaunchControl_new(FALSE);
     DRS *drs = DRS_new();
     PowerLimit *pl = POWERLIMIT_new(TRUE);
-    Efficiency *eff = EFFICIENCY_new(TRUE);  // Enable efficiency calculations
+    Efficiency *eff = Efficiency_new(TRUE);
 //---------------------------------------------------------------------------------------------------------
     //----------------------------------------------------------------------------
     // TODO: Additional Initial Power-up functions
@@ -272,6 +275,11 @@ void main(void)
         saved_tps1_percent = tps->tps1_percent;
     }
     #endif
+
+    /*******************************************/
+    /*           HIL CONFIGURATION             */
+    /*******************************************/
+    HIL_initParamTable(mcm0, pl, lc, wss, bms, regen, eff);
 
     /*******************************************/
     /*       PERIODIC APPLICATION CODE         */
