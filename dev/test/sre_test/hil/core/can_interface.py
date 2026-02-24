@@ -40,7 +40,7 @@ class CANInterface:
 
     @staticmethod
     def _default_config_path() -> Path:
-        return Path(__file__).parent.parent.parent / "config" / "can.ini"
+        return Path(__file__).parent.parent / "config" / "can.ini"
 
     def _resolve_bus_kwargs(self) -> dict:
         interface: Optional[str] = None

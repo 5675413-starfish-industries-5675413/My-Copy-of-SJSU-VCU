@@ -295,8 +295,8 @@
     "name": "PowerLimit",
     "parameters": {
       "pid": null,
-      "plToggle": 100,
-      "plStatus": null,
+      "plToggle": true,
+      "plStatus": true,
       "plMode": null,
       "plTargetPower": null,
       "plKwLimit": null,

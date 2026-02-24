@@ -1,4 +1,8 @@
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .param_injector import HILParamInjector
 
 @dataclass
 class PowerLimitStatus:
@@ -13,7 +17,7 @@ class PowerLimitStatus:
     pid_output: int = 0
     clamping_method: int = 0
 
-
+# Decoder for PowerLimit CAN messages from DBC to VCU
 class PowerLimitDecoder:
     MSG_STATUS_A = "VCU_Power_Limit_Status_AMsg"
     MSG_STATUS_B = "VCU_Power_Limit_Status_BMsg"
@@ -77,7 +81,7 @@ class PowerLimitDecoder:
     def reset(self):
         self._status = PowerLimitStatus()
 
-
+# CAN monitoring handler for PowerLimit messages
 class PowerLimitMonitor:
     """Receives and decodes Power Limit status frames."""
 
@@ -102,3 +106,38 @@ class PowerLimitMonitor:
             if status is not None:
                 return status
         return None
+
+class PowerLimitController:
+    def __init__(self, injector: "HILParamInjector"):
+        self.injector = injector
+        self._pending: dict[str, int] = {}
+
+    def set_toggle(self, enabled: bool):
+        self._pending['pltog'] = int(enabled)
+
+    def set_status(self, status: bool):
+        self._pending['plstat'] = int(status)
+    
+    def set_mode(self, mode: int):
+        self._pending['plmode'] = mode
+
+    def set_target_power(self, kw: int):
+        self._pending['pltarg'] = kw
+
+    def set_kw_limit(self, kw_limit: int):
+        self._pending['plkwlm'] = kw_limit
+
+    def set_initialization_threshold(self, threshold: int):
+        self._pending['plinit'] = threshold
+
+    def set_torque_command(self, torque: int):
+        self._pending['pltqcm'] = torque
+
+    def set_clamping_method(self, method: int):
+        self._pending['plclmp'] = method
+    
+    def send_all(self):
+        """Sends all pending parameters to VCU via injector"""
+        for name, value in self._pending.items():
+            self.injector.inject(name, value)
+        self._pending.clear()

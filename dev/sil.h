@@ -36,42 +36,6 @@
 
 #ifdef SIL_BUILD
 
-// Output mode flags - can be combined using bitwise OR
-#define SIL_OUTPUT_EFFICIENCY   0x01  // Output efficiency-related values
-#define SIL_OUTPUT_POWERLIMIT   0x02  // Output power limit-related values
-#define SIL_OUTPUT_MOTORCTRL    0x04  // Output motor controller values
-#define SIL_OUTPUT_ALL          0x07  // Output all available values (EFFICIENCY | POWERLIMIT | MOTORCTRL)
-
-// Compile-time output mode configuration
-// Define this at compile time using -DSIL_OUTPUT_MODE_CONFIG=<mode>
-// Examples:
-//   -DSIL_OUTPUT_MODE_CONFIG=SIL_OUTPUT_EFFICIENCY
-//   -DSIL_OUTPUT_MODE_CONFIG=SIL_OUTPUT_POWERLIMIT
-//   -DSIL_OUTPUT_MODE_CONFIG="(SIL_OUTPUT_EFFICIENCY|SIL_OUTPUT_POWERLIMIT)"
-//   -DSIL_OUTPUT_MODE_CONFIG=SIL_OUTPUT_ALL
-// If not defined, defaults to SIL_OUTPUT_ALL
-#ifndef SIL_OUTPUT_MODE_CONFIG
-#define SIL_OUTPUT_MODE_CONFIG SIL_OUTPUT_ALL
-#endif
-
-/**
- * Set the output mode for JSON output
- * @param mode Bitmask of output flags (SIL_OUTPUT_EFFICIENCY, SIL_OUTPUT_POWERLIMIT, SIL_OUTPUT_MOTORCTRL, or SIL_OUTPUT_ALL)
- */
-void sil_set_output_mode(ubyte1 mode);
-
-/**
- * Get the current output mode
- * @return Current output mode bitmask
- */
-ubyte1 sil_get_output_mode(void);
-
-/**
- * Get the runtime-requested output mode (set via JSON)
- * @return Requested output mode bitmask (0 if not set)
- */
-ubyte1 sil_get_requested_output_mode(void);
-
 /**
  * Read initial JSON configuration from stdin during initialization
  * @param pl PowerLimit struct pointer (can be NULL if not needed)
@@ -91,18 +55,15 @@ int sil_read_initial_json(PowerLimit* pl, MotorController* mcm, TorqueEncoder* t
 int sil_read_json_input(PowerLimit* pl, MotorController* mcm, TorqueEncoder* tps);
 
 /**
- * Write JSON output to stdout based on configured output mode
- * Dynamically outputs only available data based on:
- * - Current output mode settings (compile-time and runtime)
- * - Available struct pointers (NULL checks)
- * - Field availability
+ * Write JSON output to stdout.
+ * Always outputs all available sections (efficiency, power_limit, motor_controller)
+ * based on which struct pointers are non-NULL.
  * 
  * @param mcm MotorController struct pointer (can be NULL)
  * @param pl PowerLimit struct pointer (can be NULL)
  * @param eff Efficiency struct pointer (can be NULL)
- * @param output_mode Optional bitmask for output mode. If 0, uses current sil_output_mode
  */
-void sil_write_json_output(MotorController* mcm, PowerLimit* pl, Efficiency* eff, ubyte1 output_mode);
+void sil_write_json_output(MotorController* mcm, PowerLimit* pl, Efficiency* eff);
 
 /**
  * Restore TPS values after TorqueEncoder_update overwrites them

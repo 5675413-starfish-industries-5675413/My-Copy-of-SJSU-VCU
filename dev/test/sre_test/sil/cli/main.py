@@ -9,7 +9,6 @@ from pathlib import Path
 import click
 
 from sre_test.sil.cli.console import console
-from sre_test.sil.cli.efficiency_commands import efficiency
 from sre_test.sil.core.compiler import SILCompiler
 from sre_test.sil.core.simulator import SILSimulator
 from sre_test.sil.core.struct_parser import extract_struct_definitions
@@ -24,9 +23,6 @@ def cli():
     Compile and run VCU firmware in simulation mode.
     """
     pass
-
-# Register commands from other modules
-cli.add_command(efficiency)
 
 # Automatically register all discovered test commandsimport sre_test.sil.cli.test_commands as test_cmds
 for test_name in test_cmds.TEST_COMMANDS:
