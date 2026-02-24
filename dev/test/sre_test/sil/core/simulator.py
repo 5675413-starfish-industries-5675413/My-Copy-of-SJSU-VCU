@@ -7,6 +7,7 @@ import json
 import threading
 import queue
 import time
+import re
 from pathlib import Path
 from typing import Optional, Dict, Any, Iterator
 from sre_test.sil.core.helpers.path import STRUCT_MEMBERS
@@ -16,6 +17,11 @@ from sre_test.sil.core.compiler import SILCompiler
 class SILSimulator:
     """Runs the SIL executable and handles stdin/stdout JSON communication."""
 
+    @staticmethod
+    def _struct_name_to_output_key(struct_name: str) -> str:
+        """Convert C struct names to JSON keys (e.g., PowerLimit -> power_limit)."""
+        return re.sub(r'(?<!^)(?=[A-Z])', '_', struct_name).lower()
+
     def __init__(self, executable: Path):
         self.executable = executable
         self.process: Optional[subprocess.Popen] = None
@@ -24,12 +30,11 @@ class SILSimulator:
         self._stop_event = threading.Event()
 
     @classmethod
-    def create(cls, output_mode: int = 0x00, auto_compile: bool = True, verbose: bool = False):
+    def create(cls, auto_compile: bool = True, verbose: bool = False):
         """
         Create and start a simulator with automatic compilation.
         
         Args:
-            output_mode: SIL output mode (0x01=efficiency, 0x07=all)
             auto_compile: If True, compiles automatically if executable doesn't exist
             verbose: If True, shows compilation output
         
@@ -42,7 +47,7 @@ class SILSimulator:
             >>> response = sim.receive()
             >>> sim.stop()  # Clean up when done
         """
-        compiler = SILCompiler(sil_output_mode=output_mode)
+        compiler = SILCompiler()
         
         if auto_compile or not compiler.executable.exists():
             if not compiler.compile(verbose=verbose):
@@ -161,23 +166,15 @@ class SILSimulator:
             >>> response = sim.receive("MotorController")
             >>> response = sim.receive("MotorController", "PowerLimit")
         """
-        # If struct names provided, send output request
-        if struct_names:
-            requested_outputs = list(struct_names)
-            if requested_outputs:
-                request_data = {"request_outputs": requested_outputs}
-                self.send(request_data)
-        
         try:
             response = self.stdout_queue.get(timeout=timeout)
             
             # If only one struct was requested, flatten the response
-            # Just return the first (and only) value in the response dict
+            # to preserve existing call-site behavior.
             if struct_names and len(struct_names) == 1 and response and isinstance(response, dict):
-                # Get the first (and only) value from the response
-                values = list(response.values())
-                if len(values) == 1:
-                    return values[0]  # Return the struct data directly, no wrapper key
+                key = self._struct_name_to_output_key(struct_names[0])
+                if key in response:
+                    return response[key]
             
             return response
         except queue.Empty:
