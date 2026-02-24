@@ -2,6 +2,7 @@
 Efficiency test CLI commands.
 """
 
+import pytest
 import csv
 import time
 from pathlib import Path
@@ -15,7 +16,7 @@ from sre_test.sil.core.helpers.path import DATA
 from sre_test.sil.core.helpers.utils import (
     read_csv_rows,
     csv_row_to_json,
-    ensure_struct_definitions,
+    ensure_struct,
     parse_csv_value,
 )
 
@@ -33,40 +34,37 @@ fieldnames = [
 ]
 
 csv_file = "./sre_test/sil/tests/data/eff_data.csv"
-save_progress_every = 10
+progress = 10
+
+@pytest.fixture(scope="module", autouse=True)
+def setup_simulator():
+    """Automatically create sim for all tests - no parameter needed."""
+    global sim
+    sim = SILSimulator.create(auto_compile=True)
+    yield
+    sim.stop()
+    sim = None
 
 def test_efficiency():
     """
     Run closed-loop efficiency test with CSV data.
 
-    Reads motor data from CSV, sends to SIL simulator row-by-row,
+    Reads motor data from CSV, sends to SIL sim row-by-row,
     and collects efficiency results.
     """
     # Ensure struct definitions exist
-    ensure_struct_definitions()
+    ensure_struct()
     
     # Read CSV file
     csv_file_path = Path(csv_file)
     
     # Ensure data directory exists and set fixed output path
     DATA.mkdir(parents=True, exist_ok=True)
-    output_csv_file = DATA / f"{csv_file_path.stem}_results.csv"
+    output = DATA / f"{csv_file_path.stem}_results.csv"
     
     # Read and filter CSV rows
     rows = read_csv_rows(csv_file_path)
     total_rows = len(rows)
-
-    # Create simulator (auto-compiles if needed)
-    console.print("[cyan]Compiling SIL executable...[/cyan]")
-    
-    try:
-        simulator = SILSimulator.create(
-            verbose=True,
-            auto_compile=False
-        )
-    except RuntimeError:
-        console.print("[red]Build failed[/red]")
-        raise SystemExit(1)
 
     console.print(f"[cyan]Running efficiency test ({total_rows} rows)[/cyan]")
 
@@ -74,18 +72,18 @@ def test_efficiency():
     results_written = 0
     failed_rows = 0
     timeout_rows = 0
-    with open(output_csv_file, 'w', newline='', encoding='utf-8') as f:
+    with open(output, 'w', newline='', encoding='utf-8') as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
 
         try:
             # SILSimulator.create() already starts the process; do not start it again.
             # Send initial configuration structs
-            simulator.send_structs("PowerLimit", row_id=-1)
+            sim.send_structs("PowerLimit", row_id=-1)
             time.sleep(0.1)  # Give it a moment to process
             
             # Configure requested outputs once; repeating this every row adds avoidable IPC overhead.
-            _ = simulator.receive("MotorController", "Efficiency", timeout=2.0)
+            _ = sim.receive("MotorController", "Efficiency", timeout=2.0)
 
             for row_idx, csv_row in enumerate(rows):
                 row_number = row_idx + 1
@@ -93,14 +91,14 @@ def test_efficiency():
                     json_data = csv_row_to_json(
                         csv_row, row_idx, CSV_TO_MCM_PARAMS, CSV_TO_TPS_PARAMS
                     )
-                    simulator.send(json_data) 
+                    sim.send(json_data) 
                 except Exception as e:
                     failed_rows += 1
                     console.print(f"[yellow]Error sending JSON at row {row_number}: {e}[/yellow]")
                     continue
 
                 # Output request is already configured above, so only receive here.
-                response = simulator.receive(timeout=0.25)
+                response = sim.receive(timeout=0.25)
                 if response is None:
                     timeout_rows += 1
                     response = {}
@@ -116,17 +114,17 @@ def test_efficiency():
                 writer.writerow(result_row)
 
                 results_written += 1
-                if save_progress_every and results_written % save_progress_every == 0:
+                if progress and results_written % progress == 0:
                     f.flush()
                     progress_pct = (results_written / total_rows * 100) if total_rows else 0.0
                     console.print(
-                        f"[cyan]Progress: {results_written}/{total_rows} ({progress_pct:.1f}%)[/cyan]"
+                        f"[cyan]Progress: {results_written}/{total_rows} ({progress_pct:.1f}%)[/cyan]" #for some reason its purple
                     )
         finally:
-            simulator.stop()
+            sim.stop()
 
     console.print(
-        f"[green]Completed![/green] {results_written} results written to {output_csv_file} "
+        f"[green]Completed![/green] {results_written} results written to {output} "
         f"(failed sends: {failed_rows}, timeouts: {timeout_rows})"
     )
 

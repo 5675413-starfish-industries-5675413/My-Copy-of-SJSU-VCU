@@ -16,16 +16,11 @@ from sre_test.sil.core.helpers.path import (
 
 sim = None
 
-def skip_first_cycle(*struct_names: str, output):
-    """Helper function to skip the first cycle by sending data and discarding response."""
-    sim.send_structs(*struct_names)
-    _ = sim.receive(timeout=2.0)  # Discard first cycle response
-
 @pytest.fixture(scope="module", autouse=True)
 def setup_simulator():
     """Automatically create simulator for all tests - no parameter needed."""
     global sim
-    sim = SILSimulator.create(output_mode=0x07, auto_compile=True)
+    sim = SILSimulator.create(auto_compile=True)
     yield
     sim.stop()
     sim = None
@@ -52,7 +47,7 @@ def test_DynamicConfig():
     assert config.energyBudget_kWh == 0.3
 
 
-def test_single_point(): 
+def test_point(): 
     """Single point simulation test"""
     # Create MotorController config with motorRPM
     mcm_config = DynamicConfig("MotorController")
@@ -68,8 +63,6 @@ def test_single_point():
     # Update struct_members_output.json with the config
     configs_to_json(mcm_config, tps_config)
     
-    # Send MotorController as a regular data point (row_id=0)
-    skip_first_cycle("MotorController", "TorqueEncoder", output="Efficiency")
     sim.send_structs("MotorController", "TorqueEncoder")
 
     # Let the control loop update plStatus from inputs (do not force it in config).
