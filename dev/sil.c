@@ -504,7 +504,8 @@ ubyte1 sil_get_requested_output_mode(void)
 
 // NOTE: cJSON ONLY ACCEPTS DOUBLE DATA TYPES FOR NUMBER VALUES
 void sil_write_json_output_cJSON_version(MotorController* mcm, PowerLimit* pl, Efficiency* eff, BatteryManagementSystem* bms, LaunchControl* lc, BrakePressureSensor* bps, PID* pid, Regen *regen, InstrumentCluster *ic, ReadyToDriveSound *rtds, SafetyChecker *sc, Sensor *sensor, TorqueEncoder *tps, WatchDog *wd, ubyte1 output_mode) {
-   if (sil_requested_count > 0) {
+   ubyte1 sil_requested_count = 1;
+    if (sil_requested_count > 0) {
         cJSON *root = cJSON_CreateObject();
         if (root == NULL) {
             return ;
@@ -636,16 +637,18 @@ void sil_write_json_output_cJSON_version(MotorController* mcm, PowerLimit* pl, E
                 
             }
         }
+        
         if (is_struct_requested("InstrumentCluster") && ic != NULL) {
             cJSON *ic_json = cJSON_CreateObject();
             if (ic_json != NULL) {
-                cJSON_AddNumberToObject(ic_json, "serialMan", (double) ic->serialMan);
-                cJSON_AddNumberToObject(ic_json, "canMessageBaseId", (double) ic->canMessageBaseId);
+                // cJSON_AddNumberToObject(ic_json, "serialMan", (double) ic->serialMan);
+                // cJSON_AddNumberToObject(ic_json, "canMessageBaseId", (double) ic->canMessageBaseId);
                 cJSON_AddNumberToObject(ic_json, "torqueMapMode", (double) IC_getTorqueMapMode(ic));
                 cJSON_AddNumberToObject(ic_json, "launchControlSensitivity", (double) IC_getLaunchControlSensitivity(ic));
-                cJSON(root, "InstrumentCluster", ic_json);
+                cJSON_AddItemToObject(root, "InstrumentCluster", ic_json);
             }
-        }
+        } // InstrumentCuster doesn't have its struct defined in its header files, so we can't access its values here without causing a compile error. We can add this back in once the struct is defined.
+        /**
         if (is_struct_requested("ReadyToDriveSound") && rtds != NULL) {
             cJSON *rtds_json = cJSON_CreateObject();
             if (rtds_json != NULL) {
@@ -655,7 +658,8 @@ void sil_write_json_output_cJSON_version(MotorController* mcm, PowerLimit* pl, E
                 cJSON_AddItemToObject(root, "volumePercent", (double) rtds->volumePercent);
                 cJSON_AddItemToObject(root, "ReadyToDriveSound", rtds_json);
             }
-        }
+        }*/ // ReadyToDriveSound doesn't have its struct defined in its header files, so we can't access its values here without causing a compile error. We can add this back in once the struct is defined.
+        /*
         if (is_struct_requested("SafetyChecker") && sc != NULL) {
             cJSON *sc_json = cJSON_CreateObject();
             if (sc_json != NULL) {
@@ -674,11 +678,11 @@ void sil_write_json_output_cJSON_version(MotorController* mcm, PowerLimit* pl, E
                 cJSON_AddNumberToObject(sc_json, "bypassSafetyChecksTimeout_us", (double) sc->bypassSafetyChecksTimeout_us);
                 cJSON_AddItemToObject(root, "SafetyChecker", sc_json);
             }
-        }
+        }*/ // SafetyChecker doesn't have its struct defined in its header files, so we can't access its values here without causing a compile error. We can add this back in once the struct is defined.
         if (is_struct_requested("Sensor") && sensor != NULL) {
             cJSON *sensor_json = cJSON_CreateObject();
             if (sensor_json != NULL) {
-                cJSON_AddNumberToObject(sensor_json, "specMin", (double) sensor->specMin);
+                // cJSON_AddNumberToObject(sensor_json, "specMin", (double) sensor->specMin); compiler says this doesn't exist, but it's defined in the header file. We can add this back in once we resolve this issue.
                 cJSON_AddNumberToObject(sensor_json, "specMax", (double) sensor->specMax);
                 cJSON_AddNumberToObject(sensor_json, "sensorValue", (double) sensor->sensorValue);
                 cJSON_AddNumberToObject(sensor_json, "heldSensorValue", (double) sensor->heldSensorValue);
@@ -695,9 +699,9 @@ void sil_write_json_output_cJSON_version(MotorController* mcm, PowerLimit* pl, E
             cJSON *tps_json = cJSON_CreateObject();
             if (tps_json != NULL) {
                 cJSON_AddBoolToObject(tps_json, "bench", tps->bench);
-                cJSON_AddNumberToObject(tps_json, "specMin", (double) tps->specMin);
-                cJSON_AddNumberToObject(tps_json, "tps0", (double) tps->tps0);
-                cJSON_AddNumberToObject(tps_json, "tps1", (double) tps->tps1);
+                //cJSON_AddNumberToObject(tps_json, "specMin", (double) tps->specMin);
+                // cJSON_AddNumberToObject(tps_json, "tps0", (double) tps->tps0);
+                // cJSON_AddNumberToObject(tps_json, "tps1", (double) tps->tps1);
                 cJSON_AddNumberToObject(tps_json, "calibMin", (double) tps->tps0_calibMin);
                 cJSON_AddNumberToObject(tps_json, "calibMax", (double) tps->tps0_calibMax);
                 cJSON_AddNumberToObject(tps_json, "reverse", (double) tps->tps0_reverse);
@@ -714,7 +718,7 @@ void sil_write_json_output_cJSON_version(MotorController* mcm, PowerLimit* pl, E
                 cJSON_AddNumberToObject(tps_json, "outputCurveExponent", (double) tps->outputCurveExponent);
                 cJSON_AddNumberToObject(tps_json, "calibrated", (double) tps->calibrated);
                 cJSON_AddNumberToObject(tps_json, "travelPercent", (double) tps->travelPercent);
-                cJSON_AddNumberToObject(sensor_json, "specMin", (double) sensor->implausibility);
+                cJSON_AddNumberToObject(tps_json, "specMin", (double) tps->implausibility);
                 
                 cJSON_AddItemToObject(root, "TorqueEncoder", tps_json);
             }
