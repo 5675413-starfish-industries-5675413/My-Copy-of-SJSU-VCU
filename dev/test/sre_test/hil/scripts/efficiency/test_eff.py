@@ -21,21 +21,32 @@ with CANInterface() as can:
     # Set lap energy parameters
     eff.set_energy_budget_kwh(0.30)
     #eff.set_carry_over_energy_kwh(0.05)
-    for i in range(2000):
-        eff.set_total_lap_distance_km(i * 0.001)
+
+    # Simulate driving for 5 laps to test lap counting
+    last_lap_counter = 0
+    distance_accumulator = 0.0
+    distance_increment = 0.02  # 20m per cycle
+
+    # Get initial status to set the lap counter
+    status = eff_monitor.wait_for_status(timeout_s=0.1)
+    if status:
+        last_lap_counter = status.lap_counter
+
+    print("Starting efficiency test simulation...")
+    for i in range(250):  # Run for ~5 laps (250 steps * 0.02km/step = 5km)
+        distance_accumulator += distance_increment
+        eff.set_total_lap_distance_km(distance_accumulator)
         eff.send_all()
 
-        # status = eff_monitor.recv(timeout=0.01)
         status = eff_monitor.wait_for_status(timeout_s=0.05, poll_timeout_s=0.01)
         if status:
-            print(f"Efficiency Lap Counter: {status.lap_counter}")
-            print(f"Efficiency Total Lap Distance: {status.totalLapDistance_km:.2f} km")
+            print(f"Lap: {status.lap_counter}, Injected Dist: {distance_accumulator:.2f} km, VCU Dist: {status.totalLapDistance_km:.3f} km")
+            if status.lap_counter > last_lap_counter:
+                print(f"--- LAP {last_lap_counter} COMPLETED ---")
+                ### ENABLE WHILE LOOP IF DISTANCE RESET TO 0 IS NOT WORKING AS EXPECTED ###
+                # while status is not None and status.totalLapDistance_km > 0:
+                #     status = eff_monitor.wait_for_status(timeout_s=0.05, poll_timeout_s=0.01)
+                distance_accumulator = status.totalLapDistance_km  # Resync with VCU's distance after lap reset
+                last_lap_counter = status.lap_counter
         time.sleep(0.01)
     print("Efficiency parameters injected successfully.")
-
-    # Monitor VCU response
-    # for _ in range(100):
-    #     status = eff_monitor.recv(timeout=0.01)
-    #     if status:
-    #         print(f"Efficiency Lap Counter: {status.lap_counter}")
-    #     time.sleep(0.01)

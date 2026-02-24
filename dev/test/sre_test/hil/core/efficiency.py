@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
+import time
 import struct
 
 if TYPE_CHECKING:
@@ -12,7 +13,6 @@ class EfficiencyStatus:
     toggle: int = 0
     energy_budget_kwh: float = 0.0
     finished_lap: bool = False
-    total_lap_distance_km: float = 0.0
     lap_counter: int = 0
     energySpentInCorners_kWh: float = 0.0
     lapEnergySpent_kWh: float = 0.0
@@ -77,8 +77,9 @@ class EfficiencyDecoder:
                 "VCU_Efficiency_EnergySpentInCorners", 0))
             self._status.lapEnergySpent_kWh = int(signals.get(
                 "VCU_Efficiency_LapEnergySpent", 0))
-            self._status.totalLapDistance_km = int(signals.get(
-                "VCU_Efficiency_TotalLapDistance", 0))
+            # The CAN signal is scaled by 100 in canManager.c, so we divide by 100.0 to get km.
+            self._status.totalLapDistance_km = float(signals.get(
+                "VCU_Efficiency_TotalLapDistance", 0)) / 100.0
             
         return self._status
     
@@ -103,8 +104,6 @@ class EfficiencyMonitor:
 
     def wait_for_status(self, timeout_s: float = 1.0, poll_timeout_s: float = 0.01):
         """Wait for any Efficiency status frame or timeout."""
-        import time
-
         t_end = time.time() + timeout_s
         while time.time() < t_end:
             status = self.recv(timeout=poll_timeout_s)
