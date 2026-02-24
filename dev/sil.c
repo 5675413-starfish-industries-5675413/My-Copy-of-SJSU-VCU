@@ -544,13 +544,18 @@ void sil_write_json_output_cJSON_version(MotorController* mcm, PowerLimit* pl, E
 
             cJSON *eff_json = cJSON_CreateObject();
             if (eff_json != NULL) {
-                cJSON_AddNumberToObject(eff_json, "timeInStraight_s", (double) Efficiency_getTimeInStraights_s(eff));
-                cJSON_AddNumberToObject(eff_json, "timeInCorners_s", (double) eff->timeInCorners_s);
+                cJSON_AddBoolToObject(eff_json, "efficiencyToggle", eff->efficiencyToggle);
+                cJSON_AddNumberToObject(eff_json, "energyBudget_kWh", (double) Efficiency_getEnergyBudget_kWh(eff));
+                cJSON_AddNumberToObject(eff_json, "carryOverEnergy_kWh", (double) Efficiency_getCarryOverEnergy_kWh(eff));
                 cJSON_AddNumberToObject(eff_json, "lapCounter", (double) Efficiency_getLapCounter(eff));
+                cJSON_AddNumberToObject(eff_json, "straightTime_s", (double) Efficiency_getTimeInStraights_s(eff));
+                cJSON_AddNumberToObject(eff_json, "cornerTime_s", (double) eff->cornerTime_s);
+                cJSON_AddNumberToObject(eff_json, "cornerEnergy_kWh", (double) Efficiency_getCornerEnergy_kWh(eff));
+                cJSON_AddNumberToObject(eff_json, "straightEnergy_kWh", (double) Efficiency_getStraightEnergy_kWh(eff));
                 if (pl != NULL) {
-                    cJSON_AddNumberToObject(eff_json, "pl_target", (double) POWERLIMIT_getTargetPower(pl));
+                    cJSON_AddNumberToObject(eff_json, "plTargetPower", (double) POWERLIMIT_getTargetPower(pl));
                 }
-                cJSON_AddNumberToObject(eff_json, "lapEnergySpent_kWh", (double) Efficiency_getLapEnergySpent_kWh(eff));
+                cJSON_AddNumberToObject(eff_json, "lapEnergy_kWh", (double) Efficiency_getLapEnergy_kWh(eff));
                 cJSON_AddNumberToObject(eff_json, "energyBudget_kWh", (double) Efficiency_getEnergyBudget_kWh(eff));
                 cJSON_AddNumberToObject(eff_json, "carryOverEnergy_kWh", (double) Efficiency_getCarryOverEnergy_kWh(eff));
                 cJSON_AddItemToObject(root, "Efficiency", eff_json);
