@@ -1,0 +1,2 @@
+[console_scripts]
+sre = sre_test.cli.main:sre
