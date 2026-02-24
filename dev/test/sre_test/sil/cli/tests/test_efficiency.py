@@ -18,11 +18,11 @@ from sre_test.sil.core.helpers.utils import (
     csv_row_to_json,
     ensure_struct,
     parse_csv_value,
+    print_progress,
 )
 
 # Output CSV columns
 fieldnames = [
-    'MCM Motor Speed',
     'time_in_straight',
     'time_in_corners',
     'lap_counter',
@@ -34,6 +34,7 @@ fieldnames = [
 ]
 
 csv_file = "./sre_test/sil/tests/data/eff_data.csv"
+csv_path = Path(csv_file)
 progress = 10
 
 @pytest.fixture(scope="module", autouse=True)
@@ -45,7 +46,20 @@ def setup_simulator():
     sim.stop()
     sim = None
 
-def test_efficiency():
+@pytest.fixture
+def output_writer():
+    """Provide opened output CSV file and writer for efficiency test."""
+
+    DATA.mkdir(parents=True, exist_ok=True)
+    output = DATA / f"{csv_path.stem}_results.csv"
+
+    with open(output, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        yield output, f, writer
+
+
+def test_efficiency(output_writer):
     """
     Run closed-loop efficiency test with CSV data.
 
@@ -55,15 +69,10 @@ def test_efficiency():
     # Ensure struct definitions exist
     ensure_struct()
     
-    # Read CSV file
-    csv_file_path = Path(csv_file)
-    
-    # Ensure data directory exists and set fixed output path
-    DATA.mkdir(parents=True, exist_ok=True)
-    output = DATA / f"{csv_file_path.stem}_results.csv"
+    output, f, writer = output_writer
     
     # Read and filter CSV rows
-    rows = read_csv_rows(csv_file_path)
+    rows = read_csv_rows(csv_path)
     total_rows = len(rows)
 
     console.print(f"[cyan]Running efficiency test ({total_rows} rows)[/cyan]")
@@ -72,56 +81,36 @@ def test_efficiency():
     results_written = 0
     failed_rows = 0
     timeout_rows = 0
-    with open(output, 'w', newline='', encoding='utf-8') as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        writer.writeheader()
+    try:
+        sim.send_structs("PowerLimit", row_id=-1)
+        time.sleep(0.1)  # Give it a moment to process
+        
+        # Configure requested outputs once; repeating this every row adds avoidable IPC overhead.
+        # _ = sim.receive("MotorController", "Efficiency", timeout=2.0)
 
-        try:
-            # SILSimulator.create() already starts the process; do not start it again.
-            # Send initial configuration structs
-            sim.send_structs("PowerLimit", row_id=-1)
-            time.sleep(0.1)  # Give it a moment to process
+        for row_idx, csv_row in enumerate(rows):
+            row_number = row_idx + 1
+            json_data = csv_row_to_json(
+                csv_row, row_idx, CSV_TO_MCM_PARAMS, CSV_TO_TPS_PARAMS
+            )
+            sim.send(json_data) 
+
+            # Output request is already configured above, so only receive here.
+            response = sim.receive(timeout=0.25)
+            if response is None:
+                timeout_rows += 1
+                response = {}
+
+            # Build result row from efficiency data
+            data = response.get("efficiency", {})
+            result_row = {k: data.get(k) for k in fieldnames}
             
-            # Configure requested outputs once; repeating this every row adds avoidable IPC overhead.
-            _ = sim.receive("MotorController", "Efficiency", timeout=2.0)
+            writer.writerow(result_row)
 
-            for row_idx, csv_row in enumerate(rows):
-                row_number = row_idx + 1
-                try:
-                    json_data = csv_row_to_json(
-                        csv_row, row_idx, CSV_TO_MCM_PARAMS, CSV_TO_TPS_PARAMS
-                    )
-                    sim.send(json_data) 
-                except Exception as e:
-                    failed_rows += 1
-                    console.print(f"[yellow]Error sending JSON at row {row_number}: {e}[/yellow]")
-                    continue
-
-                # Output request is already configured above, so only receive here.
-                response = sim.receive(timeout=0.25)
-                if response is None:
-                    timeout_rows += 1
-                    response = {}
-
-                # Build result row from efficiency data
-                efficiency_data = response.get("efficiency", {})
-                input_motor_rpm = parse_csv_value(csv_row.get("MCM Motor Speed"))
-
-                result_row = {k: efficiency_data.get(k) for k in fieldnames}
-                # Keep MCM Motor Speed aligned to the original input CSV row.
-                result_row['MCM Motor Speed'] = input_motor_rpm
-                
-                writer.writerow(result_row)
-
-                results_written += 1
-                if progress and results_written % progress == 0:
-                    f.flush()
-                    progress_pct = (results_written / total_rows * 100) if total_rows else 0.0
-                    console.print(
-                        f"[cyan]Progress: {results_written}/{total_rows} ({progress_pct:.1f}%)[/cyan]" #for some reason its purple
-                    )
-        finally:
-            sim.stop()
+            results_written += 1
+            print_progress(results_written, total_rows, progress, flush=f.flush)
+    finally:
+        sim.stop()
 
     console.print(
         f"[green]Completed![/green] {results_written} results written to {output} "
