@@ -270,7 +270,7 @@
     "parameters": {
       "pid": null,
       "plToggle": true,
-      "plStatus": null,
+      "plStatus": true,
       "plMode": null,
       "plTargetPower": null,
       "plKwLimit": null,
