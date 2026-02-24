@@ -641,11 +641,11 @@ void sil_write_json_output(MotorController* mcm, PowerLimit* pl, Efficiency* eff
             int first_eff = 1;
             
             if (!first_eff) printf(",");
-            printf("\"time_in_straight\":%.4f", eff->timeInStraights_s);
+            printf("\"time_in_straight\":%.4f", eff->straightTime_s);
             first_eff = 0;
             
             if (!first_eff) printf(",");
-            printf("\"time_in_corners\":%.4f", eff->timeInCorners_s);
+            printf("\"time_in_corners\":%.4f", eff->cornerTime_s);
             
             if (!first_eff) printf(",");
             printf("\"lap_counter\":%d", eff->lapCounter);
@@ -657,7 +657,7 @@ void sil_write_json_output(MotorController* mcm, PowerLimit* pl, Efficiency* eff
             }
             
             if (!first_eff) printf(",");
-            printf("\"energy_consumption_per_lap\":%.4f", eff->lapEnergySpent_kWh);
+            printf("\"energy_consumption_per_lap\":%.4f", eff->lapEnergy_kWh);
             
             if (!first_eff) printf(",");
             printf("\"energy_budget_per_lap\":%.4f", eff->energyBudget_kWh);
@@ -666,7 +666,7 @@ void sil_write_json_output(MotorController* mcm, PowerLimit* pl, Efficiency* eff
             printf("\"carry_over_energy\":%.4f", eff->carryOverEnergy_kWh);
             
             if (!first_eff) printf(",");
-            printf("\"total_lap_distance\":%.4f", eff->totalLapDistance_km);
+            printf("\"total_lap_distance\":%.4f", eff->lapDistance_km);
             
             printf("}");
             first_field = 0;
@@ -691,11 +691,11 @@ void sil_write_json_output(MotorController* mcm, PowerLimit* pl, Efficiency* eff
             }
             
             if (!first_eff) printf(",");
-            printf("\"time_in_straight\":%.4f", eff->timeInStraights_s);
+            printf("\"time_in_straight\":%.4f", eff->straightTime_s);
             first_eff = 0;
             
             if (!first_eff) printf(",");
-            printf("\"time_in_corners\":%.4f", eff->timeInCorners_s);
+            printf("\"time_in_corners\":%.4f", eff->cornerTime_s);
             
             if (!first_eff) printf(",");
             printf("\"lap_counter\":%d", eff->lapCounter);
@@ -707,7 +707,7 @@ void sil_write_json_output(MotorController* mcm, PowerLimit* pl, Efficiency* eff
             }
             
             if (!first_eff) printf(",");
-            printf("\"energy_consumption_per_lap\":%.4f", eff->lapEnergySpent_kWh);
+            printf("\"energy_consumption_per_lap\":%.4f", eff->lapEnergy_kWh);
             
             if (!first_eff) printf(",");
             printf("\"energy_budget_per_lap\":%.4f", eff->energyBudget_kWh);
@@ -716,7 +716,7 @@ void sil_write_json_output(MotorController* mcm, PowerLimit* pl, Efficiency* eff
             printf("\"carry_over_energy\":%.4f", eff->carryOverEnergy_kWh);
             
             if (!first_eff) printf(",");
-            printf("\"total_lap_distance\":%.4f", eff->totalLapDistance_km);
+            printf("\"total_lap_distance\":%.4f", eff->lapDistance_km);
         }
         
         printf("}");
