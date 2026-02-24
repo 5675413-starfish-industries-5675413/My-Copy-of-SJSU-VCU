@@ -110,7 +110,7 @@ def csv_row_to_json(
     return {"row_id": row_id, "structs": structs}
 
 
-def ensure_struct_definitions() -> None:
+def ensure_struct() -> None:
     """
     Ensure struct definitions file exists, extracting if needed.
     """
