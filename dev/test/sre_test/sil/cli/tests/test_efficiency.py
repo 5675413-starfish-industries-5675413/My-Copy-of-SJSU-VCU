@@ -9,6 +9,7 @@ from pathlib import Path
 import click
 
 from sre_test.sil.cli.console import console
+from sre_test.sil.cli.csv_mappings import CSV_TO_MCM_PARAMS, CSV_TO_TPS_PARAMS
 from sre_test.sil.core.simulator import SILSimulator
 from sre_test.sil.core.helpers.path import DATA
 from sre_test.sil.core.helpers.utils import (
@@ -17,19 +18,6 @@ from sre_test.sil.core.helpers.utils import (
     ensure_struct_definitions,
     parse_csv_value,
 )
-
-# CSV column mappings
-CSV_TO_MCM_PARAMS = {
-    "MCM DC Bus Voltage": "DC_Voltage",
-    "MCM DC Bus Current": "DC_Current",
-    "MCM Motor Speed": "motorRPM",
-    "MCM Torque Command": "commandedTorque",
-}
-
-CSV_TO_TPS_PARAMS = {
-    "TPS0ThrottlePercent0FF": "tps0_percent",
-    "TPS1ThrottlePercent0FF": "tps1_percent",
-}
 
 # Output CSV columns
 fieldnames = [
@@ -44,11 +32,10 @@ fieldnames = [
     'total_lap_distance',
 ]
 
-@click.command()
-@click.argument('csv_file', type=click.Path(exists=True))
-@click.option('--timeout-per-row', type=float, default=0.25, show_default=True, help='Timeout per CSV row (seconds)')
-@click.option('--save-progress-every', type=int, default=10, show_default=True, help='Save progress every N rows')
-def efficiency(csv_file, timeout_per_row, save_progress_every):
+csv_file = "./sre_test/sil/tests/data/eff_data.csv"
+save_progress_every = 10
+
+def test_efficiency():
     """
     Run closed-loop efficiency test with CSV data.
 
@@ -113,7 +100,7 @@ def efficiency(csv_file, timeout_per_row, save_progress_every):
                     continue
 
                 # Output request is already configured above, so only receive here.
-                response = simulator.receive(timeout=timeout_per_row)
+                response = simulator.receive(timeout=0.25)
                 if response is None:
                     timeout_rows += 1
                     response = {}

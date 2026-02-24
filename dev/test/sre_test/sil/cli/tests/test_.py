@@ -25,7 +25,7 @@ def skip_first_cycle(*struct_names: str, output):
 def setup_simulator():
     """Automatically create simulator for all tests - no parameter needed."""
     global sim
-    sim = SILSimulator.create(output_mode=0x07, auto_compile=False)
+    sim = SILSimulator.create(output_mode=0x07, auto_compile=True)
     yield
     sim.stop()
     sim = None
@@ -80,8 +80,8 @@ def test_single_point():
     pl_status = power_limit.get("pl_status")
         # if pl_status is True:
         #     break
-    # sim.send_structs("MotorController", "TorqueEncoder")
+    sim.send_structs("MotorController", "TorqueEncoder")
 
-    # assert pl_status is True
-    print(f"✓ received pl_status: {pl_status}")
+    assert pl_status is True
+    print(f"received pl_status: {pl_status}")
     
