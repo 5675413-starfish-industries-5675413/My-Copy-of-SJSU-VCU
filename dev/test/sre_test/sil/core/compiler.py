@@ -13,8 +13,7 @@ class SILCompiler:
     def __init__(self,
                  dev_dir: Optional[Path] = None,
                  inc_dir: Optional[Path] = None,
-                 sil_inc_dir: Optional[Path] = None,
-                 sil_output_mode: int = 0x01):
+                 sil_inc_dir: Optional[Path] = None):
         """
         Initialize compiler with source directories.
 
@@ -22,8 +21,6 @@ class SILCompiler:
             dev_dir: Path to dev/ directory containing VCU source files
             inc_dir: Path to inc/ directory containing VCU headers
             sil_inc_dir: Path to SIL stub directory (dev/test/sre_test/sil/inc/)
-            sil_output_mode: SIL output mode configuration (0x01=efficiency, 0x02=power_limit, 
-                             0x04=motor_controller, 0x07=all). Default is 0x01 (efficiency only).
         """
         # Auto-detect paths relative to this file
         self.script_dir = Path(__file__).parent.parent  # dev/test/sre_test/sil/
@@ -42,9 +39,6 @@ class SILCompiler:
         self.build_dir = self.script_dir / 'build'
         self.executable = self.build_dir / self._get_exe_name()
         
-        # Store output mode for compilation
-        self.sil_output_mode = sil_output_mode
-
     def _get_exe_name(self) -> str:
         """Get platform-appropriate executable name."""
         import platform
@@ -108,7 +102,6 @@ class SILCompiler:
             '-DRTS_TTC_FLASH_DATE_HOUR=0',
             '-DRTS_TTC_FLASH_DATE_MINUTE=0',
             '-DSIL_BUILD',
-            f'-DSIL_OUTPUT_MODE_CONFIG={self.sil_output_mode:#x}',  # Dynamic output mode
         ]
         return flags
 

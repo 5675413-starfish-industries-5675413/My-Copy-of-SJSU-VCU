@@ -28,30 +28,6 @@
 #define JSON_BUFFER_SIZE (256 * 1024)
 
 /*****************************************************************************
- * Dynamic Struct Selection Variables
- * Store requested struct names for runtime output selection
- *****************************************************************************/
-
-// Dynamic struct name storage (replaces bitmask system)
-#define MAX_REQUESTED_STRUCTS 16
-static char sil_requested_structs[MAX_REQUESTED_STRUCTS][64];
-static int sil_requested_count = 0;
-
-// Helper function to check if a struct is requested by name
-static int is_struct_requested(const char* struct_name)
-{
-    if (struct_name == NULL) {
-        return 0;
-    }
-    for (int i = 0; i < sil_requested_count; i++) {
-        if (strcmp(sil_requested_structs[i], struct_name) == 0) {
-            return 1;
-        }
-    }
-    return 0;
-}
-
-/*****************************************************************************
  * JSON Parsing Functions
  * Parse JSON configuration values into structs
  *****************************************************************************/
@@ -323,31 +299,6 @@ static int parse_struct_values_from_string(const char* json_string,
         return -1; // Failed to parse JSON
     }
     
-    // Check for output request first
-    if (cJSON_IsObject(json)) {
-        cJSON* request_outputs = cJSON_GetObjectItem(json, "request_outputs");
-        if (request_outputs != NULL && cJSON_IsArray(request_outputs)) {
-            // Parse requested struct names dynamically (no hardcoded checks!)
-            sil_requested_count = 0;  // Clear previous requests
-            int array_size = cJSON_GetArraySize(request_outputs);
-            for (int i = 0; i < array_size && sil_requested_count < MAX_REQUESTED_STRUCTS; i++) {
-                cJSON* item = cJSON_GetArrayItem(request_outputs, i);
-                if (item != NULL && cJSON_IsString(item)) {
-                    const char* struct_name = item->valuestring;
-                    // Store the struct name (accepts any struct name dynamically)
-                    strncpy(sil_requested_structs[sil_requested_count], struct_name, 63);
-                    sil_requested_structs[sil_requested_count][63] = '\0';
-                    sil_requested_count++;
-                }
-            }
-            // If only output request, return early
-            if (cJSON_GetObjectItem(json, "structs") == NULL) {
-                cJSON_Delete(json);
-                return 0; // Successfully set output mode
-            }
-        }
-    }
-    
     // Handle two formats:
     // 1. Direct array: [{...}, {...}]
     // 2. Object with "structs" key: {"structs": [{...}, {...}], "row_id": ...}
@@ -531,200 +482,55 @@ int sil_read_json_input(PowerLimit* pl, MotorController* mcm, TorqueEncoder* tps
     return parse_result;
 }
 
-// Static variable to store output mode (set via compile-time define SIL_OUTPUT_MODE_CONFIG)
-static ubyte1 sil_output_mode = SIL_OUTPUT_MODE_CONFIG;
-
-void sil_set_output_mode(ubyte1 mode)
-{
-    sil_output_mode = mode;
-}
-
-ubyte1 sil_get_output_mode(void)
-{
-    return sil_output_mode;
-}
-
-ubyte1 sil_get_requested_output_mode(void)
-{
-    // Return 0 to indicate dynamic mode is being used
-    // This maintains backward compatibility but dynamic lookup takes precedence
-    return 0;
-}
-
-void sil_write_json_output(MotorController* mcm, PowerLimit* pl, Efficiency* eff, ubyte1 output_mode)
+void sil_write_json_output(MotorController* mcm, PowerLimit* pl, Efficiency* eff)
 {
     int first_field = 1;  // Track if this is the first field in JSON
     
     printf("{");
-    
-    // Use dynamic struct name lookup if structs were requested by name
-    if (sil_requested_count > 0) {
-        // Check each requested struct dynamically
-        if (is_struct_requested("MotorController") && mcm != NULL) {
-            if (!first_field) printf(",");
-            printf("\"motor_controller\":{");
-            int first_mcm = 1;
-            
-            printf("\"motor_rpm\":%.4f", (float4)MCM_getMotorRPM(mcm));
-            first_mcm = 0;
-            
-            if (! first_mcm) printf(",");
-            printf("\"dc_voltage\":%.4f", (float4)MCM_getDCVoltage(mcm));
-            
-            if (!first_mcm) printf(",");
-            printf("\"dc_current\":%.4f", (float4)MCM_getDCCurrent(mcm));
-            
-            if (!first_mcm) printf(",");
-            sbyte4 power_kw = (MCM_getDCVoltage(mcm) * MCM_getDCCurrent(mcm)) / 1000;
-            printf("\"power_kw\":%.4f", (float4)power_kw);
-            
-            if (!first_mcm) printf(",");
-            printf("\"commanded_torque\":%.4f", (float4)MCM_getCommandedTorque(mcm) / 10.0f);  // Convert DNm to Nm
-            
-            if (!first_mcm) printf(",");
-            printf("\"apps_torque\":%.4f", (float4)MCM_commands_getAppsTorque(mcm) / 10.0f);  // Convert DNm to Nm
-            
-            if (!first_mcm) printf(",");
-            printf("\"pl_torque_command\":%.4f", (float4)MCM_get_PL_torqueCommand(mcm) / 10.0f);  // Convert DNm to Nm
-            
-            if (!first_mcm) printf(",");
-            printf("\"max_torque\":%.4f", (float4)MCM_getMaxTorqueDNm(mcm) / 10.0f);  // Convert DNm to Nm
-            
-            if (!first_mcm) printf(",");
-            printf("\"ground_speed_kph\":%.4f", MCM_getGroundSpeedKPH(mcm));
-            
-            printf("}");
-            first_field = 0;
-        }
-        
-        if (is_struct_requested("PowerLimit") && pl != NULL) {
-            if (!first_field) printf(",");
-            printf("\"power_limit\":{");
-            int first_pl = 1;
-            
-            if (!first_pl) printf(",");
-            printf("\"pl_status\":%s", pl->plStatus ? "true" : "false");
-            first_pl = 0;
-            
-            if (!first_pl) printf(",");
-            printf("\"pl_mode\":%u", pl->plMode);
-            
-            if (!first_pl) printf(",");
-            printf("\"pl_target_power\":%.4f", (float4)pl->plTargetPower);
-            
-            if (!first_pl) printf(",");
-            printf("\"pl_initialization_threshold\":%.4f", (float4)pl->plInitializationThreshold);
-            
-            if (!first_pl) printf(",");
-            printf("\"pl_torque_command\":%.4f", (float4)pl->plTorqueCommand / 10.0f);  // Convert DNm to Nm
-            
-            if (!first_pl) printf(",");
-            printf("\"pl_clamping_method\":%u", pl->clampingMethod);
-            
-            if (!first_pl) printf(",");
-            printf("\"pl_always_on\":%s", pl->plAlwaysOn ? "true" : "false");
-            
-            // Only output current_power_kw if mcm is available
-            if (mcm != NULL) {
-                sbyte4 current_power_kw = (MCM_getDCVoltage(mcm) * MCM_getDCCurrent(mcm)) / 1000;
-                if (!first_pl) printf(",");
-                printf("\"current_power_kw\":%.4f", (float4)current_power_kw);
-            }
-            
-            printf("}");
-            first_field = 0;
-        }
-        
-        if (is_struct_requested("Efficiency") && eff != NULL) {
-            if (!first_field) printf(",");
-            printf("\"efficiency\":{");
-            int first_eff = 1;
-            
+
+    if (eff != NULL) {
+        if (!first_field) printf(",");
+        printf("\"efficiency\":{");
+        int first_eff = 1;
+
+        if (mcm != NULL) {
             if (!first_eff) printf(",");
-            printf("\"time_in_straight\":%.4f", eff->straightTime_s);
+            printf("\"mcm_motorRPM\":%.4f", (float4)MCM_getMotorRPM(mcm));
             first_eff = 0;
-            
-            if (!first_eff) printf(",");
-            printf("\"time_in_corners\":%.4f", eff->cornerTime_s);
-            
-            if (!first_eff) printf(",");
-            printf("\"lap_counter\":%d", eff->lapCounter);
-            
-            // pl_target is optional - only output if pl is available
-            if (pl != NULL) {
-                if (!first_eff) printf(",");
-                printf("\"pl_target\":%.4f", (float4)pl->plTargetPower);
-            }
-            
-            if (!first_eff) printf(",");
-            printf("\"energy_consumption_per_lap\":%.4f", eff->lapEnergy_kWh);
-            
-            if (!first_eff) printf(",");
-            printf("\"energy_budget_per_lap\":%.4f", eff->energyBudget_kWh);
-            
-            if (!first_eff) printf(",");
-            printf("\"carry_over_energy\":%.4f", eff->carryOverEnergy_kWh);
-            
-            if (!first_eff) printf(",");
-            printf("\"total_lap_distance\":%.4f", eff->lapDistance_km);
-            
-            printf("}");
-            first_field = 0;
         }
-        
-    } else {
-        // Fall back to bitmask mode for backward compatibility
-        ubyte1 mode = (output_mode != 0) ? output_mode : sil_output_mode;
-        
-        // Output Efficiency values if requested
-        if (mode & SIL_OUTPUT_EFFICIENCY) {
-            if (!first_field) printf(",");
-            printf("\"efficiency\":{");
-            int first_eff = 1;
-            
-            // Only output efficiency fields if eff struct is available
-            if (eff != NULL) {
-            if (mcm != NULL) {
-                if (!first_eff) printf(",");
-                printf("\"mcm_motorRPM\":%.4f", (float4)MCM_getMotorRPM(mcm));
-                first_eff = 0;
-            }
-            
+
+        if (!first_eff) printf(",");
+        printf("\"time_in_straight\":%.4f", eff->straightTime_s);
+        first_eff = 0;
+
+        if (!first_eff) printf(",");
+        printf("\"time_in_corners\":%.4f", eff->cornerTime_s);
+
+        if (!first_eff) printf(",");
+        printf("\"lap_counter\":%d", eff->lapCounter);
+
+        if (pl != NULL) {
             if (!first_eff) printf(",");
-            printf("\"time_in_straight\":%.4f", eff->straightTime_s);
-            first_eff = 0;
-            
-            if (!first_eff) printf(",");
-            printf("\"time_in_corners\":%.4f", eff->cornerTime_s);
-            
-            if (!first_eff) printf(",");
-            printf("\"lap_counter\":%d", eff->lapCounter);
-            
-            // pl_target is optional - only output if pl is available
-            if (pl != NULL) {
-                if (!first_eff) printf(",");
-                printf("\"pl_target\":%.4f", (float4)pl->plTargetPower);
-            }
-            
-            if (!first_eff) printf(",");
-            printf("\"energy_consumption_per_lap\":%.4f", eff->lapEnergy_kWh);
-            
-            if (!first_eff) printf(",");
-            printf("\"energy_budget_per_lap\":%.4f", eff->energyBudget_kWh);
-            
-            if (!first_eff) printf(",");
-            printf("\"carry_over_energy\":%.4f", eff->carryOverEnergy_kWh);
-            
-            if (!first_eff) printf(",");
-            printf("\"total_lap_distance\":%.4f", eff->lapDistance_km);
+            printf("\"pl_target\":%.4f", (float4)pl->plTargetPower);
         }
-        
+
+        if (!first_eff) printf(",");
+        printf("\"energy_consumption_per_lap\":%.4f", eff->lapEnergy_kWh);
+
+        if (!first_eff) printf(",");
+        printf("\"energy_budget_per_lap\":%.4f", eff->energyBudget_kWh);
+
+        if (!first_eff) printf(",");
+        printf("\"carry_over_energy\":%.4f", eff->carryOverEnergy_kWh);
+
+        if (!first_eff) printf(",");
+        printf("\"total_lap_distance\":%.4f", eff->lapDistance_km);
+
         printf("}");
         first_field = 0;
     }
-    
-    // Output Power Limit values if requested
-    if ((mode & SIL_OUTPUT_POWERLIMIT) && pl != NULL) {
+
+    if (pl != NULL) {
         if (!first_field) printf(",");
         printf("\"power_limit\":{");
         int first_pl = 1;
@@ -761,9 +567,8 @@ void sil_write_json_output(MotorController* mcm, PowerLimit* pl, Efficiency* eff
         printf("}");
         first_field = 0;
     }
-    
-    // Output Motor Controller values if requested
-    if ((mode & SIL_OUTPUT_MOTORCTRL) && mcm != NULL) {
+
+    if (mcm != NULL) {
         if (!first_field) printf(",");
         printf("\"motor_controller\":{");
         int first_mcm = 1;
@@ -798,7 +603,6 @@ void sil_write_json_output(MotorController* mcm, PowerLimit* pl, Efficiency* eff
         
         printf("}");
         first_field = 0;
-    }
     }
     
     printf("}\n");
