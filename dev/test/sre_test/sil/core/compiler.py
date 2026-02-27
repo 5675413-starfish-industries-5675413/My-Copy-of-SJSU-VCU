@@ -56,7 +56,6 @@ class SILCompiler:
             'safety.c', 'sensorCalculations.c', 'serial.c', 'cooling.c',
             'bms.c', 'LaunchControl.c', 'regen.c', 'drs.c', 'powerLimit.c',
             'PID.c', 'efficiency.c', 'hashTable.c', 'avlTree.c',
-            'hilParameter.c',
             'watchdog.c', 'mathFunctions.c', 'sil.c',
         ]
 
