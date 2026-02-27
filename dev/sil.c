@@ -699,7 +699,7 @@ void sil_write_json_output_cJSON_version(MotorController* mcm, PowerLimit* pl, E
             cJSON *tps_json = cJSON_CreateObject();
             if (tps_json != NULL) {
                 cJSON_AddBoolToObject(tps_json, "bench", tps->bench);
-                //cJSON_AddNumberToObject(tps_json, "specMin", (double) tps->specMin);
+                // cJSON_AddNumberToObject(tps_json, "specMin", (double) tps->specMin);
                 // cJSON_AddNumberToObject(tps_json, "tps0", (double) tps->tps0);
                 // cJSON_AddNumberToObject(tps_json, "tps1", (double) tps->tps1);
                 cJSON_AddNumberToObject(tps_json, "calibMin", (double) tps->tps0_calibMin);
