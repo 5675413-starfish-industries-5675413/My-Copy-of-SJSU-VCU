@@ -61,8 +61,12 @@
 #include "sil.h"
 #endif
 
+#ifndef SIL_BUILD
+
 // HIL includes
 #include "hilParameter.h"
+
+#endif
 
 //Application Database, needed for TTC-Downloader
 APDB appl_db =
@@ -276,10 +280,14 @@ void main(void)
     }
     #endif
 
+    #ifndef SIL_BUILD
+
     /*******************************************/
     /*           HIL CONFIGURATION             */
     /*******************************************/
     HIL_initParamTable(mcm0, pl, lc, wss, bms, regen, eff);
+
+    #endif
 
     /*******************************************/
     /*       PERIODIC APPLICATION CODE         */
