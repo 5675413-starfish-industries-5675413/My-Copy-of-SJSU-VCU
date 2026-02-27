@@ -20,7 +20,7 @@ sim = None
 def setup_simulator():
     """Automatically create simulator for all tests - no parameter needed."""
     global sim
-    sim = SILSimulator.create(auto_compile=True)
+    sim = SILSimulator.create(auto_compile=False)
     yield
     sim.stop()
     sim = None
@@ -73,7 +73,7 @@ def test_point():
     pl_status = power_limit.get("pl_status")
         # if pl_status is True:
         #     break
-    sim.send_structs("MotorController", "TorqueEncoder")
+    # sim.send_structs("MotorController", "TorqueEncoder")
 
     assert pl_status is True
     print(f"received pl_status: {pl_status}")
