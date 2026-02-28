@@ -483,34 +483,18 @@ int sil_read_json_input(PowerLimit* pl, MotorController* mcm, TorqueEncoder* tps
 }
 
 // Static variable to store output mode (set via compile-time define SIL_OUTPUT_MODE_CONFIG)
-static ubyte1 sil_output_mode = SIL_OUTPUT_MODE_CONFIG;
+// static ubyte1 sil_output_mode = SIL_OUTPUT_MODE_CONFIG;
 
-void sil_set_output_mode(ubyte1 mode)
-{
-    sil_output_mode = mode;
-}
 
-ubyte1 sil_get_output_mode(void)
-{
-    return sil_output_mode;
-}
-
-ubyte1 sil_get_requested_output_mode(void)
-{
-    // Return 0 to indicate dynamic mode is being used
-    // This maintains backward compatibility but dynamic lookup takes precedence
-    return 0;
-}
 
 // NOTE: cJSON ONLY ACCEPTS DOUBLE DATA TYPES FOR NUMBER VALUES
 void sil_write_json_output_cJSON_version(MotorController* mcm, PowerLimit* pl, Efficiency* eff, BatteryManagementSystem* bms, LaunchControl* lc, BrakePressureSensor* bps, PID* pid, Regen *regen, InstrumentCluster *ic, ReadyToDriveSound *rtds, SafetyChecker *sc, Sensor *sensor, TorqueEncoder *tps, WatchDog *wd, ubyte1 output_mode) {
-   ubyte1 sil_requested_count = 1;
-    if (sil_requested_count > 0) {
+    
         cJSON *root = cJSON_CreateObject();
         if (root == NULL) {
             return ;
         }
-        if (is_struct_requested("MotorController") && mcm != NULL) {
+        if (mcm != NULL) {
             cJSON *mcm_json = cJSON_CreateObject();
             if (mcm_json != NULL) {
                 cJSON_AddNumberToObject(mcm_json, "motorRPM", (double) MCM_getMotorRPM(mcm));
@@ -525,7 +509,7 @@ void sil_write_json_output_cJSON_version(MotorController* mcm, PowerLimit* pl, E
                 cJSON_AddItemToObject(root, "MotorController", mcm_json);
             }
         }
-        if (is_struct_requested("PowerLimit") && pl != NULL) {
+        if (pl != NULL) {
             cJSON *pl_json = cJSON_CreateObject();
             if (pl_json != NULL) {
                 cJSON_AddBoolToObject(pl_json, "plStatus", pl->plStatus);
@@ -541,7 +525,7 @@ void sil_write_json_output_cJSON_version(MotorController* mcm, PowerLimit* pl, E
                 cJSON_AddItemToObject(root, "PowerLimit", pl_json);
             }
         }
-        if (is_struct_requested("Efficiency") && eff != NULL) {
+        if (eff != NULL) {
 
             cJSON *eff_json = cJSON_CreateObject();
             if (eff_json != NULL) {
@@ -562,7 +546,7 @@ void sil_write_json_output_cJSON_version(MotorController* mcm, PowerLimit* pl, E
                 cJSON_AddItemToObject(root, "Efficiency", eff_json);
             }
         }
-        if (is_struct_requested("BatteryManagementSystem") && bms != NULL) {
+        if (bms != NULL) {
             cJSON *bms_json = cJSON_CreateObject();
             if (bms_json != NULL) {
                 cJSON_AddNumberToObject(bms_json, "highestCellVoltage_mV", (double) BMS_getHighestCellVoltage_mV(bms));
@@ -575,7 +559,7 @@ void sil_write_json_output_cJSON_version(MotorController* mcm, PowerLimit* pl, E
                 cJSON_AddItemToObject(root, "BatteryManagementSystem", bms_json);
             }
         }
-        if (is_struct_requested("LaunchControl") && lc != NULL) {
+        if (lc != NULL) {
             cJSON *lc_json = cJSON_CreateObject();
             if (lc_json != NULL) {
                 cJSON_AddBoolToObject(lc_json, "state", (double) LaunchControl_getState(lc));
@@ -591,7 +575,7 @@ void sil_write_json_output_cJSON_version(MotorController* mcm, PowerLimit* pl, E
                 cJSON_AddItemToObject(root, "LaunchControl", lc_json);
             }
         }
-        if (is_struct_requested("BrakePressureSensor") && bps != NULL) {
+        if (bps != NULL) {
             cJSON *bps_json = cJSON_CreateObject();
             if (bps_json != NULL) {
                cJSON_AddNumberToObject(bps_json, "BPS0_V", (double) BrakePressureSensor_getBPS0_V(bps));
@@ -601,7 +585,7 @@ void sil_write_json_output_cJSON_version(MotorController* mcm, PowerLimit* pl, E
                cJSON_AddItemToObject(root, "BrakePressureSensor", bps_json);
             }
         }
-        if (is_struct_requested("PID") && pid != NULL) {
+        if (pid != NULL) {
             cJSON *pid_json = cJSON_CreateObject();
             if (pid_json != NULL) {
                 cJSON_AddNumberToObject(pid_json, "Kp", (double) PID_getKp(pid));
@@ -619,7 +603,7 @@ void sil_write_json_output_cJSON_version(MotorController* mcm, PowerLimit* pl, E
                 cJSON_AddItemToObject(root, "PID", pid_json);
             }
         }
-        if (is_struct_requested("Regen") && regen != NULL) {
+        if (regen != NULL) {
             cJSON *regen_json = cJSON_CreateObject();
             if (regen_json != NULL) {
                 cJSON_AddBoolToObject(regen_json, "regenToggle", regen->regenToggle);
@@ -638,7 +622,7 @@ void sil_write_json_output_cJSON_version(MotorController* mcm, PowerLimit* pl, E
             }
         }
         
-        if (is_struct_requested("InstrumentCluster") && ic != NULL) {
+        if (ic != NULL) {
             cJSON *ic_json = cJSON_CreateObject();
             if (ic_json != NULL) {
                 // cJSON_AddNumberToObject(ic_json, "serialMan", (double) ic->serialMan);
@@ -679,7 +663,7 @@ void sil_write_json_output_cJSON_version(MotorController* mcm, PowerLimit* pl, E
                 cJSON_AddItemToObject(root, "SafetyChecker", sc_json);
             }
         }*/ // SafetyChecker doesn't have its struct defined in its header files, so we can't access its values here without causing a compile error. We can add this back in once the struct is defined.
-        if (is_struct_requested("Sensor") && sensor != NULL) {
+        if (sensor != NULL) {
             cJSON *sensor_json = cJSON_CreateObject();
             if (sensor_json != NULL) {
                 // cJSON_AddNumberToObject(sensor_json, "specMin", (double) sensor->specMin); compiler says this doesn't exist, but it's defined in the header file. We can add this back in once we resolve this issue.
@@ -695,7 +679,7 @@ void sil_write_json_output_cJSON_version(MotorController* mcm, PowerLimit* pl, E
                 cJSON_AddItemToObject(root, "Sensor", sensor_json);
             }
         }
-        if (is_struct_requested("TorqueEncoder") && tps != NULL) {
+        if (tps != NULL) {
             cJSON *tps_json = cJSON_CreateObject();
             if (tps_json != NULL) {
                 cJSON_AddBoolToObject(tps_json, "bench", tps->bench);
@@ -723,7 +707,7 @@ void sil_write_json_output_cJSON_version(MotorController* mcm, PowerLimit* pl, E
                 cJSON_AddItemToObject(root, "TorqueEncoder", tps_json);
             }
         }
-        if (is_struct_requested("WatchDog") && wd != NULL) {
+        if (wd != NULL) {
             cJSON *wd_json = cJSON_CreateObject();
             if (wd_json != NULL) {
                 cJSON_AddNumberToObject(wd_json, "timestamp", (double) wd->timestamp);
@@ -743,10 +727,10 @@ void sil_write_json_output_cJSON_version(MotorController* mcm, PowerLimit* pl, E
         }
         cJSON_Delete(root);
 
-    }
+    
     
 }
-
+/*
 void sil_write_json_output(MotorController* mcm, PowerLimit* pl, Efficiency* eff, ubyte1 output_mode)
 {
     int first_field = 1;  // Track if this is the first field in JSON
@@ -872,7 +856,7 @@ void sil_write_json_output(MotorController* mcm, PowerLimit* pl, Efficiency* eff
     
     printf("}\n");
     fflush(stdout);
-}
+}*/
 
 void sil_restore_tps_values(TorqueEncoder* tps, float4* saved_travelPercent, 
                             float4* saved_tps0_percent, float4* saved_tps1_percent)

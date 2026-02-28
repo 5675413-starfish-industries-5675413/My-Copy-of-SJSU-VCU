@@ -23,8 +23,9 @@
 #include "regen.h"
 #include "efficiency.h"
 #include "brakePressureSensor.h"
+#ifndef SIL_BUILD
 #include "hilParameter.h"
-
+#endif SIL_BUILD
 
 struct _CanManager {
     //AVLNode* incomingTree;
