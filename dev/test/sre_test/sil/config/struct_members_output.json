@@ -101,7 +101,33 @@
   },
   {
     "name": "CanManager",
-    "parameters": {}
+    "parameters": {
+      "sm": null,
+      "canMessageLimit": null,
+      "can0_busSpeed": null,
+      "can0_readHandle": null,
+      "can0_read_messageLimit": null,
+      "can0_writeHandle": null,
+      "can0_write_messageLimit": null,
+      "can1_busSpeed": null,
+      "can1_readHandle": null,
+      "can1_read_messageLimit": null,
+      "can1_writeHandle": null,
+      "can1_write_messageLimit": null,
+      "ioErr_can0_Init": null,
+      "ioErr_can1_Init": null,
+      "ioErr_can0_fifoInit_R": null,
+      "ioErr_can0_fifoInit_W": null,
+      "ioErr_can1_fifoInit_R": null,
+      "ioErr_can1_fifoInit_W": null,
+      "ioErr_can0_read": null,
+      "ioErr_can0_write": null,
+      "ioErr_can1_read": null,
+      "ioErr_can1_write": null,
+      "sendDelayus": null,
+      "canMessageHistory[0x800]": null,
+      "canMessageHistory[0x7FF]": null
+    }
   },
   {
     "name": "CanMessageNode",
@@ -222,7 +248,7 @@
       "startRTDS": null,
       "faultHistory[8]": null,
       "motor_temp": null,
-      "DC_Voltage": 0,
+      "DC_Voltage": 1500,
       "DC_Current": 800,
       "commandedTorque": null,
       "feedbackTorque": null,
