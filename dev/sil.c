@@ -488,7 +488,7 @@ int sil_read_json_input(PowerLimit* pl, MotorController* mcm, TorqueEncoder* tps
 
 
 // NOTE: cJSON ONLY ACCEPTS DOUBLE DATA TYPES FOR NUMBER VALUES
-void sil_write_json_output(MotorController* mcm, PowerLimit* pl, Efficiency* eff, BatteryManagementSystem* bms, LaunchControl* lc, BrakePressureSensor* bps, PID* pid, Regen *regen, InstrumentCluster *ic, ReadyToDriveSound *rtds, SafetyChecker *sc, Sensor *sensor, TorqueEncoder *tps, WatchDog *wd, ubyte1 output_mode) {
+void sil_write_json_output_cJSON_version(MotorController* mcm, PowerLimit* pl, Efficiency* eff, BatteryManagementSystem* bms, LaunchControl* lc, BrakePressureSensor* bps, PID* pid, Regen *regen, InstrumentCluster *ic, ReadyToDriveSound *rtds, SafetyChecker *sc, Sensor *sensor, TorqueEncoder *tps, WatchDog *wd, ubyte1 output_mode) {
     
         cJSON *root = cJSON_CreateObject();
         if (root == NULL) {
