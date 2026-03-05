@@ -248,7 +248,7 @@
       "startRTDS": null,
       "faultHistory[8]": null,
       "motor_temp": null,
-      "DC_Voltage": 0,
+      "DC_Voltage": 1500,
       "DC_Current": 800,
       "commandedTorque": null,
       "feedbackTorque": null,
