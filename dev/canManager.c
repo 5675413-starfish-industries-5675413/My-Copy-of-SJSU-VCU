@@ -23,8 +23,9 @@
 #include "regen.h"
 #include "efficiency.h"
 #include "brakePressureSensor.h"
+#ifndef SIL_BUILD
 #include "hilParameter.h"
-
+#endif
 
 struct _CanManager {
     //AVLNode* incomingTree;
@@ -475,9 +476,11 @@ void CanManager_read(CanManager* me, CanChannel channel, MotorController* mcm, I
         //-------------------------------------------------------------------------
         // HIL Parameter Command
         //-------------------------------------------------------------------------
+        #ifndef SIL_BUILD
         case 0x5FE:
             HIL_parseCanMessage(&canMessages[currMessage]);
             break;
+        #endif
 
         //-------------------------------------------------------------------------
         //VCU Debug Control

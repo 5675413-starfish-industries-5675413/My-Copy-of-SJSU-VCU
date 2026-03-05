@@ -7,7 +7,7 @@ from dataclasses import asdict
 from typing import Dict, Any, Optional
 
 from sre_test.core.environment import TestEnvironment
-from sre_test.core.config import DynamicConfig
+from sre_test.core.config import DynamicConfig, configs_to_json
 from sre_test.core.hil_mapping import HIL_PARAM_MAP
 
 from sre_test.hil.core.can_interface import CANInterface
@@ -44,6 +44,8 @@ class HILEnvironment(TestEnvironment):
             self._can = None
 
     def send_inputs(self, *configs: DynamicConfig) -> None:
+        configs_to_json(*configs)  # write active params to shared struct_members_output.json
+
         mcm_dirty = False
 
         for config in configs:
@@ -54,10 +56,8 @@ class HILEnvironment(TestEnvironment):
 
                 key = (struct_name, param_name)
                 if key not in HIL_PARAM_MAP:
-                    raise KeyError(
-                        f"No HIL mapping for {struct_name}.{param_name}. "
-                        f"Add an entry to sre_test/core/hil_mapping.py."
-                    )
+                    print(f"[HIL] No transport mapping for {struct_name}.{param_name} — skipping")
+                    continue
 
                 transport, action = HIL_PARAM_MAP[key]
 

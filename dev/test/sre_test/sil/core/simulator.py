@@ -150,7 +150,7 @@ class SILSimulator:
         json_data = {"row_id": row_id, "structs": structs_to_send}
         self.send(json_data)
 
-    def receive(self, *struct_names: str, timeout: float = 2.0) -> Optional[Dict[str, Any]]:
+    def receive(self, *struct_names: str, timeout: float = 0.25) -> Optional[Dict[str, Any]]:
         """
         Receive JSON response from simulator.
         

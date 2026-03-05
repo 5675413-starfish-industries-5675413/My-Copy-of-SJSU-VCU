@@ -872,6 +872,8 @@ void sil_write_json_output(MotorController* mcm, PowerLimit* pl, Efficiency* eff
     
     printf("}\n");
     fflush(stdout);
+
+    
 }
 
 void sil_restore_tps_values(TorqueEncoder* tps, float4* saved_travelPercent, 

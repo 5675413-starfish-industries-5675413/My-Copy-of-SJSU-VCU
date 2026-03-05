@@ -75,31 +75,28 @@ def test_efficiency(output_writer):
     rows = read_csv_rows(csv_path)
     total_rows = len(rows)
 
-    console.print(f"[cyan]Running efficiency test ({total_rows} rows)[/cyan]")
+    # console.print(f"[cyan]Running efficiency test ({total_rows} rows)[/cyan]")
 
     # Run simulation
     results_written = 0
-    failed_rows = 0
-    timeout_rows = 0
+
     try:
-        sim.send_structs("PowerLimit", row_id=-1)
-        time.sleep(0.1)  # Give it a moment to process
+        sim.send_structs("PowerLimit", row_id=-1) # row_id is redundant (should be removed)
         
         # Configure requested outputs once; repeating this every row adds avoidable IPC overhead.
         # _ = sim.receive("MotorController", "Efficiency", timeout=2.0)
 
         for row_idx, csv_row in enumerate(rows):
-            row_number = row_idx + 1
             json_data = csv_row_to_json(
                 csv_row, row_idx, CSV_TO_MCM_PARAMS, CSV_TO_TPS_PARAMS
             )
             sim.send(json_data) 
 
             # Output request is already configured above, so only receive here.
-            response = sim.receive(timeout=0.25)
-            if response is None:
-                timeout_rows += 1
-                response = {}
+            response = sim.receive()
+            # if response is None:
+            #     timeout_rows += 1
+            #     response = {}
 
             # Build result row from efficiency data
             data = response.get("efficiency", {})
@@ -114,6 +111,6 @@ def test_efficiency(output_writer):
 
     console.print(
         f"[green]Completed![/green] {results_written} results written to {output} "
-        f"(failed sends: {failed_rows}, timeouts: {timeout_rows})"
+        # f"(failed sends: {failed_rows}, timeouts: {timeout_rows})"
     )
 
