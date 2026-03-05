@@ -581,7 +581,7 @@ void main(void)
     /*******************************************/
     #ifdef SIL_BUILD
     //sil_write_json_output(mcm0, pl, eff);
-    sil_write_json_output_cJSON_version(mcm0, pl, eff, bms, lc, bps, pid, regen, ic0, rtds, sc, NULL, tps, NULL, 0); //TODO: determine what output mode values to use
+    sil_write_json_output(mcm0, pl, eff, bms, lc, bps, pid, regen, ic0, rtds, sc, NULL, tps, NULL, 0); //TODO: determine what output mode values to use
     #endif
         
     } //end of main loop
