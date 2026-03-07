@@ -71,20 +71,31 @@ class HILEnvironment(TestEnvironment):
         if mcm_dirty:
             self._mcm.send_all()
 
-    def receive_outputs(self, timeout: float = 2.0) -> Dict[str, Any]:
+    def receive_outputs(self, timeout: float = 2.0, monitors: Optional[set] = None) -> Dict[str, Any]:
         """
         Poll HIL monitors and return the canonical response dict:
             {"power_limit": {...}, "efficiency": {...}}
         Subsystems that don't respond within timeout are omitted.
         """
+        # Flush all stale messages accumulated since last iteration
+        while self._can.receive(timeout=0) is not None:
+            pass
+
         result: Dict[str, Any] = {}
+        poll_all = monitors is None     # Checks if we selected specific monitors or want to poll all
 
-        pl_status = self._pl_monitor.wait_for_status(timeout_s=timeout)
-        if pl_status is not None:
-            result["power_limit"] = asdict(pl_status)
+        # PowerLimit
+        if poll_all or "power_limit" in monitors:
+            pl_status = self._pl_monitor.wait_for_status(timeout_s=timeout)
+            if pl_status is not None:
+                result["power_limit"] = asdict(pl_status)
 
-        eff_status = self._eff_monitor.wait_for_status(timeout_s=timeout)
-        if eff_status is not None:
-            result["efficiency"] = asdict(eff_status)
+        # Efficiency
+        if poll_all or "efficiency" in monitors:
+            # eff_status = self._eff_monitor.wait_for_status(timeout_s=timeout)     TBD, will try other one with more controlled delay
+            eff_status = self._eff_monitor.wait_for_status(timeout_s=0.05, poll_timeout_s=0.01)
+
+            if eff_status is not None:
+                result["efficiency"] = asdict(eff_status)
 
         return result

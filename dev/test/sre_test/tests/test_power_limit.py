@@ -10,7 +10,7 @@ not the SIL-specific "pl_status"). Fields marked SIL-only or HIL-only in
 sre_test/core/response.py are not tested here.
 """
 
-from sre_test.core.config import DynamicConfig, configs_to_json
+from sre_test.core.config import DynamicConfig
 
 
 def test_pl_activates(env):
@@ -18,7 +18,7 @@ def test_pl_activates(env):
     mcm = DynamicConfig("MotorController")
     mcm.DC_Voltage = 1500
     mcm.DC_Current = 800
-    mcm.set("motorRPM", 1800)
+    mcm.motorRPM = 1800
 
     tps = DynamicConfig("TorqueEncoder")
     tps.travelPercent = 0.5
@@ -31,8 +31,9 @@ def test_pl_activates(env):
     assert pl.get("status") is True, (
         f"Expected power_limit.status=True, got: {pl}"
     )
-    print(f"power_limit.status={pl.get('status')}, mode={pl.get('mode')}, "
-          f"torque_command={pl.get('torque_command')}")
+    ## Should not be good practice to print after assertion
+    # print(f"power_limit.status={pl.get('status')}, mode={pl.get('mode')}, "
+    #       f"torque_command={pl.get('torque_command')}")
 
 
 def test_pl_torque_command_is_float(env):
@@ -40,7 +41,7 @@ def test_pl_torque_command_is_float(env):
     mcm = DynamicConfig("MotorController")
     mcm.DC_Voltage = 1500
     mcm.DC_Current = 800
-    mcm.set("motorRPM", 1800)
+    mcm.motorRPM = 1800
 
     tps = DynamicConfig("TorqueEncoder")
     tps.travelPercent = 0.5
@@ -55,4 +56,5 @@ def test_pl_torque_command_is_float(env):
     assert isinstance(torque, (int, float)), (
         f"Expected torque_command to be numeric, got {type(torque)}: {torque}"
     )
-    print(f"torque_command={torque}")
+    ## Should not be good practice to print after assertion
+    # print(f"torque_command={torque}")

@@ -154,20 +154,10 @@ class DynamicConfig:
 
     def __setattr__(self, name: str, value: Any):
         """Allow attribute-style setting: config.plTargetPower = 50"""
-        # Always allow setting internal attributes (starting with _) and struct_name
-        if name.startswith('_') or name in ['struct_name']:
+        if name.startswith('_') or name == 'struct_name':
             super().__setattr__(name, value)
         else:
-            # Initialize _values and _valid_parameters if they don't exist yet
-            if not hasattr(self, '_values'):
-                super().__setattr__('_values', {})
-            if not hasattr(self, '_valid_parameters'):
-                super().__setattr__('_valid_parameters', set())
-
-            # Validate parameter name if _valid_parameters is already populated
-            if hasattr(self, '_valid_parameters') and self._valid_parameters:
-                self._validate_parameter_name(name)
-
+            self._validate_parameter_name(name)
             self._values[name] = value
 
 
