@@ -4,12 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* Struct for the table */
-typedef struct {
-    ParamRow *rows;
-    int *sum;
-    int counts_length;
-} ParamTable;
 
 /* qsort custom sort functions */
 static int compare_by_structname(const void *a, const void *b) {
@@ -21,13 +15,13 @@ static int compare_by_paramname(const void *a, const void *b) {
 }
 
 /* gets the memory address given an id# and param# */
-uint32_t *getmemoryaddress(int identifer, int paramnum, ParamRow* array, int *sum){
+uint32_t *getmemoryaddress(int identifer, int paramnum, ParamTable table){
     uint32_t *ptr;
     if(identifer == 0){
-        ptr = array[0 + paramnum].mem_address;
+        ptr = table.rows[0 + paramnum].mem_address;
     }
     else{
-        ptr = array[sum[identifer - 1] + paramnum - 1].mem_address;
+        ptr = table.rows[table.sum[identifer - 1] + paramnum - 1].mem_address;
 
     }
     return ptr;
@@ -112,7 +106,7 @@ ParamTable param_table_init(const ParamRow *test_data, size_t test_count) {
 
 int main(){
     ParamTable table = param_table_init(test_data, TEST_NUM_STRUCTS); // arguments from parameter.c
-    printf("Memory Address: 0x%x\n", getmemoryaddress(3, 4, table.rows, table.sum));
+    printf("Memory Address: 0x%x\n", getmemoryaddress(3, 4, table));
 
 }   
 

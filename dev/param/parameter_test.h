@@ -13,7 +13,6 @@
 
 #define TEST_NUM_STRUCTS 30
 
-
 /* Single row in the 2D array (6 fields). */
 typedef struct {
     const char *struct_name;
@@ -35,8 +34,13 @@ typedef struct {
  */
 TestView get_test(const ParamRow *test_data, size_t test_count);
 
-
-
 extern ParamRow test_data[30];
+
+/* Struct for the table */
+typedef struct {
+    ParamRow *rows;
+    int *sum;
+    int counts_length;
+} ParamTable;
 
 #endif /* PARAMETER_SYNC_TEST_CASES_H */
