@@ -245,6 +245,8 @@ void main(void)
     DRS *drs = DRS_new();
     PowerLimit *pl = POWERLIMIT_new(TRUE);
     Efficiency *eff = Efficiency_new(TRUE);
+    PID *pid = PID_new(0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+    
 //---------------------------------------------------------------------------------------------------------
     //----------------------------------------------------------------------------
     // TODO: Additional Initial Power-up functions
@@ -578,7 +580,8 @@ void main(void)
     /*              SIL OUTPUTS                */
     /*******************************************/
     #ifdef SIL_BUILD
-    sil_write_json_output(mcm0, pl, eff);
+    //sil_write_json_output(mcm0, pl, eff);
+    sil_write_json_output(mcm0, pl, eff, bms, lc, bps, pid, regen, ic0, rtds, sc, NULL, tps, NULL, 0); //TODO: determine what output mode values to use
     #endif
         
     } //end of main loop

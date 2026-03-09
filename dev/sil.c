@@ -482,7 +482,256 @@ int sil_read_json_input(PowerLimit* pl, MotorController* mcm, TorqueEncoder* tps
     return parse_result;
 }
 
-void sil_write_json_output(MotorController* mcm, PowerLimit* pl, Efficiency* eff)
+// Static variable to store output mode (set via compile-time define SIL_OUTPUT_MODE_CONFIG)
+// static ubyte1 sil_output_mode = SIL_OUTPUT_MODE_CONFIG;
+
+
+
+// NOTE: cJSON ONLY ACCEPTS DOUBLE DATA TYPES FOR NUMBER VALUES
+void sil_write_json_output(MotorController* mcm, PowerLimit* pl, Efficiency* eff, BatteryManagementSystem* bms, LaunchControl* lc, BrakePressureSensor* bps, PID* pid, Regen *regen, InstrumentCluster *ic, ReadyToDriveSound *rtds, SafetyChecker *sc, Sensor *sensor, TorqueEncoder *tps, WatchDog *wd, ubyte1 output_mode) {
+    
+        cJSON *root = cJSON_CreateObject();
+        if (root == NULL) {
+            return ;
+        }
+        if (mcm != NULL) {
+            cJSON *mcm_json = cJSON_CreateObject();
+            if (mcm_json != NULL) {
+                cJSON_AddNumberToObject(mcm_json, "motorRPM", (double) MCM_getMotorRPM(mcm));
+                cJSON_AddNumberToObject(mcm_json, "DC_Voltage", (double) MCM_getDCVoltage(mcm));
+                cJSON_AddNumberToObject(mcm_json, "DC_Current", (double) MCM_getDCCurrent(mcm));
+                cJSON_AddNumberToObject(mcm_json, "power_kw", (double) (MCM_getDCVoltage(mcm) * MCM_getDCCurrent(mcm)) / 1000);
+                cJSON_AddNumberToObject(mcm_json, "commandedTorque", (double) MCM_getCommandedTorque(mcm) / 10.0f);
+                cJSON_AddNumberToObject(mcm_json, "appsTorque", (double) MCM_commands_getAppsTorque(mcm) / 10.0f);
+                cJSON_AddNumberToObject(mcm_json, "plTorqueCommand", (double) MCM_get_PL_torqueCommand(mcm) / 10.0f);
+                cJSON_AddNumberToObject(mcm_json, "maxTorque", (double) MCM_getMaxTorqueDNm(mcm) / 10.0f);
+                cJSON_AddNumberToObject(mcm_json, "ground_speed_kph", (double) MCM_getGroundSpeedKPH(mcm));
+                cJSON_AddItemToObject(root, "MotorController", mcm_json);
+            }
+        }
+        if (pl != NULL) {
+            cJSON *pl_json = cJSON_CreateObject();
+            if (pl_json != NULL) {
+                cJSON_AddBoolToObject(pl_json, "plStatus", pl->plStatus);
+                cJSON_AddNumberToObject(pl_json, "plMode", (double) POWERLIMIT_getMode(pl));
+                cJSON_AddNumberToObject(pl_json, "plTargetPower", (double) POWERLIMIT_getTargetPower(pl));
+                cJSON_AddNumberToObject(pl_json, "plInitializationThreshold", (double) POWERLIMIT_getInitialisationThreshold(pl));
+                cJSON_AddNumberToObject(pl_json, "plTorqueCommand", (double) POWERLIMIT_getTorqueCommand (pl)/ 10.0f);
+                cJSON_AddNumberToObject(pl_json, "clampingMethod", (double) POWERLIMIT_getClampingMethod(pl));
+                cJSON_AddBoolToObject(pl_json, "plAlwaysOn", pl->plAlwaysOn);
+                if (mcm != NULL) {
+                    cJSON_AddNumberToObject(pl_json, "current_power_kw", (MCM_getDCVoltage(mcm) * MCM_getDCCurrent(mcm)) / 1000);
+                }
+                cJSON_AddItemToObject(root, "PowerLimit", pl_json);
+            }
+        }
+        if (eff != NULL) {
+
+            cJSON *eff_json = cJSON_CreateObject();
+            if (eff_json != NULL) {
+                cJSON_AddBoolToObject(eff_json, "efficiencyToggle", eff->efficiencyToggle);
+                cJSON_AddNumberToObject(eff_json, "energyBudget_kWh", (double) Efficiency_getEnergyBudget_kWh(eff));
+                cJSON_AddNumberToObject(eff_json, "carryOverEnergy_kWh", (double) Efficiency_getCarryOverEnergy_kWh(eff));
+                cJSON_AddNumberToObject(eff_json, "lapCounter", (double) Efficiency_getLapCounter(eff));
+                cJSON_AddNumberToObject(eff_json, "straightTime_s", (double) Efficiency_getStraightTime_s(eff));
+                cJSON_AddNumberToObject(eff_json, "cornerTime_s", (double) eff->cornerTime_s);
+                cJSON_AddNumberToObject(eff_json, "cornerEnergy_kWh", (double) Efficiency_getCornerEnergy_kWh(eff));
+                cJSON_AddNumberToObject(eff_json, "straightEnergy_kWh", (double) Efficiency_getStraightEnergy_kWh(eff));
+                if (pl != NULL) {
+                    cJSON_AddNumberToObject(eff_json, "plTargetPower", (double) POWERLIMIT_getTargetPower(pl));
+                }
+                cJSON_AddNumberToObject(eff_json, "lapEnergy_kWh", (double) Efficiency_getLapEnergy_kWh(eff));
+                cJSON_AddNumberToObject(eff_json, "energyBudget_kWh", (double) Efficiency_getEnergyBudget_kWh(eff));
+                cJSON_AddNumberToObject(eff_json, "carryOverEnergy_kWh", (double) Efficiency_getCarryOverEnergy_kWh(eff));
+                cJSON_AddItemToObject(root, "Efficiency", eff_json);
+            }
+        }
+        if (bms != NULL) {
+            cJSON *bms_json = cJSON_CreateObject();
+            if (bms_json != NULL) {
+                cJSON_AddNumberToObject(bms_json, "highestCellVoltage_mV", (double) BMS_getHighestCellVoltage_mV(bms));
+                cJSON_AddNumberToObject(bms_json, "lowestCellVoltage_mV", (double) BMS_getLowestCellVoltage_mV(bms));
+                cJSON_AddNumberToObject(bms_json, "packVoltage_mV", (double) BMS_getPackVoltage(bms));
+                cJSON_AddNumberToObject(bms_json, "highestCellTemp_d_degC", (double) BMS_getHighestCellTemp_d_degC(bms));
+                cJSON_AddNumberToObject(bms_json, "highestCellTemp_degC", (double) BMS_getHighestCellTemp_degC(bms));
+                cJSON_AddNumberToObject(bms_json, "power_uW", (double) BMS_getPower_uW(bms));
+                cJSON_AddNumberToObject(bms_json, "power_W", (double) BMS_getPower_W(bms));
+                cJSON_AddItemToObject(root, "BatteryManagementSystem", bms_json);
+            }
+        }
+        if (lc != NULL) {
+            cJSON *lc_json = cJSON_CreateObject();
+            if (lc_json != NULL) {
+                cJSON_AddBoolToObject(lc_json, "state", (double) LaunchControl_getState(lc));
+                cJSON_AddNumberToObject(lc_json, "phase", (double) LaunchControl_getPhase(lc));
+                cJSON_AddNumberToObject(lc_json, "torqueCommand", (double) LaunchControl_getTorqueCommand(lc));
+                cJSON_AddNumberToObject(lc_json, "slipRatio", (double) LaunchControl_getSlipRatio(lc));
+                cJSON_AddNumberToObject(lc_json, "slipRatioScaled", (double) LaunchControl_getSlipRatioScaled(lc));
+                cJSON_AddBoolToObject(lc_json, "initialCurveStatus", LaunchControl_getInitialCurveStatus(lc));
+                cJSON_AddNumberToObject(lc_json, "phase", (double) LaunchControl_getPhase(lc));
+                cJSON_AddBoolToObject(lc_json, "filterStatus", LaunchControl_getFilterStatus(lc));
+                cJSON_AddNumberToObject(lc_json, "velocityDifferenceTarget", (double) LaunchControl_getVelocityDifferenceTarget(lc));
+                cJSON_AddNumberToObject(lc_json, "currentVelocityDifference", (double) LaunchControl_getCurrentVelocityDifference(lc));
+                cJSON_AddItemToObject(root, "LaunchControl", lc_json);
+            }
+        }
+        if (bps != NULL) {
+            cJSON *bps_json = cJSON_CreateObject();
+            if (bps_json != NULL) {
+                    cJSON_AddNumberToObject(bps_json, "BPS0_V", (double) BrakePressureSensor_getBPS0_Voltage(bps));
+                    cJSON_AddNumberToObject(bps_json, "BPS1_V", (double) BrakePressureSensor_getBPS1_Voltage(bps));
+               cJSON_AddNumberToObject(bps_json, "BPS0_Pressure", (double) BrakePressureSensor_getBPS0_Pressure(bps));
+               cJSON_AddNumberToObject(bps_json, "BPS1_Pressure", (double) BrakePressureSensor_getBPS1_Pressure(bps));
+               cJSON_AddItemToObject(root, "BrakePressureSensor", bps_json);
+            }
+        }
+        if (pid != NULL) {
+            cJSON *pid_json = cJSON_CreateObject();
+            if (pid_json != NULL) {
+                cJSON_AddNumberToObject(pid_json, "Kp", (double) PID_getKp(pid));
+                cJSON_AddNumberToObject(pid_json, "Ki", (double) PID_getKi(pid));
+                cJSON_AddNumberToObject(pid_json, "Kd", (double) PID_getKd(pid));
+                cJSON_AddNumberToObject(pid_json, "setPoint", (double) PID_getSetpoint(pid));
+                cJSON_AddNumberToObject(pid_json, "previousError", (double) PID_getPreviousError(pid));
+                cJSON_AddNumberToObject(pid_json, "totalError", (double) PID_getTotalError(pid));
+                cJSON_AddNumberToObject(pid_json, "output", (double) PID_getOutput(pid));
+                cJSON_AddNumberToObject(pid_json, "proportional", (double) PID_getProportional(pid));
+                cJSON_AddNumberToObject(pid_json, "integral", (double) PID_getIntegral(pid));
+                cJSON_AddNumberToObject(pid_json, "derivative", (double) PID_getDerivative(pid));
+                cJSON_AddNumberToObject(pid_json, "saturationValue", (double) PID_getSaturationValue(pid));
+                cJSON_AddBoolToObject(pid_json, "antiWindupFlag", (double) PID_getAntiWindupFlag(pid));
+                cJSON_AddItemToObject(root, "PID", pid_json);
+            }
+        }
+        if (regen != NULL) {
+            cJSON *regen_json = cJSON_CreateObject();
+            if (regen_json != NULL) {
+                cJSON_AddBoolToObject(regen_json, "regenToggle", regen->regenToggle);
+                cJSON_AddNumberToObject(regen_json, "mode", (double) regen->mode);
+                cJSON_AddNumberToObject(regen_json, "torqueLimitDNm", regen->torqueLimitDNm);
+                cJSON_AddNumberToObject(regen_json, "appsTorque", (double) regen->appsTorque);
+                cJSON_AddNumberToObject(regen_json, "bpsTorqueNm", (double) regen->bpsTorqueNm);
+                cJSON_AddNumberToObject(regen_json, "torqueCommand", (double) Regen_get_torqueCommand(regen));
+                cJSON_AddNumberToObject(regen_json, "torqueAtZeroPedalDNm", (double) regen->torqueAtZeroPedalDNm);
+                cJSON_AddNumberToObject(regen_json, "percentBPSForMaxRegen", (double) regen->percentBPSForMaxRegen);
+                cJSON_AddNumberToObject(regen_json, "percentAPPSForCoasting", (double) regen->percentAPPSForCoasting);
+                cJSON_AddNumberToObject(regen_json, "padMu", (double) regen->padMu);
+                cJSON_AddNumberToObject(regen_json, "tick", (double) regen->tick);
+                cJSON_AddItemToObject(root, "Regen", regen_json);
+                
+            }
+        }
+        
+        if (ic != NULL) {
+            cJSON *ic_json = cJSON_CreateObject();
+            if (ic_json != NULL) {
+                // cJSON_AddNumberToObject(ic_json, "serialMan", (double) ic->serialMan);
+                // cJSON_AddNumberToObject(ic_json, "canMessageBaseId", (double) ic->canMessageBaseId);
+                cJSON_AddNumberToObject(ic_json, "torqueMapMode", (double) IC_getTorqueMapMode(ic));
+                cJSON_AddNumberToObject(ic_json, "launchControlSensitivity", (double) IC_getLaunchControlSensitivity(ic));
+                cJSON_AddItemToObject(root, "InstrumentCluster", ic_json);
+            }
+        } // InstrumentCuster doesn't have its struct defined in its header files, so we can't access its values here without causing a compile error. We can add this back in once the struct is defined.
+        /**
+        if (is_struct_requested("ReadyToDriveSound") && rtds != NULL) {
+            cJSON *rtds_json = cJSON_CreateObject();
+            if (rtds_json != NULL) {
+                cJSON_AddNumberToObject(rtds_json, "readyToDriveSoundToggle", (double) rtds->timeStamp_soundStarted);
+                cJSON_AddNumberToObject(rtds_json, "timeToSound", (double) rtds->timeToSound);
+                cJSON_AddNumberToObject(rtds_json, "timeStamp_soundStarted", (double) rtds->timeStamp_soundStarted);
+                cJSON_AddItemToObject(root, "volumePercent", (double) rtds->volumePercent);
+                cJSON_AddItemToObject(root, "ReadyToDriveSound", rtds_json);
+            }
+        }*/ // ReadyToDriveSound doesn't have its struct defined in its header files, so we can't access its values here without causing a compile error. We can add this back in once the struct is defined.
+        /*
+        if (is_struct_requested("SafetyChecker") && sc != NULL) {
+            cJSON *sc_json = cJSON_CreateObject();
+            if (sc_json != NULL) {
+                cJSON_AddBoolToObject(sc_json, "serialMan", sc->serialMan);
+                cJSON_AddBoolToObject(sc_json, "allSafe", SafetyChecker_allSafe(sc));
+                cJSON_AddNumberToObject(sc_json, "faults", (double) SafetyChecker_getFaults(sc));
+                cJSON_AddNumberToObject(sc_json, "warnings", (double) SafetyChecker_getWarnings(sc));
+                cJSON_AddNumberToObject(sc_json, "notices", (double) SafetyChecker_getNotices(sc));
+                cJSON_AddNumberToObject(sc_json, "maxAmpsCharge", (double) sc->maxAmpsCharge);
+                cJSON_AddNumberToObject(sc_json, "maxAmpsDischarge", (double) sc->maxAmpsDischarge);
+                cJSON_AddNumberToObject(sc_json, "softBSPD_bpsHigh", (double) sc->softBSPD_bpsHigh);
+                cJSON_AddNumberToObject(sc_json, "softBSPD_kwHigh", (double) sc->softBSPD_kwHigh);
+                cJSON_AddNumberToObject(sc_json, "softBSPD_fault", (double) sc->softBSPD_fault);
+                cJSON_AddBoolToObject(sc_json, "bypass", (double) sc->bypass);
+                cJSON_AddNumberToObject(sc_json, "timestamp_bypassSafetyChecks", (double) sc->timestamp_bypassSafetyChecks);
+                cJSON_AddNumberToObject(sc_json, "bypassSafetyChecksTimeout_us", (double) sc->bypassSafetyChecksTimeout_us);
+                cJSON_AddItemToObject(root, "SafetyChecker", sc_json);
+            }
+        }*/ // SafetyChecker doesn't have its struct defined in its header files, so we can't access its values here without causing a compile error. We can add this back in once the struct is defined.
+        if (sensor != NULL) {
+            cJSON *sensor_json = cJSON_CreateObject();
+            if (sensor_json != NULL) {
+                // cJSON_AddNumberToObject(sensor_json, "specMin", (double) sensor->specMin); compiler says this doesn't exist, but it's defined in the header file. We can add this back in once we resolve this issue.
+                cJSON_AddNumberToObject(sensor_json, "specMax", (double) sensor->specMax);
+                cJSON_AddNumberToObject(sensor_json, "sensorValue", (double) sensor->sensorValue);
+                cJSON_AddNumberToObject(sensor_json, "heldSensorValue", (double) sensor->heldSensorValue);
+                cJSON_AddNumberToObject(sensor_json, "timestamp", (double) sensor->timestamp);
+                cJSON_AddBoolToObject(sensor_json, "fresh", sensor->fresh);
+                cJSON_AddNumberToObject(sensor_json, "ioErr_powerInit", (double) sensor->ioErr_powerInit);
+                cJSON_AddNumberToObject(sensor_json, "ioErr_powerSet", (double) sensor->ioErr_powerSet);
+                cJSON_AddNumberToObject(sensor_json, "ioErr_signalInit", (double) sensor->ioErr_signalInit);
+                cJSON_AddNumberToObject(sensor_json, "ioErr_signalGet", (double) sensor->ioErr_signalGet);
+                cJSON_AddItemToObject(root, "Sensor", sensor_json);
+            }
+        }
+        if (tps != NULL) {
+            cJSON *tps_json = cJSON_CreateObject();
+            if (tps_json != NULL) {
+                cJSON_AddBoolToObject(tps_json, "bench", tps->bench);
+                // cJSON_AddNumberToObject(tps_json, "specMin", (double) tps->specMin);
+                // cJSON_AddNumberToObject(tps_json, "tps0", (double) tps->tps0);
+                // cJSON_AddNumberToObject(tps_json, "tps1", (double) tps->tps1);
+                cJSON_AddNumberToObject(tps_json, "calibMin", (double) tps->tps0_calibMin);
+                cJSON_AddNumberToObject(tps_json, "calibMax", (double) tps->tps0_calibMax);
+                cJSON_AddNumberToObject(tps_json, "reverse", (double) tps->tps0_reverse);
+                cJSON_AddNumberToObject(tps_json, "value", (double) tps->tps0_value);
+                cJSON_AddNumberToObject(tps_json, "percent", (double) tps->tps0_percent);
+                cJSON_AddNumberToObject(tps_json, "calibMin", (double) tps->tps1_calibMin);
+                cJSON_AddNumberToObject(tps_json, "calibMax", (double) tps->tps1_calibMax);
+                cJSON_AddNumberToObject(tps_json, "reverse", (double) tps->tps1_reverse);
+                cJSON_AddNumberToObject(tps_json, "value", (double) tps->tps1_value);
+                cJSON_AddNumberToObject(tps_json, "percent", (double) tps->tps1_percent);
+                cJSON_AddNumberToObject(tps_json, "runCalibration", (double) tps->runCalibration);
+                cJSON_AddNumberToObject(tps_json, "timestamp_calibrationStart", (double) tps->timestamp_calibrationStart);
+                cJSON_AddNumberToObject(tps_json, "calibrationRunTime", (double) tps->calibrationRunTime);
+                cJSON_AddNumberToObject(tps_json, "outputCurveExponent", (double) tps->outputCurveExponent);
+                cJSON_AddNumberToObject(tps_json, "calibrated", (double) tps->calibrated);
+                cJSON_AddNumberToObject(tps_json, "travelPercent", (double) tps->travelPercent);
+                cJSON_AddNumberToObject(tps_json, "specMin", (double) tps->implausibility);
+                
+                cJSON_AddItemToObject(root, "TorqueEncoder", tps_json);
+            }
+        }
+        if (wd != NULL) {
+            cJSON *wd_json = cJSON_CreateObject();
+            if (wd_json != NULL) {
+                cJSON_AddNumberToObject(wd_json, "timestamp", (double) wd->timestamp);
+                cJSON_AddNumberToObject(wd_json, "timeout", (double) wd->timeout);
+                cJSON_AddNumberToObject(wd_json, "running", (double) wd->running);
+                cJSON_AddItemToObject(root, "WatchDog", wd_json);
+            }
+        }
+        
+        
+        
+        char* json_output = cJSON_PrintUnformatted(root);
+        if (json_output != NULL) {
+            printf("%s\n", json_output);
+            fflush(stdout);
+            free(json_output);
+        }
+        cJSON_Delete(root);
+
+    
+    
+}
+/*
+void sil_write_json_output(MotorController* mcm, PowerLimit* pl, Efficiency* eff, ubyte1 output_mode)
 {
     int first_field = 1;  // Track if this is the first field in JSON
     
@@ -607,9 +856,7 @@ void sil_write_json_output(MotorController* mcm, PowerLimit* pl, Efficiency* eff
     
     printf("}\n");
     fflush(stdout);
-
-    
-}
+}*/
 
 void sil_restore_tps_values(TorqueEncoder* tps, float4* saved_travelPercent, 
                             float4* saved_tps0_percent, float4* saved_tps1_percent)

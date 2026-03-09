@@ -11,6 +11,29 @@
 #include "powerLimit.h"
 #include "torqueEncoder.h"
 #include "efficiency.h"
+#include "bms.h"
+#include "brakePressureSensor.h"
+#include "canManager.h"
+#include "cooling.h"
+#include "drs.h"
+#include "LaunchControl.h"
+#include "PID.h"
+#include "regen.h"
+#include "wheelSpeeds.h"
+#include "avlTree.h"
+#include "brakePressureSensor.h"
+#include "canManager.h"
+#include "hashTable.h"
+#include "instrumentCluster.h"
+#include "readyToDriveSound.h"
+#include "safety.h"
+#include "sensors.h"
+#include "serial.h"
+#include "torqueEncoder.h"
+#include "watchdog.h"
+#include "diagnostics.h"
+
+// regen, motorcontroller, powerlimit, efficiency, brakepressuresensor, launchcontrol, wheelspeeds, pid, torqueencoder, sensor, safetyChecker, readyToDriveSound
 
 #ifdef SIL_BUILD
 
@@ -41,7 +64,8 @@ int sil_read_json_input(PowerLimit* pl, MotorController* mcm, TorqueEncoder* tps
  * @param pl PowerLimit struct pointer (can be NULL)
  * @param eff Efficiency struct pointer (can be NULL)
  */
-void sil_write_json_output(MotorController* mcm, PowerLimit* pl, Efficiency* eff);
+// void sil_write_json_output(MotorController* mcm, PowerLimit* pl, Efficiency* eff);
+void sil_write_json_output(MotorController* mcm, PowerLimit* pl, Efficiency* eff, BatteryManagementSystem* bms, LaunchControl* lc, BrakePressureSensor* bps, PID* pid, Regen *regen, InstrumentCluster *ic, ReadyToDriveSound *rtds, SafetyChecker *sc, Sensor *sensor, TorqueEncoder *tps, WatchDog *wd, ubyte1 output_mode);
 
 /**
  * Restore TPS values after TorqueEncoder_update overwrites them

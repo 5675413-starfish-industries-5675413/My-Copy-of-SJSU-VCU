@@ -68,9 +68,13 @@ def test_point():
     # Let the control loop update plStatus from inputs (do not force it in config).
     # pl_status = None
     # for _ in range(5):
-    response = sim.receive()
-    power_limit = response.get("power_limit", {}) if response else {}
-    pl_status = power_limit.get("pl_status")
+    response = sim.receive(timeout=2.0)
+    power_limit = {}
+    if response:
+        power_limit = response.get("PowerLimit") or response.get("power_limit", {})
+    pl_status = power_limit.get("plStatus") if power_limit else None
+    if pl_status is None and power_limit:
+        pl_status = power_limit.get("pl_status")
         # if pl_status is True:
         #     break
     # sim.send_structs("MotorController", "TorqueEncoder")

@@ -50,6 +50,8 @@ void BrakePressureSensor_startCalibration(BrakePressureSensor *me, ubyte1 second
 void BrakePressureSensor_calibrationCycle(BrakePressureSensor *me, ubyte1 *errorCount);
 void BrakePressureSensor_getPedalTravel(BrakePressureSensor *me, ubyte1 *errorCount, float4 *pedalPercent);
 void BrakePressureSensor_setPressure(BrakePressureSensor *me);
+ubyte2 BrakePressureSensor_getBPS0_Voltage(BrakePressureSensor *me);
+ubyte2 BrakePressureSensor_getBPS1_Voltage(BrakePressureSensor *me);
 float4 BrakePressureSensor_getBPS0_V(BrakePressureSensor *me);
 float4 BrakePressureSensor_getBPS1_V(BrakePressureSensor *me);
 float4 BrakePressureSensor_getBPS0_Pressure(BrakePressureSensor *me);
