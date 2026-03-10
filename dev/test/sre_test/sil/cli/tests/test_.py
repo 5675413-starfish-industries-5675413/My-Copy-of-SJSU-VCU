@@ -2,6 +2,7 @@
 Efficiency-related tests.
 """
 
+from types import DynamicClassAttribute
 import pytest
 from sre_test.sil.core.compiler import SILCompiler
 from sre_test.sil.core.simulator import SILSimulator
@@ -66,19 +67,57 @@ def test_point():
     sim.send_structs("MotorController", "TorqueEncoder")
 
     # Let the control loop update plStatus from inputs (do not force it in config).
-    # pl_status = None
-    # for _ in range(5):
-    response = sim.receive(timeout=2.0)
-    power_limit = {}
-    if response:
-        power_limit = response.get("PowerLimit") or response.get("power_limit", {})
-    pl_status = power_limit.get("plStatus") if power_limit else None
-    if pl_status is None and power_limit:
-        pl_status = power_limit.get("pl_status")
+    pl_status = None
+    motor_rpm = None
+    for _ in range(5):
+        response = sim.receive(timeout=2.0)
+        power_limit = {}
+        mcm = {}
+        if response:
+            power_limit = response.get("PowerLimit") or response.get("power_limit", {})
+            mcm = (
+                response.get("MotorController")
+                or response.get("motor_controller")
+                or response.get("mcm", {})
+            )
+        pl_status = power_limit.get("plStatus") if power_limit else None
+        if pl_status is None and power_limit:
+            pl_status = power_limit.get("pl_status")
+        motor_rpm = mcm.get("motorRPM")
+        if motor_rpm is None and mcm:
+            motor_rpm = mcm.get("motor_rpm")
         # if pl_status is True:
         #     break
     # sim.send_structs("MotorController", "TorqueEncoder")
+    
+    
 
     assert pl_status is True
     print(f"received pl_status: {pl_status}")
+    print(f"received motor_rpm: {motor_rpm}")
     
+def test_regen():
+    regen_config = DynamicConfig("Regen")
+    regen_config.padMu = 0.4
+    regen_config.regenToggle = True
+    regen_config.bpsTorqueNm = 0
+    
+    brake_config = DynamicConfig("BrakePressureSensor")
+    brake_config.bps0_voltage = 1208
+    brake_config.bps1_voltage = 2225
+    
+    
+    mcm_config = DynamicConfig("MotorController")
+    mcm_config.motorRPM = 2000
+    
+    configs_to_json(regen_config, brake_config, mcm_config)
+    
+    sim.send_structs("MotorController", "BrakePressureSensor", "Regen")
+    
+    response = sim.receive()
+    regenResponse = response.get("Regen", {}) if response else {}
+    
+    # assert regenResponse.get("bpsTorqueNm") == -102.94
+    print(f"Brake pressure difference is: {regenResponse.get('bpsTorqueNm')}")
+    print(f"Pad mu is: {regenResponse.get('padMu')}")
+    print(f"Regen toggle is: {regenResponse.get('regenToggle')}")

@@ -281,13 +281,126 @@ static int parse_TorqueEncoder_from_json(TorqueEncoder* tps, cJSON* params)
 }
 
 /**
+ * Parse BrakePressureSensor struct values from JSON object
+ */
+static int parse_BrakePressureSensor_from_json(BrakePressureSensor* bps, cJSON* params)
+{
+    if (bps == NULL || params == NULL) {
+        return -1;
+    }
+
+    int int_val;
+    double double_val;
+    bool bool_val;
+
+    if (get_json_int_safe(params, "bps0_calibMin", &int_val)) {
+        bps->bps0_calibMin = (ubyte2)int_val;
+    }
+    if (get_json_int_safe(params, "bps0_calibMax", &int_val)) {
+        bps->bps0_calibMax = (ubyte2)int_val;
+    }
+    if (get_json_bool_safe(params, "bps0_reverse", &bool_val)) {
+        bps->bps0_reverse = bool_val;
+    }
+    if (get_json_int_safe(params, "bps0_voltage", &int_val)) {
+        bps->bps0_voltage = (ubyte2)int_val;
+    }
+
+    if (get_json_int_safe(params, "bps1_calibMin", &int_val)) {
+        bps->bps1_calibMin = (ubyte2)int_val;
+    }
+    if (get_json_int_safe(params, "bps1_calibMax", &int_val)) {
+        bps->bps1_calibMax = (ubyte2)int_val;
+    }
+    if (get_json_bool_safe(params, "bps1_reverse", &bool_val)) {
+        bps->bps1_reverse = bool_val;
+    }
+    if (get_json_int_safe(params, "bps1_voltage", &int_val)) {
+        bps->bps1_voltage = (ubyte2)int_val;
+    }
+
+    if (get_json_bool_safe(params, "runCalibration", &bool_val)) {
+        bps->runCalibration = bool_val;
+    }
+    if (get_json_int_safe(params, "calibrationRunTime", &int_val)) {
+        bps->calibrationRunTime = (ubyte1)int_val;
+    }
+    if (get_json_bool_safe(params, "calibrated", &bool_val)) {
+        bps->calibrated = bool_val;
+    }
+    if (get_json_double_safe(params, "percent", &double_val)) {
+        bps->percent = (float4)double_val;
+    }
+    if (get_json_bool_safe(params, "brakesAreOn", &bool_val)) {
+        bps->brakesAreOn = bool_val;
+    }
+    if (get_json_bool_safe(params, "implausibility", &bool_val)) {
+        bps->implausibility = bool_val;
+    }
+
+    return 0;
+}
+
+/**
+ * Parse Regen struct values from JSON object
+ */
+static int parse_Regen_from_json(Regen* regen, cJSON* params)
+{
+    if (regen == NULL || params == NULL) {
+        return -1;
+    }
+
+    int int_val;
+    double double_val;
+    bool bool_val;
+
+    if (get_json_bool_safe(params, "regenToggle", &bool_val)) {
+        regen->regenToggle = bool_val;
+    }
+    if (get_json_int_safe(params, "mode", &int_val)) {
+        regen->mode = (RegenMode)int_val;
+    }
+    if (get_json_int_safe(params, "torqueLimitDNm", &int_val)) {
+        regen->torqueLimitDNm = (sbyte2)int_val;
+    }
+    if (get_json_double_safe(params, "appsTorque", &double_val)) {
+        regen->appsTorque = (float4)double_val;
+    }
+    if (get_json_double_safe(params, "bpsTorqueNm", &double_val)) {
+        regen->bpsTorqueNm = (float4)double_val;
+    }
+    if (get_json_int_safe(params, "torqueCommand", &int_val)) {
+        regen->regenTorqueCommand = (sbyte2)int_val;
+    }
+    if (get_json_int_safe(params, "torqueAtZeroPedalDNm", &int_val)) {
+        regen->torqueAtZeroPedalDNm = (ubyte2)int_val;
+    }
+    if (get_json_double_safe(params, "percentBPSForMaxRegen", &double_val)) {
+        regen->percentBPSForMaxRegen = (float4)double_val;
+    }
+    if (get_json_double_safe(params, "percentAPPSForCoasting", &double_val)) {
+        regen->percentAPPSForCoasting = (float4)double_val;
+    }
+    if (get_json_double_safe(params, "padMu", &double_val)) {
+        regen->padMu = (float4)double_val;
+    }
+    if (get_json_int_safe(params, "tick", &int_val)) {
+        regen->tick = (sbyte1)int_val;
+    }
+
+    return 0;
+}
+
+/**
  * Parse JSON string and assign values to structs
  * This is the main function used by sil_read_initial_json and sil_read_json_input
  */
 static int parse_struct_values_from_string(const char* json_string, 
                                            PowerLimit* pl, 
                                            MotorController* mcm, 
-                                           TorqueEncoder* tps)
+                                           TorqueEncoder* tps,
+                                           BrakePressureSensor* bps,
+                                           Regen* regen)
 {
     if (json_string == NULL) {
         return -1; // Invalid input
@@ -345,6 +458,10 @@ static int parse_struct_values_from_string(const char* json_string,
             parse_MotorController_from_json(mcm, params);
         } else if (strcmp(struct_name, "TorqueEncoder") == 0 && tps != NULL) {
             parse_TorqueEncoder_from_json(tps, params);
+        } else if (strcmp(struct_name, "BrakePressureSensor") == 0 && bps != NULL) {
+            parse_BrakePressureSensor_from_json(bps, params);
+        } else if (strcmp(struct_name, "Regen") == 0 && regen != NULL) {
+            parse_Regen_from_json(regen, params);
         }
     }
     
@@ -402,7 +519,7 @@ static int read_json_from_stdin(char* json_buffer)
     return (int)total_read;
 }
 
-int sil_read_initial_json(PowerLimit* pl, MotorController* mcm, TorqueEncoder* tps)
+int sil_read_initial_json(PowerLimit* pl, MotorController* mcm, TorqueEncoder* tps, BrakePressureSensor* bps, Regen* regen)
 {
     char* json_buffer = (char*)malloc(JSON_BUFFER_SIZE);
     if (json_buffer == NULL) {
@@ -415,7 +532,7 @@ int sil_read_initial_json(PowerLimit* pl, MotorController* mcm, TorqueEncoder* t
     int result = -1;
     
     if (total_read > 0) {
-        result = parse_struct_values_from_string(json_buffer, pl, mcm, tps);
+        result = parse_struct_values_from_string(json_buffer, pl, mcm, tps, bps, regen);
         
         if (result != 0) {
             fprintf(stderr, "SIL: Failed to parse JSON from stdin (error: %d, length: %d)\n",
@@ -436,7 +553,7 @@ int sil_read_initial_json(PowerLimit* pl, MotorController* mcm, TorqueEncoder* t
     return result;
 }
 
-int sil_read_json_input(PowerLimit* pl, MotorController* mcm, TorqueEncoder* tps)
+int sil_read_json_input(PowerLimit* pl, MotorController* mcm, TorqueEncoder* tps, BrakePressureSensor* bps, Regen* regen)
 {
     // Non-blocking check for stdin data
     #ifdef _WIN32
@@ -471,7 +588,7 @@ int sil_read_json_input(PowerLimit* pl, MotorController* mcm, TorqueEncoder* tps
     int parse_result = -1;
     
     if (total_read > 0) {
-        parse_result = parse_struct_values_from_string(json_buffer, pl, mcm, tps);
+        parse_result = parse_struct_values_from_string(json_buffer, pl, mcm, tps, bps, regen);
         if (parse_result != 0) {
             fprintf(stderr, "SIL: Failed to parse JSON in loop (error: %d)\n", parse_result);
             fflush(stderr);
