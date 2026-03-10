@@ -272,13 +272,17 @@ void main(void)
     static float4 saved_tps_travelPercent = 0.0f;
     static float4 saved_tps0_percent = 0.0f;
     static float4 saved_tps1_percent = 0.0f;
+    static ubyte2 saved_bps0_voltage = 0;
+    static ubyte2 saved_bps1_voltage = 0;
     
     // Read initial JSON configuration
-    int parse_result = sil_read_initial_json(pl, mcm0, tps);
+    int parse_result = sil_read_initial_json(pl, mcm0, tps, bps, regen);
     if (parse_result == 0) {
         saved_tps_travelPercent = tps->travelPercent;
         saved_tps0_percent = tps->tps0_percent;
         saved_tps1_percent = tps->tps1_percent;
+        saved_bps0_voltage = bps->bps0_voltage;
+        saved_bps1_voltage = bps->bps1_voltage;
     }
     #endif
 
@@ -431,6 +435,12 @@ void main(void)
         TorqueEncoder_calibrationCycle(tps, &calibrationErrors); //Todo: deal with calibration errors
         BrakePressureSensor_update(bps, bench);
         BrakePressureSensor_calibrationCycle(bps, &calibrationErrors);
+        
+        // In SIL mode, preserve JSON-provided BPS voltages for simulation input.
+        #ifdef SIL_BUILD
+        bps->bps0_voltage = saved_bps0_voltage;
+        bps->bps1_voltage = saved_bps1_voltage;
+        #endif
 
         //TractionControl_update(tps, mcm0, wss, daq);
 
@@ -567,12 +577,14 @@ void main(void)
     /*******************************************/
     #ifdef SIL_BUILD
     // Non-blocking JSON reader for main loop
-    int json_result = sil_read_json_input(pl, mcm0, tps);
+    int json_result = sil_read_json_input(pl, mcm0, tps, bps, regen);
     if (json_result == 0) {
         // Successfully parsed JSON, update saved TPS values
         saved_tps_travelPercent = tps->travelPercent;
         saved_tps0_percent = tps->tps0_percent;
         saved_tps1_percent = tps->tps1_percent;
+        saved_bps0_voltage = bps->bps0_voltage;
+        saved_bps1_voltage = bps->bps1_voltage;
     }
     #endif
 

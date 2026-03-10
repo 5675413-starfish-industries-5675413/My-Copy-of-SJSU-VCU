@@ -39,7 +39,7 @@ class DBCLoader:
             self.dbc_path = Path(dbc_path)
         else:
             # Default: look for most recent DBC in dbcs/ directory
-            dbcs_dir = Path(__file__).parent.parent.parent / 'dbcs'
+            dbcs_dir = Path(__file__).parents[5] / 'dbcs'
             if dbcs_dir.exists():
                 dbc_files = list(dbcs_dir.glob('*.dbc'))
                 if dbc_files:
