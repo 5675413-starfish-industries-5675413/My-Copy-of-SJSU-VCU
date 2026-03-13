@@ -334,7 +334,7 @@
       "torqueLimitDNm": null,
       "appsTorque": null,
       "bpsTorqueNm": 0,
-      "regenTorqueCommand": null,
+      "regenTorqueCommand": 232,
       "torqueAtZeroPedalDNm": null,
       "percentBPSForMaxRegen": null,
       "percentAPPSForCoasting": null,

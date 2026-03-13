@@ -369,7 +369,7 @@ static int parse_Regen_from_json(Regen* regen, cJSON* params)
     if (get_json_double_safe(params, "bpsTorqueNm", &double_val)) {
         regen->bpsTorqueNm = (float4)double_val;
     }
-    if (get_json_int_safe(params, "torqueCommand", &int_val)) {
+    if (get_json_int_safe(params, "regenTorqueCommand", &int_val)) {
         regen->regenTorqueCommand = (sbyte2)int_val;
     }
     if (get_json_int_safe(params, "torqueAtZeroPedalDNm", &int_val)) {
@@ -621,6 +621,7 @@ void sil_write_json_output(MotorController* mcm, PowerLimit* pl, Efficiency* eff
                 cJSON_AddNumberToObject(mcm_json, "commandedTorque", (double) MCM_getCommandedTorque(mcm) / 10.0f);
                 cJSON_AddNumberToObject(mcm_json, "appsTorque", (double) MCM_commands_getAppsTorque(mcm) / 10.0f);
                 cJSON_AddNumberToObject(mcm_json, "plTorqueCommand", (double) MCM_get_PL_torqueCommand(mcm) / 10.0f);
+                cJSON_AddNumberToObject(mcm_json, "regenTorqueCommand", (double) MCM_get_Regen_torqueCommand(mcm) / 10.0f);
                 cJSON_AddNumberToObject(mcm_json, "maxTorque", (double) MCM_getMaxTorqueDNm(mcm) / 10.0f);
                 cJSON_AddNumberToObject(mcm_json, "ground_speed_kph", (double) MCM_getGroundSpeedKPH(mcm));
                 cJSON_AddItemToObject(root, "MotorController", mcm_json);
@@ -728,7 +729,7 @@ void sil_write_json_output(MotorController* mcm, PowerLimit* pl, Efficiency* eff
                 cJSON_AddNumberToObject(regen_json, "torqueLimitDNm", regen->torqueLimitDNm);
                 cJSON_AddNumberToObject(regen_json, "appsTorque", (double) regen->appsTorque);
                 cJSON_AddNumberToObject(regen_json, "bpsTorqueNm", (double) regen->bpsTorqueNm);
-                cJSON_AddNumberToObject(regen_json, "torqueCommand", (double) Regen_get_torqueCommand(regen));
+                cJSON_AddNumberToObject(regen_json, "regenTorqueCommand", (double) Regen_get_torqueCommand(regen));
                 cJSON_AddNumberToObject(regen_json, "torqueAtZeroPedalDNm", (double) regen->torqueAtZeroPedalDNm);
                 cJSON_AddNumberToObject(regen_json, "percentBPSForMaxRegen", (double) regen->percentBPSForMaxRegen);
                 cJSON_AddNumberToObject(regen_json, "percentAPPSForCoasting", (double) regen->percentAPPSForCoasting);

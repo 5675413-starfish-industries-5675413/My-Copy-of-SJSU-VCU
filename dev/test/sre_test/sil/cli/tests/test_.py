@@ -21,7 +21,7 @@ sim = None
 def setup_simulator():
     """Automatically create simulator for all tests - no parameter needed."""
     global sim
-    sim = SILSimulator.create(auto_compile=False)
+    sim = SILSimulator.create(auto_compile=True)
     yield
     sim.stop()
     sim = None
@@ -109,8 +109,8 @@ def test_regen():
     regen_config.bpsTorqueNm = 0
     
     brake_config = DynamicConfig("BrakePressureSensor")
-    brake_config.bps0_voltage = 1208
     brake_config.bps1_voltage = 2225
+    brake_config.bps0_voltage = 1208
     
     
     mcm_config = DynamicConfig("MotorController")
@@ -123,7 +123,10 @@ def test_regen():
     response = sim.receive()
     regenResponse = response.get("Regen", {}) if response else {}
     
+    mcmResponse = response.get("MotorController", {}) if response else {}
+    
+    print(f"Regen toggle is: {regenResponse.get('regenToggle')}")
     # assert regenResponse.get("bpsTorqueNm") == -102.94
     print(f"Brake pressure difference is: {regenResponse.get('bpsTorqueNm')}")
     # print(f"Pad mu is: {regenResponse.get('padMu')}")
-    print(f"Regen toggle is: {regenResponse.get('regenToggle')}")
+    print(f"Regen torque command is: {mcmResponse.get('regenTorqueCommand')}")
