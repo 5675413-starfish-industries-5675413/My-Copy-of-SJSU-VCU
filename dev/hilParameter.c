@@ -6,122 +6,64 @@
 #include "motorController.h"
 #include "regen.h"
 #include "efficiency.h"
+#include <stdlib.h>
 #include <string.h>
-
-static const char HIL_CHARSET[] = " abcdefghijklmnopqrstuvwxyz01234";
-
-static sbyte1 HIL_charToIndex(char c)
-{
-    // Handle uppercase letters and convert to lowercase
-    if (c >= 'A' && c <= 'Z') {
-        c = c - 'A' + 'a';
-    }
-
-    for (ubyte1 i = 0; i < 32; i++) {
-        if (HIL_CHARSET[i] == c) {
-            return (sbyte1)i;
-        }
-    }
-    return -1;  // Invalid character
-}
-
-void HIL_decodeName(ubyte4 encodedString, char *outputBuffer)
-{
-    ubyte1 i;
-    for (i = 0; i < MAX_NAME_LENGTH; i++) {
-        ubyte1 shift = (MAX_NAME_LENGTH - 1 - i) * BITS_PER_CHAR;
-        ubyte1 idx = (encodedString >> shift) & CHAR_MASK;
-
-        if (idx == 0) {
-            // Terminator reached
-            break;
-        }
-        outputBuffer[i] = HIL_CHARSET[idx];
-    }
-    outputBuffer[i] = '\0'; // Null-terminate the string
-}
-
-ubyte4 HIL_encodeName(const char *name)
-{
-    ubyte1 len = strlen(name);
-    if (len > MAX_NAME_LENGTH || len == 0) {
-        return 0xFFFFFFFF; // Error indicator
-    }
-
-    ubyte4 encoded = 0;
-    for (ubyte1 i = 0; i < len; i++) {
-        sbyte1 idx = HIL_charToIndex(name[i]);
-        if (idx < 0) {
-            return 0xFFFFFFFF; // Error indicator
-        }
-        encoded = (encoded << BITS_PER_CHAR) | (ubyte4)idx;
-    }
-
-    // Fill remaining positions with zeros
-    ubyte1 remaining = MAX_NAME_LENGTH - len;
-    encoded <<= (remaining * BITS_PER_CHAR);
-
-    return encoded;
-}
 
 /**********************************************************************/
 /************************* PARAMETER TABLE ****************************/
 /**********************************************************************/
 
-#define HIL_MAX_PARAMS  64
+static ParamTable hilParamTable;
 
-static ParamMapping hilParamTable[HIL_MAX_PARAMS];
-static size_t hilParamCount = 0;
-
-// Add parameters to the lookup table
-static void HIL_addParam(const char *nameStr, void *ptr, ParamType paramType)
+static int compare_by_structname(const void *a, const void *b)
 {
-    if (hilParamCount < HIL_MAX_PARAMS) {
-        hilParamTable[hilParamCount].name = nameStr;
-        hilParamTable[hilParamCount].address = ptr;
-        hilParamTable[hilParamCount].type = paramType;
-        hilParamCount++;
-    }
+    return strcmp(((const ParamRow *)a)->struct_name, ((const ParamRow *)b)->struct_name);
+}
+
+static int compare_by_paramname(const void *a, const void *b)
+{
+    return strcmp(((const ParamRow *)a)->param_name, ((const ParamRow *)b)->param_name);
 }
 
 // Called at runtime
 void HIL_initParamTable(MotorController *mcm, PowerLimit *pl, LaunchControl *lc, WheelSpeeds *wss, BatteryManagementSystem *bms, Regen *regen, Efficiency *eff)
 {
-    hilParamCount = 0;
+    ParamRow rows[HIL_MAX_PARAMS];
+    int n = 0;
 
-    // MotorController parameters
-    // !! Modify parameters as needed !!
-    
+    // ParamTable row format:
+    // { struct_name, identifier, param_number, param_name, &struct->field (memory address), type }
+
     // PowerLimit parameters
-    HIL_addParam("pltog",      &(pl->plToggle),                    TYPE_BOOL);
-    HIL_addParam("plstat",     &(pl->plStatus),                    TYPE_BOOL);
-    HIL_addParam("plmode",     &(pl->plMode),                      TYPE_UBYTE1);
-    HIL_addParam("pltarg",     &(pl->plTargetPower),               TYPE_UBYTE1);
-    HIL_addParam("plkwlm",     &(pl->plKwLimit),                   TYPE_UBYTE1);
-    HIL_addParam("plinit",     &(pl->plInitializationThreshold),   TYPE_UBYTE1);
-    HIL_addParam("pltqcm",     &(pl->plTorqueCommand),             TYPE_SBYTE2);
-    HIL_addParam("plclmp",     &(pl->clampingMethod),              TYPE_UBYTE1);
+    // !! Modify parameters as needed !!
+    rows[n++] = (ParamRow){ "PowerLimit", 0, 0, "plToggle",                  &(pl->plToggle),                  TYPE_BOOL   };
+    rows[n++] = (ParamRow){ "PowerLimit", 0, 0, "plStatus",                  &(pl->plStatus),                  TYPE_BOOL   };
+    rows[n++] = (ParamRow){ "PowerLimit", 0, 0, "plMode",                    &(pl->plMode),                    TYPE_UBYTE1 };
+    rows[n++] = (ParamRow){ "PowerLimit", 0, 0, "plTargetPower",             &(pl->plTargetPower),             TYPE_UBYTE1 };
+    rows[n++] = (ParamRow){ "PowerLimit", 0, 0, "plKwLimit",                 &(pl->plKwLimit),                 TYPE_UBYTE1 };
+    rows[n++] = (ParamRow){ "PowerLimit", 0, 0, "plInitializationThreshold", &(pl->plInitializationThreshold), TYPE_UBYTE1 };
+    rows[n++] = (ParamRow){ "PowerLimit", 0, 0, "plTorqueCommand",           &(pl->plTorqueCommand),           TYPE_SBYTE2 };
+    rows[n++] = (ParamRow){ "PowerLimit", 0, 0, "clampingMethod",            &(pl->clampingMethod),            TYPE_UBYTE1 };
     // !! Modify parameters as needed !!
 
-    // LaunchControl (and WheelSpeedSensor) parameters
-    HIL_addParam("lctog",      &(lc->lcToggle),                    TYPE_BOOL);
-    HIL_addParam("lcstat",     &(lc->state),                       TYPE_SBYTE4);   // !! Need to check type !!
-    HIL_addParam("lcmode",     &(lc->mode),                        TYPE_SBYTE4);   // !! Need to check type !!
-    HIL_addParam("lckp",       &(lc->Kp),                          TYPE_SBYTE1);
-    HIL_addParam("lcki",       &(lc->Ki),                          TYPE_SBYTE1);
-    HIL_addParam("lckd",       &(lc->Kd),                          TYPE_SBYTE1);
-    HIL_addParam("lcsrt",      &(lc->slipRatioTarget),             TYPE_FLOAT4);
-    HIL_addParam("lcinit",     &(lc->initialTorque),               TYPE_FLOAT4);
-    HIL_addParam("lcmaxt",     &(lc->maxTorque),                   TYPE_FLOAT4);
-    HIL_addParam("lck",        &(lc->k),                           TYPE_FLOAT4);
-    HIL_addParam("lcfilt",     &(lc->useFilter),                   TYPE_BOOL);
-
-    // Placeholders for WSS RPM and speed parameters
-    //HIL_addParam("fastestrearrpm",    &(wss->fastestRearRPM),          TYPE_FLOAT4);
-    //HIL_addParam("groundspeedrpm",     &(wss->groundSpeedRPM),          TYPE_FLOAT4);
-    //HIL_addParam("groundspeedmps",    &(wss->groundSpeedMPS),          TYPE_FLOAT4);
-    //HIL_addParam("fastestrearmps",    &(wss->fastestRearMPS),          TYPE_FLOAT4);
+    // LaunchControl parameters
     // !! Modify parameters as needed !!
+    rows[n++] = (ParamRow){ "LaunchControl", 0, 0, "lcToggle",        &(lc->lcToggle),        TYPE_BOOL   };
+    rows[n++] = (ParamRow){ "LaunchControl", 0, 0, "state",           &(lc->state),           TYPE_SBYTE4 };   // !! Need to check type !!
+    rows[n++] = (ParamRow){ "LaunchControl", 0, 0, "mode",            &(lc->mode),            TYPE_SBYTE4 };   // !! Need to check type !!
+    rows[n++] = (ParamRow){ "LaunchControl", 0, 0, "Kp",              &(lc->Kp),              TYPE_SBYTE1 };
+    rows[n++] = (ParamRow){ "LaunchControl", 0, 0, "Ki",              &(lc->Ki),              TYPE_SBYTE1 };
+    rows[n++] = (ParamRow){ "LaunchControl", 0, 0, "Kd",              &(lc->Kd),              TYPE_SBYTE1 };
+    rows[n++] = (ParamRow){ "LaunchControl", 0, 0, "slipRatioTarget", &(lc->slipRatioTarget), TYPE_FLOAT4 };
+    rows[n++] = (ParamRow){ "LaunchControl", 0, 0, "initialTorque",   &(lc->initialTorque),   TYPE_FLOAT4 };
+    rows[n++] = (ParamRow){ "LaunchControl", 0, 0, "maxTorque",       &(lc->maxTorque),       TYPE_FLOAT4 };
+    rows[n++] = (ParamRow){ "LaunchControl", 0, 0, "k",               &(lc->k),               TYPE_FLOAT4 };
+    rows[n++] = (ParamRow){ "LaunchControl", 0, 0, "useFilter",       &(lc->useFilter),       TYPE_BOOL   };
+    // !! Modify parameters as needed !!
+
+    // WheelSpeeds parameters
+    // !! Modify parameters as needed !!
+    //rows[n++] = (ParamRow){ "WheelSpeeds", 0, 0, "fastestRearMPS", &(wss->fastestRearMPS), TYPE_FLOAT4 };
 
     // BMS parameters
     // !! Modify parameters as needed !!
@@ -130,22 +72,87 @@ void HIL_initParamTable(MotorController *mcm, PowerLimit *pl, LaunchControl *lc,
     // !! Modify parameters as needed !!
 
     // Efficiency parameters
-    HIL_addParam("eftog",      &(eff->efficiencyToggle),           TYPE_BOOL);
-    HIL_addParam("efbudg",     &(eff->energyBudget_kWh),           TYPE_FLOAT4);
-    HIL_addParam("effin",      &(eff->finishedLap),                TYPE_BOOL);
-    HIL_addParam("efdist",     &(eff->lapDistance_km),             TYPE_FLOAT4);
     // !! Modify parameters as needed !!
-}
+    rows[n++] = (ParamRow){ "Efficiency", 0, 0, "efficiencyToggle", &(eff->efficiencyToggle), TYPE_BOOL   };
+    rows[n++] = (ParamRow){ "Efficiency", 0, 0, "energyBudget_kWh", &(eff->energyBudget_kWh), TYPE_FLOAT4 };
+    rows[n++] = (ParamRow){ "Efficiency", 0, 0, "finishedLap",      &(eff->finishedLap),      TYPE_BOOL   };
+    rows[n++] = (ParamRow){ "Efficiency", 0, 0, "lapDistance_km",   &(eff->lapDistance_km),   TYPE_FLOAT4 };
+    // !! Modify parameters as needed !!
 
-// Parameter lookup function
-static ParamMapping* HIL_findParamByName(const char *name)
-{
-    for (size_t i = 0; i < hilParamCount; i++) {
-        if (strcmp(hilParamTable[i].name, name) == 0) {
-            return &hilParamTable[i];
+    int total = n;
+
+    /* --- Step 1: Sort by struct name to group entries --- */
+    qsort(rows, total, sizeof(ParamRow), compare_by_structname);
+
+    /* --- Step 2: Assign identifiers and count group sizes --- */
+    int counts[HIL_MAX_STRUCTS];
+    int counts_length = 0;
+    int count = 1;
+    int identifier = 0;
+    rows[0].identifier = 0;
+
+    for (int i = 1; i < total; i++) {
+        if (strcmp(rows[i].struct_name, rows[i-1].struct_name) != 0) {
+            counts[counts_length++] = count;
+            count = 1;
+            identifier++;
+        } else {
+            count++;
+        }
+        rows[i].identifier = identifier;
+    }
+    counts[counts_length++] = count;
+
+    /* --- Step 3: Build prefix sum (boundary index of each struct group) --- */
+    int sum[HIL_MAX_STRUCTS];
+    int acc = 0;
+    for (int i = 0; i < counts_length; i++) {
+        acc += counts[i];
+        sum[i] = acc;
+    }
+
+    /* --- Step 4: Sort within each struct group by param name --- */
+    qsort(rows, counts[0], sizeof(ParamRow), compare_by_paramname);
+    for (int g = 1; g < counts_length; g++) {
+        qsort(rows + sum[g-1], counts[g], sizeof(ParamRow), compare_by_paramname);
+    }
+
+    /* --- Step 5: Assign param_number within each group --- */
+    rows[0].param_number = 0;
+    for (int i = 1; i < total; i++) {
+        if (strcmp(rows[i].struct_name, rows[i-1].struct_name) != 0) {
+            rows[i].param_number = 0;
+        } else {
+            rows[i].param_number = rows[i-1].param_number + 1;
         }
     }
-    return NULL; // Not found
+
+    /* --- Store into static table --- */
+    memcpy(hilParamTable.rows, rows, total * sizeof(ParamRow));
+    memcpy(hilParamTable.sum, sum, counts_length * sizeof(int));
+    hilParamTable.counts_length = counts_length;
+    hilParamTable.total_params = total;
+}
+
+// Parameter lookup by (identifier, param_number) — O(1) via prefix sum
+static ParamRow *HIL_findParam(int identifier, int param_number)
+{
+    if (identifier < 0 || identifier >= hilParamTable.counts_length) {
+        return NULL;
+    }
+
+    int index = (identifier == 0) ? param_number
+                                  : hilParamTable.sum[identifier - 1] + param_number;
+
+    if (index < 0 || index >= hilParamTable.total_params) {
+        return NULL;
+    }
+
+    if (hilParamTable.rows[index].identifier != identifier) {
+        return NULL;
+    }
+
+    return &hilParamTable.rows[index];
 }
 
 // Write parameter into struct
@@ -166,32 +173,23 @@ static void HIL_writeParam(void *addr, ParamType type, sbyte4 value)
 // Parse injected parameter from CAN
 void HIL_parseCanMessage(IO_CAN_DATA_FRAME* canMessage)
 {
-    // HIL Parameter Command Message Format
-    ubyte4 encodedName = ((ubyte4)canMessage->data[0] << 24) |
-                         ((ubyte4)canMessage->data[1] << 16) |      // Byte 0-3: Encoded string value (32 bits, big-endian)
-                         ((ubyte4)canMessage->data[2] << 8)  |
-                         ((ubyte4)canMessage->data[3]);
-
+    // HIL Parameter Command Message Format:
+    ubyte1 identifier   = canMessage->data[0];      // Byte 0: struct identifier
+    ubyte1 param_number = canMessage->data[1];      // Byte 1: param number
+                                                    // Bytes 2-3: reserved
     sbyte4 value = (sbyte4)(
-                   ((ubyte4)canMessage->data[4])       |
-                   ((ubyte4)canMessage->data[5] << 8)  |            // Byte 4-7: Parameter value (32 bits, signed, little-endian)
-                   ((ubyte4)canMessage->data[6] << 16) |
+                   ((ubyte4)canMessage->data[4])        |
+                   ((ubyte4)canMessage->data[5] << 8)   |   // Bytes 4-7: value (32-bit, little-endian)
+                   ((ubyte4)canMessage->data[6] << 16)  |
                    ((ubyte4)canMessage->data[7] << 24));
 
-    // Decode parameter name
-    char paramName[MAX_NAME_LENGTH + 1];
-    HIL_decodeName(encodedName, paramName);
-
-    // Find parameter in table
-    ParamMapping *mapping = HIL_findParamByName(paramName);
-    if (mapping == NULL) {
-        // Invalid parameter, cannot be found
+    ParamRow *row = HIL_findParam(identifier, param_number);
+    if (row == NULL) {
         return;
     }
 
-    // Overwrite struct parameter
-    HIL_writeParam(mapping->address, mapping->type, value);
+    HIL_writeParam(row->mem_address, row->type, value);
 
-    // For debugging purposes:
-    // HIL_sendResponse(encodedName, value);
+    // For debugging purposes: (if we want to have it)
+    // HIL_sendResponse(identifier, param_number, value);
 }
