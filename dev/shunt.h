@@ -10,6 +10,15 @@
 #define SHUNT_GET_COMMAND_ID        0x3FB
 #define SHUNT_REPLY_ID              0x3FC
 
+typedef enum{
+    SHUNT_COMMAND_GET_ALL_ENABLED    = 0x00,
+    SHUNT_COMMAND_GET_CURRENT       = 0x01,
+    SHUNT_COMMAND_GET_COULOMB       = 0x04,
+    SHUNT_COMMAND_RESET             = 0x10,
+    SHUNT_COMMAND_SETMODE           = 0x12,
+    SHUNT_COMMAND_READING_DELAY     = 0x16
+} ShuntCommand;
+
 typedef struct {
     sbyte4 high;
     ubyte4 low;
