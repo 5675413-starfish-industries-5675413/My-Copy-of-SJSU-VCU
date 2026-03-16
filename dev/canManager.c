@@ -22,6 +22,7 @@
 #include "regen.h"
 #include "efficiency.h"
 #include "brakePressureSensor.h"
+#include "shunt.h"
 
 
 struct _CanManager {
@@ -330,7 +331,7 @@ bool CanManager_dataChangedSinceLastTransmit(IO_CAN_DATA_FRAME* canMessage) //bi
 /*****************************************************************************
 * read
 ****************************************************************************/
-void CanManager_read(CanManager* me, CanChannel channel, MotorController* mcm, InstrumentCluster* ic, BatteryManagementSystem* bms, SafetyChecker* sc, WheelSpeeds* wss)
+void CanManager_read(CanManager* me, CanChannel channel, MotorController* mcm, InstrumentCluster* ic, BatteryManagementSystem* bms, SafetyChecker* sc, WheelSpeeds* wss, Shunt* shunt)
 {
     IO_CAN_DATA_FRAME canMessages[(channel == CAN0_HIPRI ? me->can0_read_messageLimit : me->can1_read_messageLimit)];
     ubyte1 canMessageCount;
@@ -445,8 +446,15 @@ void CanManager_read(CanManager* me, CanChannel channel, MotorController* mcm, I
             WheelSpeeds_parseCanMessage(wss, &canMessages[currMessage]);
             break;
             
-
-            
+        //-------------------------------------------------------------------------
+        // Shunt
+        //-------------------------------------------------------------------------
+        case 0x3F1:
+            Shunt_parseCanMessage(shunt, &canMessages[currMessage]);
+            break;
+        case 0x3F4:
+            Shunt_parseCanMessage(shunt, &canMessages[currMessage]);
+            break;
             
         //-------------------------------------------------------------------------
         //VCU Debug Control
