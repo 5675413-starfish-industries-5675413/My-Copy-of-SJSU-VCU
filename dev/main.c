@@ -54,6 +54,7 @@
 #include "powerLimit.h"
 #include "PID.h"
 #include "efficiency.h"
+#include "shunt.h"
 
 //Application Database, needed for TTC-Downloader
 APDB appl_db =
@@ -226,6 +227,7 @@ void main(void)
     DRS *drs = DRS_new();
     PowerLimit *pl = POWERLIMIT_new(FALSE);
     Efficiency *eff = EFFICIENCY_new(FALSE);
+    Shunt *shunt = Shunt_new();
 //---------------------------------------------------------------------------------------------------------
     //----------------------------------------------------------------------------
     // TODO: Additional Initial Power-up functions
@@ -275,7 +277,7 @@ void main(void)
 
         //Pull messages from CAN FIFO and update our object representations.
         //Also echoes can0 messages to can1 for DAQ.
-        CanManager_read(canMan, CAN0_HIPRI, mcm0, ic0, bms, sc, wss);
+        CanManager_read(canMan, CAN0_HIPRI, mcm0, ic0, bms, sc, wss, shunt);
         // if (Sensor_TestButton.sensorValue == TRUE ) {
         //     // TODO rewire Sensor_TestButton 
         //     lc->buttonDebug |= 0x02;
@@ -486,7 +488,7 @@ void main(void)
 
         //Send debug data
         canOutput_sendDebugMessage(canMan, tps, bps, mcm0, ic0, bms, wss, sc, lc, pl, drs, regen, eff);
-        canOutput_sendDebugMessage1(canMan, mcm0, tps);
+        canOutput_sendDebugMessage1(canMan, mcm0, tps, shunt);
         //canOutput_sendSensorMessages();
         //canOutput_sendStatusMessages(mcm0);
 

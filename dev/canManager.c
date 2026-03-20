@@ -501,7 +501,7 @@ void canOutput_sendSensorMessages(CanManager* me)
 //----------------------------------------------------------------------------
 // 
 //----------------------------------------------------------------------------
-void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressureSensor* bps, MotorController* mcm, InstrumentCluster* ic, BatteryManagementSystem* bms, WheelSpeeds* wss, SafetyChecker* sc, LaunchControl* lc, PowerLimit *pl, DRS *drs, Regen *regen, Efficiency *eff, Shunt *shunt)
+void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressureSensor* bps, MotorController* mcm, InstrumentCluster* ic, BatteryManagementSystem* bms, WheelSpeeds* wss, SafetyChecker* sc, LaunchControl* lc, PowerLimit *pl, DRS *drs, Regen *regen, Efficiency *eff)
 {
     IO_CAN_DATA_FRAME canMessages[me->can0_write_messageLimit];
     ubyte1 errorCount;
@@ -882,31 +882,6 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(PID_getOutput(lc->pid))) >> 8;
     canMessages[canMessageCount - 1].length = byteNum;
 
-    // 514: Shunt messages
-    canMessageCount++;
-    byteNum = 0;
-    canMessages[canMessageCount - 1].id_format = IO_CAN_STD_FRAME;
-    canMessages[canMessageCount - 1].id = canMessageID + canMessageCount - 1;
-    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->current_mA >> 24) & 0xFF;
-    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->current_mA >> 16) & 0xFF;
-    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->current_mA >> 8) & 0xFF;
-    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->current_mA >> 0) & 0xFF;
-    canMessages[canMessageCount - 1].length = byteNum;
-
-    canMessageCount++;
-    byteNum = 0;
-    canMessages[canMessageCount - 1].id_format = IO_CAN_STD_FRAME;
-    canMessages[canMessageCount - 1].id = canMessageID + canMessageCount - 1;
-    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->coulombCount.high >> 24) & 0xFF;
-    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->coulombCount.high >> 16) & 0xFF;
-    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->coulombCount.high >> 8) & 0xFF;
-    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->coulombCount.high >> 0) & 0xFF;
-    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->coulombCount.low >> 24) & 0xFF;
-    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->coulombCount.low >> 16) & 0xFF;
-    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->coulombCount.low >> 8) & 0xFF;
-    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->coulombCount.low >> 0) & 0xFF;
-    canMessages[canMessageCount - 1].length = byteNum;
-
     CanManager_send(me, CAN0_HIPRI, canMessages, canMessageCount); 
 
 
@@ -922,7 +897,7 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
 
 }
 
-void canOutput_sendDebugMessage1(CanManager* me, MotorController* mcm, TorqueEncoder* tps)
+void canOutput_sendDebugMessage1(CanManager* me, MotorController* mcm, TorqueEncoder* tps, Shunt* shunt)
 {
     IO_CAN_DATA_FRAME canMessages[me->can1_write_messageLimit];
     ubyte1 errorCount;
@@ -972,6 +947,31 @@ void canOutput_sendDebugMessage1(CanManager* me, MotorController* mcm, TorqueEnc
     canMessages[canMessageCount - 1].data[byteNum++] = tps->tps1_calibMin >> 8;
     canMessages[canMessageCount - 1].data[byteNum++] = tps->tps1_calibMax;
     canMessages[canMessageCount - 1].data[byteNum++] = tps->tps1_calibMax >> 8;
+    canMessages[canMessageCount - 1].length = byteNum;
+
+    // Shunt messages
+    canMessageCount++;
+    byteNum = 0;
+    canMessages[canMessageCount - 1].id_format = IO_CAN_STD_FRAME;
+    canMessages[canMessageCount - 1].id = canMessageID + canMessageCount - 1;
+    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->current_mA >> 24) & 0xFF;
+    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->current_mA >> 16) & 0xFF;
+    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->current_mA >> 8) & 0xFF;
+    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->current_mA >> 0) & 0xFF;
+    canMessages[canMessageCount - 1].length = byteNum;
+
+    canMessageCount++;
+    byteNum = 0;
+    canMessages[canMessageCount - 1].id_format = IO_CAN_STD_FRAME;
+    canMessages[canMessageCount - 1].id = canMessageID + canMessageCount - 1;
+    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->coulombCount.high >> 24) & 0xFF;
+    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->coulombCount.high >> 16) & 0xFF;
+    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->coulombCount.high >> 8) & 0xFF;
+    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->coulombCount.high >> 0) & 0xFF;
+    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->coulombCount.low >> 24) & 0xFF;
+    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->coulombCount.low >> 16) & 0xFF;
+    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->coulombCount.low >> 8) & 0xFF;
+    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->coulombCount.low >> 0) & 0xFF;
     canMessages[canMessageCount - 1].length = byteNum;
 
     CanManager_send(me, CAN1_LOPRI, canMessages, canMessageCount); 
