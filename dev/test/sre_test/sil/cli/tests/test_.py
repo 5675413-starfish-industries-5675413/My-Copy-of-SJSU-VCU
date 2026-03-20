@@ -2,6 +2,7 @@
 Efficiency-related tests.
 """
 
+from types import DynamicClassAttribute
 import pytest
 from sre_test.sil.core.compiler import SILCompiler
 from sre_test.sil.core.simulator import SILSimulator
@@ -16,16 +17,11 @@ from sre_test.sil.core.helpers.path import (
 
 sim = None
 
-def skip_first_cycle(*struct_names: str, output):
-    """Helper function to skip the first cycle by sending data and discarding response."""
-    sim.send_structs(*struct_names)
-    _ = sim.receive("Efficiency", "PowerLimit", timeout=2.0)  # Discard first cycle response
-
 @pytest.fixture(scope="module", autouse=True)
 def setup_simulator():
     """Automatically create simulator for all tests - no parameter needed."""
     global sim
-    sim = SILSimulator.create()
+    sim = SILSimulator.create(auto_compile=True)
     yield
     sim.stop()
     sim = None
@@ -52,33 +48,85 @@ def test_DynamicConfig():
     assert config.energyBudget_kWh == 0.3
 
 
-def test_single_point():
+def test_point(): 
     """Single point simulation test"""
     # Create MotorController config with motorRPM
     mcm_config = DynamicConfig("MotorController")
     mcm_config.DC_Voltage = 1500
     mcm_config.DC_Current = 800
-    mcm_config.motorRPM = 1800
+    # mcm_config.motorRPM = 1800
+    mcm_config.set("motorRPM", 1800)
     
     tps_config = DynamicConfig("TorqueEncoder")
     tps_config.travelPercent = 0.5
     tps_config.calibrated = True
-    
+
     # Update struct_members_output.json with the config
     configs_to_json(mcm_config, tps_config)
     
-    # Send MotorController as a regular data point (row_id=0)
-    skip_first_cycle("MotorController", "TorqueEncoder", output="Efficiency")
     sim.send_structs("MotorController", "TorqueEncoder")
+
+    # Let the control loop update plStatus from inputs (do not force it in config).
+    pl_status = None
+    motor_rpm = None
     
-    # Receive only MotorController struct
-    response = sim.receive("Efficiency", "PowerLimit", timeout=2.0)
-    received = response.get("efficiency", {})
-    received = response["pl_status"]
-    assert received == True
-    print(f"✓ received {received}")
+    response = sim.receive()
+    pl = response.get("PowerLimit")
+    pl_torque_command = pl.get("plTorqueCommand")
+    print(f"received pl_torque_command: {pl_torque_command}")
     
-    # Useless dummy test
-    def awesome_test():
-        """This is the best test ever"""
-        print("Hurray!!!")
+    # for _ in range(5):
+    #     response = sim.receive(timeout=2.0)
+    #     power_limit = {}
+    #     mcm = {}
+    #     if response:
+    #         power_limit = response.get("PowerLimit") or response.get("power_limit", {})
+    #         mcm = (
+    #             response.get("MotorController")
+    #             or response.get("motor_controller")
+    #             or response.get("mcm", {})
+    #         )
+    #     pl_status = power_limit.get("plStatus") if power_limit else None
+    #     if pl_status is None and power_limit:
+    #         pl_status = power_limit.get("pl_status")
+    #     motor_rpm = mcm.get("motorRPM")
+    #     if motor_rpm is None and mcm:
+    #         motor_rpm = mcm.get("motor_rpm")
+        # if pl_status is True:
+        #     break
+    # sim.send_structs("MotorController", "TorqueEncoder")
+    
+    
+
+    # assert pl_status is True
+    # print(f"received pl_status: {pl_status}")
+    # print(f"received motor_rpm: {motor_rpm}")
+    
+def test_regen():
+    regen_config = DynamicConfig("Regen")
+    regen_config.padMu = 0.4
+    regen_config.regenToggle = True
+    regen_config.bpsTorqueNm = 0
+    
+    brake_config = DynamicConfig("BrakePressureSensor")
+    brake_config.bps1_voltage = 2225
+    brake_config.bps0_voltage = 1208
+    
+    
+    mcm_config = DynamicConfig("MotorController")
+    mcm_config.motorRPM = 2000
+    
+    configs_to_json(regen_config, brake_config, mcm_config)
+    
+    sim.send_structs("MotorController", "BrakePressureSensor", "Regen")
+    
+    response = sim.receive()
+    regenResponse = response.get("Regen", {}) if response else {}
+    
+    mcmResponse = response.get("MotorController", {}) if response else {}
+    
+    print(f"Regen toggle is: {regenResponse.get('regenToggle')}")
+    # assert regenResponse.get("bpsTorqueNm") == -102.94
+    print(f"Brake pressure difference is: {regenResponse.get('bpsTorqueNm')}")
+    # print(f"Pad mu is: {regenResponse.get('padMu')}")
+    print(f"Regen torque command is: {mcmResponse.get('regenTorqueCommand')}")

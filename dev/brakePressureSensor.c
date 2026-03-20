@@ -280,6 +280,12 @@ ubyte2 BrakePressureSensor_getBPS0_Voltage(BrakePressureSensor *me) {
 ubyte2 BrakePressureSensor_getBPS1_Voltage(BrakePressureSensor *me) {
     return me->bps1_voltage;
 }
+float4 BrakePressureSensor_getBPS0_V(BrakePressureSensor *me) {
+    return (float4)me->bps0_voltage;
+}
+float4 BrakePressureSensor_getBPS1_V(BrakePressureSensor *me) {
+    return (float4)me->bps1_voltage;
+}
 float4 BrakePressureSensor_getBPS0_Pressure(BrakePressureSensor *me) {
     return me->bps0_Pressure;
 }

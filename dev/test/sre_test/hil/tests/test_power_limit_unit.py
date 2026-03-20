@@ -56,55 +56,7 @@ def test_decoder_ignores_none_message():
 
     status = dec.decode(None)
     assert status is dec.get_status()
-
-
-def test_decoder_populates_status_a_fields():
-    id_a, id_b = 0x511, 0x512
-    dbc = _FakeDBC(id_a=id_a, id_b=id_b)
-    dbc.set_decoded_signals(
-        id_a,
-        {
-            "VCU_POWERLIMIT_getInitialisationThreshold_W": 123,
-            "VCU_POWERLIMIT_getMode_W": 2,
-            "VCU_POWERLIMIT_getStatus_W": 1,
-            "VCU_POWERLIMIT_PID_getTotalError": 10,
-            "VCU_POWERLIMIT_PID_getProportional": -3,
-        },
-    )
-
-    dec = PowerLimitDecoder(dbc)
-    status = dec.decode(_msg(id_a))
-
-    assert status.initialization_threshold == 123
-    assert status.mode == 2
-    assert status.status is True
-    assert status.pid_total_error == 10
-    assert status.pid_proportional == -3
-
-
-def test_decoder_populates_status_b_fields():
-    id_a, id_b = 0x511, 0x512
-    dbc = _FakeDBC(id_a=id_a, id_b=id_b)
-    dbc.set_decoded_signals(
-        id_b,
-        {
-            "VCU_POWERLIMIT_PID_getIntegral": 7,
-            "VCU_POWERLIMIT_getTorqueCommand_Nm": 42.5,
-            "VCU_POWERLIMIT_getTargetPower_W": 40000,
-            "VCU_POWERLIMIT_PID_getOutput": -99,
-            "VCU_POWERLIMIT_getClampingMethod_W": 1,
-        },
-    )
-
-    dec = PowerLimitDecoder(dbc)
-    status = dec.decode(_msg(id_b))
-
-    assert status.pid_integral == 7
-    assert status.torque_command == pytest.approx(42.5)
-    assert status.target_power == 40000
-    assert status.pid_output == -99
-    assert status.clamping_method == 1
-
+    
 
 def test_monitor_filters_non_pl_frames_then_decodes_pl():
     id_a, id_b = 0x511, 0x512

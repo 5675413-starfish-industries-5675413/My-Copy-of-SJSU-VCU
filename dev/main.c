@@ -61,6 +61,13 @@
 #include "sil.h"
 #endif
 
+#ifndef SIL_BUILD
+
+// HIL includes
+#include "hilParameter.h"
+
+#endif
+
 //Application Database, needed for TTC-Downloader
 APDB appl_db =
     {
@@ -233,11 +240,13 @@ void main(void)
     WheelSpeeds *wss = WheelSpeeds_new(WHEEL_DIAMETER, WHEEL_DIAMETER, NUM_BUMPS, NUM_BUMPS);
     SafetyChecker *sc = SafetyChecker_new(serialMan, 320, 32); //Must match amp limits
     CoolingSystem *cs = CoolingSystem_new(serialMan);
-    Regen *regen = Regen_new(TRUE);
+    Regen *regen = Regen_new(FALSE);
     LaunchControl *lc = LaunchControl_new(FALSE);
     DRS *drs = DRS_new();
     PowerLimit *pl = POWERLIMIT_new(TRUE);
-    Efficiency *eff = EFFICIENCY_new(TRUE);  // Enable efficiency calculations
+    Efficiency *eff = Efficiency_new(TRUE);
+    PID *pid = PID_new(0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+    
 //---------------------------------------------------------------------------------------------------------
     //----------------------------------------------------------------------------
     // TODO: Additional Initial Power-up functions
@@ -263,14 +272,27 @@ void main(void)
     static float4 saved_tps_travelPercent = 0.0f;
     static float4 saved_tps0_percent = 0.0f;
     static float4 saved_tps1_percent = 0.0f;
+    static ubyte2 saved_bps0_voltage = 0;
+    static ubyte2 saved_bps1_voltage = 0;
     
     // Read initial JSON configuration
-    int parse_result = sil_read_initial_json(pl, mcm0, tps);
+    int parse_result = sil_read_initial_json(pl, mcm0, tps, bps, regen);
     if (parse_result == 0) {
         saved_tps_travelPercent = tps->travelPercent;
         saved_tps0_percent = tps->tps0_percent;
         saved_tps1_percent = tps->tps1_percent;
+        saved_bps0_voltage = bps->bps0_voltage;
+        saved_bps1_voltage = bps->bps1_voltage;
     }
+    #endif
+
+    #ifndef SIL_BUILD
+
+    /*******************************************/
+    /*           HIL CONFIGURATION             */
+    /*******************************************/
+    HIL_initParamTable(mcm0, pl, lc, wss, bms, regen, eff);
+
     #endif
 
     /*******************************************/
@@ -413,6 +435,12 @@ void main(void)
         TorqueEncoder_calibrationCycle(tps, &calibrationErrors); //Todo: deal with calibration errors
         BrakePressureSensor_update(bps, bench);
         BrakePressureSensor_calibrationCycle(bps, &calibrationErrors);
+        
+        // In SIL mode, preserve JSON-provided BPS voltages for simulation input.
+        #ifdef SIL_BUILD
+        bps->bps0_voltage = saved_bps0_voltage;
+        bps->bps1_voltage = saved_bps1_voltage;
+        #endif
 
         //TractionControl_update(tps, mcm0, wss, daq);
 
@@ -549,12 +577,14 @@ void main(void)
     /*******************************************/
     #ifdef SIL_BUILD
     // Non-blocking JSON reader for main loop
-    int json_result = sil_read_json_input(pl, mcm0, tps);
+    int json_result = sil_read_json_input(pl, mcm0, tps, bps, regen);
     if (json_result == 0) {
         // Successfully parsed JSON, update saved TPS values
         saved_tps_travelPercent = tps->travelPercent;
         saved_tps0_percent = tps->tps0_percent;
         saved_tps1_percent = tps->tps1_percent;
+        saved_bps0_voltage = bps->bps0_voltage;
+        saved_bps1_voltage = bps->bps1_voltage;
     }
     #endif
 
@@ -562,9 +592,8 @@ void main(void)
     /*              SIL OUTPUTS                */
     /*******************************************/
     #ifdef SIL_BUILD
-    // Use requested output mode if set, otherwise use default (0 = use default)
-    ubyte1 requested_mode = sil_get_requested_output_mode();
-    sil_write_json_output(mcm0, pl, eff, requested_mode);
+    //sil_write_json_output(mcm0, pl, eff);
+    sil_write_json_output(mcm0, pl, eff, bms, lc, bps, pid, regen, ic0, rtds, sc, NULL, tps, NULL, 0); //TODO: determine what output mode values to use
     #endif
         
     } //end of main loop

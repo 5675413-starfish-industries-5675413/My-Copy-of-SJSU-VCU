@@ -5,7 +5,7 @@ Utility functions for SIL testing.
 import csv
 import time
 from pathlib import Path
-from typing import Optional, Dict, Any, List, Union
+from typing import Optional, Dict, Any, List, Union, Callable
 
 from sre_test.sil.cli.console import console
 from sre_test.sil.core.struct_parser import extract_struct_definitions
@@ -110,7 +110,7 @@ def csv_row_to_json(
     return {"row_id": row_id, "structs": structs}
 
 
-def ensure_struct_definitions() -> None:
+def ensure_struct() -> None:
     """
     Ensure struct definitions file exists, extracting if needed.
     """
@@ -118,4 +118,27 @@ def ensure_struct_definitions() -> None:
     if not STRUCT_MEMBERS.exists():
         console.print("[cyan]Extracting struct definitions...[/cyan]")
         extract_struct_definitions()
+
+
+def print_progress(
+    processed: int,
+    total: int,
+    every: int,
+    flush: Optional[Callable[[], None]] = None,
+) -> None:
+    """
+    Print periodic progress updates.
+
+    Args:
+        processed: Number of processed rows
+        total: Total number of rows
+        every: Print interval (disabled if <= 0)
+        flush: Optional callback (for example, file.flush) before printing
+    """
+    if every <= 0 or processed % every != 0:
+        return
+    if flush is not None:
+        flush()
+    progress_pct = (processed / total * 100) if total else 0.0
+    console.print(f"[cyan]Progress: {processed}/{total} ({progress_pct:.1f}%)[/cyan]")
 
