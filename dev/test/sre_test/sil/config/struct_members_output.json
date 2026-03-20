@@ -1,61 +1,10 @@
 [
   {
-    "name": "AVLNode",
-    "parameters": {
-      "data[8]": null,
-      "timeBetweenMessages_Min": null,
-      "lastMessage_timeStamp": null,
-      "required": null,
-      "timeBetweenMessages_Max": null
-    }
-  },
-  {
+    "id": 0,
     "name": "BatteryManagementSystem",
     "parameters": {
-      "canMessageBaseId": null,
-      "sm": null,
-      "imminentContactorOpenWarning": null,
-      "faultFlags1": null,
-      "faultFlags0": null,
-      "warningFlags0": null,
-      "state": null,
-      "numMonitorBoards": null,
-      "monitorBoardCommErrFlags": null,
-      "statusFlags1": null,
-      "statusFlags2": null,
-      "numFailedThermistors": null,
-      "chargerConstVoltageSetPoint": null,
-      "maxDischargeCurrentAllowed": null,
-      "maxChargeCurrentAllowed": null,
       "boardTemperature": null,
-      "powerInputSense_12V_24V": null,
-      "powerInputSense_HVIL": null,
-      "internalRailSense_5V": null,
-      "digitalOutputStatus": null,
-      "digitalInputStatus": null,
-      "packVoltage": null,
-      "packCurrent": null,
-      "packStateOfCharge": null,
-      "packStateOfHealth": null,
-      "packAmpHoursRemaining": null,
-      "highestCellVoltage": null,
-      "lowestCellVoltage": null,
-      "highestCellVoltagePos": null,
-      "lowestCellVoltagePos": null,
-      "highestCellTemperature": null,
-      "lowestCellTemperature": null,
-      "highestCellTemperaturePos": null,
-      "lowestCellTemperaturePos": null,
-      "sumOfCellVoltages": null,
-      "preChargeVoltage": null,
-      "cellVoltage_4X_1": null,
-      "cellVoltage_4X_2": null,
-      "cellVoltage_4X_3": null,
-      "cellVoltage_4X_4": null,
-      "cellTemperature_4X_1": null,
-      "cellTemperature_4X_2": null,
-      "cellTemperature_4X_3": null,
-      "cellTemperature_4X_4": null,
+      "canMessageBaseId": null,
       "cellShuntingStatusArray1_0": null,
       "cellShuntingStatusArray1_1": null,
       "cellShuntingStatusArray2_0": null,
@@ -64,235 +13,262 @@
       "cellShuntingStatusArray3_1": null,
       "cellShuntingStatusArray4_0": null,
       "cellShuntingStatusArray4_1": null,
-      "numSeriesCells": null,
-      "numThermistors": null,
+      "cellTemperature_4X_1": null,
+      "cellTemperature_4X_2": null,
+      "cellTemperature_4X_3": null,
+      "cellTemperature_4X_4": null,
+      "cellVoltage_4X_1": null,
+      "cellVoltage_4X_2": null,
+      "cellVoltage_4X_3": null,
+      "cellVoltage_4X_4": null,
+      "chargerConstVoltageSetPoint": null,
+      "digitalInputStatus": null,
+      "digitalOutputStatus": null,
+      "faultFlags0": null,
+      "faultFlags1": null,
       "fwMajorVerNum": null,
       "fwMinorVerNum": null,
       "fwRevNum": null,
-      "relayState": null
+      "highestCellTemperature": null,
+      "highestCellTemperaturePos": null,
+      "highestCellVoltage": null,
+      "highestCellVoltagePos": null,
+      "imminentContactorOpenWarning": null,
+      "internalRailSense_5V": null,
+      "lowestCellTemperature": null,
+      "lowestCellTemperaturePos": null,
+      "lowestCellVoltage": null,
+      "lowestCellVoltagePos": null,
+      "maxChargeCurrentAllowed": null,
+      "maxDischargeCurrentAllowed": null,
+      "monitorBoardCommErrFlags": null,
+      "numFailedThermistors": null,
+      "numMonitorBoards": null,
+      "numSeriesCells": null,
+      "numThermistors": null,
+      "packAmpHoursRemaining": null,
+      "packCurrent": null,
+      "packStateOfCharge": null,
+      "packStateOfHealth": null,
+      "packVoltage": null,
+      "powerInputSense_12V_24V": null,
+      "powerInputSense_HVIL": null,
+      "preChargeVoltage": null,
+      "relayState": null,
+      "sm": null,
+      "state": null,
+      "statusFlags1": null,
+      "statusFlags2": null,
+      "sumOfCellVoltages": null,
+      "warningFlags0": null
     }
   },
   {
+    "id": 1,
     "name": "BrakePressureSensor",
     "parameters": {
       "bench": null,
       "bps0": null,
-      "bps1": null,
-      "bps0_calibMin": null,
-      "bps0_calibMax": null,
-      "bps0_reverse": null,
-      "bps1_calibMin": null,
-      "bps1_calibMax": null,
-      "bps1_reverse": null,
-      "bps0_voltage": null,
-      "bps0_percent": null,
       "bps0_Pressure": null,
-      "bps1_voltage": null,
-      "bps1_percent": null,
+      "bps0_calibMax": null,
+      "bps0_calibMin": null,
+      "bps0_percent": null,
+      "bps0_reverse": null,
+      "bps0_voltage": null,
+      "bps1": null,
       "bps1_Pressure": null,
-      "runCalibration": null,
-      "timestamp_calibrationStart": null,
-      "calibrationRunTime": null,
-      "calibrated": null,
-      "percent": null,
+      "bps1_calibMax": null,
+      "bps1_calibMin": null,
+      "bps1_percent": null,
+      "bps1_reverse": null,
+      "bps1_voltage": null,
       "brakesAreOn": null,
-      "implausibility": null
+      "calibrated": null,
+      "calibrationRunTime": null,
+      "implausibility": null,
+      "percent": null,
+      "runCalibration": null,
+      "timestamp_calibrationStart": null
     }
   },
   {
-    "name": "CanManager",
-    "parameters": {}
-  },
-  {
-    "name": "CanMessageNode",
-    "parameters": {}
-  },
-  {
+    "id": 2,
     "name": "CoolingSystem",
     "parameters": {
-      "sm": null,
-      "waterPumpMinPercent": null,
-      "waterPumpLow": null,
-      "waterPumpHigh": null,
-      "waterPumpPercent": null,
-      "motorFanLow": null,
-      "motorFanHigh": null,
-      "motorFanState": null,
-      "radFanMinPercent": null,
-      "radFanLow": null,
-      "radFanHigh": null,
-      "radFanPercent": null,
-      "batteryFanLow": null,
       "batteryFanHigh": null,
-      "batteryFanState": null
+      "batteryFanLow": null,
+      "batteryFanState": null,
+      "motorFanHigh": null,
+      "motorFanLow": null,
+      "motorFanState": null,
+      "radFanHigh": null,
+      "radFanLow": null,
+      "radFanMinPercent": null,
+      "radFanPercent": null,
+      "sm": null,
+      "waterPumpHigh": null,
+      "waterPumpLow": null,
+      "waterPumpMinPercent": null,
+      "waterPumpPercent": null
     }
   },
   {
+    "id": 3,
     "name": "DRS",
     "parameters": {
       "AutoDRSActive": null,
-      "currentDRSMode": null,
       "buttonPressed": null,
+      "currentDRSMode": null,
       "drsFlap": null
     }
   },
   {
+    "id": 4,
     "name": "Efficiency",
     "parameters": {
-      "efficiencyToggle": true,
-      "energyBudget_kWh": 0.3,
       "carryOverEnergy_kWh": null,
-      "lapCounter": null,
-      "timeInStraights_s": null,
-      "timeInCorners_s": null,
-      "energySpentInCorners_kWh": null,
-      "energySpentInStraights_kWh": null,
-      "lapEnergySpent_kWh": null,
-      "powerLimit_kW": null,
-      "totalLapDistance_km": null,
+      "cornerEnergy_kWh": null,
+      "cornerTime_s": null,
+      "efficiencyToggle": null,
+      "energyBudget_kWh": null,
       "finishedLap": null,
-      "powerLimit": null
+      "lapCounter": null,
+      "lapDistance_km": null,
+      "lapEnergy_kWh": null,
+      "straightEnergy_kWh": null,
+      "straightTime_s": null
     }
   },
   {
-    "name": "HashEntry",
-    "parameters": {
-      "key1": null,
-      "key2": null,
-      "value": null,
-      "next": null
-    }
-  },
-  {
-    "name": "HashTable",
-    "parameters": {
-      "entries[TABLE_SIZE]": null
-    }
-  },
-  {
+    "id": 5,
     "name": "InstrumentCluster",
     "parameters": {
-      "serialMan": null,
       "canMessageBaseId": null,
-      "torqueMapMode": null,
-      "launchControlSensitivity": null
+      "launchControlSensitivity": null,
+      "serialMan": null,
+      "torqueMapMode": null
     }
   },
   {
+    "id": 6,
     "name": "LaunchControl",
     "parameters": {
-      "lcToggle": null,
-      "pid": null,
-      "Kp": null,
-      "Ki": null,
       "Kd": null,
+      "Ki": null,
+      "Kp": null,
       "currentSlipRatio": null,
-      "slipRatioTarget": null,
       "currentVelocityDifference": null,
-      "targetVelocityDifference": null,
-      "lcTorqueCommand": null,
       "initialTorque": null,
-      "maxTorque": null,
-      "prevTorque": null,
       "k": null,
-      "useFilter": null,
-      "state": null,
+      "lcToggle": null,
+      "lcTorqueCommand": null,
+      "maxTorque": null,
       "mode": null,
-      "phase": null
+      "phase": null,
+      "pid": null,
+      "prevTorque": null,
+      "slipRatioTarget": null,
+      "state": null,
+      "targetVelocityDifference": null,
+      "useFilter": null
     }
   },
   {
+    "id": 7,
     "name": "MotorController",
     "parameters": {
-      "serialMan": null,
-      "canMessageBaseId": null,
-      "timeStamp_inverterEnabled": null,
-      "torqueMaximumDNm": null,
-      "relayState": null,
-      "previousHVILState": null,
-      "timeStamp_HVILLost": null,
-      "timeStamp_HVILOverrideCommandReceived": null,
+      "DC_Current": null,
+      "DC_Voltage": null,
       "HVILOverride": null,
-      "timeStamp_InverterEnableOverrideCommandReceived": null,
-      "timeStamp_InverterDisableOverrideCommandReceived": null,
       "InverterOverride": null,
-      "startupStage": null,
-      "lockoutStatus": null,
-      "inverterStatus": null,
-      "startRTDS": null,
-      "faultHistory[8]": null,
-      "motor_temp": null,
-      "DC_Voltage": 0,
-      "DC_Current": 800,
-      "commandedTorque": null,
-      "feedbackTorque": null,
-      "currentPower": null,
-      "motorRPM": 1800,
-      "timeStamp_lastCommandSent": null,
-      "updateCount": null,
-      "commands_torque": null,
       "appsTorque": null,
-      "commands_torqueLimit": null,
+      "canMessageBaseId": null,
+      "commandedTorque": null,
       "commands_direction": null,
       "commands_discharge": null,
       "commands_inverter": null,
-      "lcTorqueCommand": null,
-      "lcEngaged": null,
+      "commands_torque": null,
+      "commands_torqueLimit": null,
       "currentEvent": null,
-      "plTorqueCommand": null,
+      "currentPower": null,
+      "faultHistory[8]": null,
+      "feedbackTorque": null,
+      "inverterStatus": null,
+      "lcEngaged": null,
+      "lcTorqueCommand": null,
+      "lockoutStatus": null,
+      "motorRPM": null,
+      "motor_temp": null,
       "plActive": null,
+      "plTorqueCommand": null,
+      "previousHVILState": null,
+      "regenActive": null,
       "regenTorqueCommand": null,
-      "regenActive": null
+      "relayState": null,
+      "serialMan": null,
+      "startRTDS": null,
+      "startupStage": null,
+      "timeStamp_HVILLost": null,
+      "timeStamp_HVILOverrideCommandReceived": null,
+      "timeStamp_InverterDisableOverrideCommandReceived": null,
+      "timeStamp_InverterEnableOverrideCommandReceived": null,
+      "timeStamp_inverterEnabled": null,
+      "timeStamp_lastCommandSent": null,
+      "torqueMaximumDNm": null,
+      "updateCount": null
     }
   },
   {
+    "id": 8,
     "name": "PID",
     "parameters": {
-      "Kp": null,
-      "Ki": null,
       "Kd": null,
+      "Ki": null,
+      "Kp": null,
+      "antiWindupFlag": null,
+      "dH": null,
+      "derivative": null,
+      "dt": null,
+      "integral": null,
+      "output": null,
+      "previousError": null,
+      "proportional": null,
+      "saturationValue": null,
       "scalefactor": null,
       "setpoint": null,
-      "previousError": null,
-      "totalError": null,
-      "dH": null,
-      "dt": null,
-      "output": null,
-      "proportional": null,
-      "integral": null,
-      "derivative": null,
-      "saturationValue": null,
-      "antiWindupFlag": null
+      "totalError": null
     }
   },
   {
+    "id": 9,
     "name": "PowerLimit",
     "parameters": {
-      "pid": null,
-      "plToggle": true,
-      "plStatus": true,
-      "plMode": null,
-      "plTargetPower": null,
-      "plKwLimit": null,
-      "plInitializationThreshold": null,
-      "plTorqueCommand": null,
+      "POWER_BELOW_SETPOINT_THRESHOLD": null,
+      "POWER_CHANGE_THRESHOLD": null,
+      "SETTLING_THRESHOLD": null,
       "clampingMethod": null,
-      "previousPower": null,
+      "pid": null,
+      "plAlwaysOn": null,
+      "plInitializationThreshold": null,
+      "plKwLimit": null,
+      "plMode": null,
+      "plStatus": null,
+      "plTargetPower": null,
+      "plThresholdDiscrepancy": null,
+      "plToggle": null,
+      "plTorqueCommand": null,
       "powerChangeRate": null,
+      "previousPower": null,
       "settlingCounter": null,
       "usePowerPID": null,
-      "SETTLING_THRESHOLD": null,
-      "POWER_CHANGE_THRESHOLD": null,
-      "POWER_BELOW_SETPOINT_THRESHOLD": null,
-      "vFloorRFloor": null,
-      "vFloorRCeiling": null,
-      "vCeilingRFloor": null,
       "vCeilingRCeiling": null,
-      "plAlwaysOn": null,
-      "plThresholdDiscrepancy": null
+      "vCeilingRFloor": null,
+      "vFloorRCeiling": null,
+      "vFloorRFloor": null
     }
   },
   {
+    "id": 10,
     "name": "ReadyToDriveSound",
     "parameters": {
       "timeStamp_soundStarted": null,
@@ -301,214 +277,115 @@
     }
   },
   {
+    "id": 11,
     "name": "Regen",
     "parameters": {
-      "regenToggle": null,
-      "mode": null,
-      "torqueLimitDNm": null,
       "appsTorque": null,
       "bpsTorqueNm": null,
-      "regenTorqueCommand": null,
-      "torqueAtZeroPedalDNm": null,
-      "percentBPSForMaxRegen": null,
-      "percentAPPSForCoasting": null,
+      "mode": null,
       "padMu": null,
-      "tick": null
+      "percentAPPSForCoasting": null,
+      "percentBPSForMaxRegen": null,
+      "regenToggle": null,
+      "regenTorqueCommand": null,
+      "tick": null,
+      "torqueAtZeroPedalDNm": null,
+      "torqueLimitDNm": null
     }
   },
   {
+    "id": 12,
     "name": "SafetyChecker",
     "parameters": {
-      "serialMan": null,
+      "bypass": null,
+      "bypassSafetyChecksTimeout_us": null,
       "faults": null,
-      "warnings": null,
-      "notices": null,
       "maxAmpsCharge": null,
       "maxAmpsDischarge": null,
+      "notices": null,
+      "serialMan": null,
       "softBSPD_bpsHigh": null,
-      "softBSPD_kwHigh": null,
       "softBSPD_fault": null,
-      "bypass": null,
+      "softBSPD_kwHigh": null,
       "timestamp_bypassSafetyChecks": null,
-      "bypassSafetyChecksTimeout_us": null
+      "warnings": null
     }
   },
   {
+    "id": 13,
     "name": "Sensor",
     "parameters": {
-      "specMin": null,
-      "specMax": null,
-      "sensorValue": null,
-      "heldSensorValue": null,
-      "timestamp": null,
       "fresh": null,
+      "heldSensorValue": null,
       "ioErr_powerInit": null,
       "ioErr_powerSet": null,
+      "ioErr_signalGet": null,
       "ioErr_signalInit": null,
-      "ioErr_signalGet": null
+      "sensorValue": null,
+      "specMax": null,
+      "specMin": null,
+      "timestamp": null
     }
   },
   {
+    "id": 14,
     "name": "SerialManager",
     "parameters": {
       "size": null
     }
   },
   {
+    "id": 15,
     "name": "TorqueEncoder",
     "parameters": {
       "bench": null,
-      "tps0": null,
-      "tps1": null,
-      "tps0_calibMin": null,
-      "tps0_calibMax": null,
-      "tps0_reverse": null,
-      "tps0_value": null,
-      "tps0_percent": null,
-      "tps1_calibMin": null,
-      "tps1_calibMax": null,
-      "tps1_reverse": null,
-      "tps1_value": null,
-      "tps1_percent": null,
+      "calibrated": null,
+      "calibrationRunTime": null,
+      "implausibility": null,
+      "outputCurveExponent": null,
       "runCalibration": null,
       "timestamp_calibrationStart": null,
-      "calibrationRunTime": null,
-      "outputCurveExponent": null,
-      "calibrated": true,
-      "travelPercent": 0.5,
-      "implausibility": null
+      "tps0": null,
+      "tps0_calibMax": null,
+      "tps0_calibMin": null,
+      "tps0_percent": null,
+      "tps0_reverse": null,
+      "tps0_value": null,
+      "tps1": null,
+      "tps1_calibMax": null,
+      "tps1_calibMin": null,
+      "tps1_percent": null,
+      "tps1_reverse": null,
+      "tps1_value": null,
+      "travelPercent": null
     }
   },
   {
+    "id": 16,
     "name": "WatchDog",
     "parameters": {
-      "timestamp": null,
+      "running": null,
       "timeout": null,
-      "running": null
+      "timestamp": null
     }
   },
   {
+    "id": 17,
     "name": "WheelSpeeds",
     "parameters": {
-      "tireCircumferenceMeters_F": null,
-      "tireCircumferenceMeters_R": null,
-      "pulsesPerRotation_F": null,
-      "pulsesPerRotation_R": null,
-      "frequency_FL": null,
-      "frequency_FR": null,
-      "frequency_RL": null,
-      "frequency_RR": null,
       "filteredFrequency_FL": null,
       "filteredFrequency_FR": null,
       "filteredFrequency_RL": null,
       "filteredFrequency_RR": null,
-      "smoothingFactor": null
-    }
-  },
-  {
-    "name": "bl_apdb",
-    "parameters": {
-      "versionAPDB": null,
-      "flashDate": null,
-      "buildDate": null,
-      "nodeType": null,
-      "startAddress": null,
-      "codeSize": null,
-      "legacyAppCRC": null,
-      "appCRC": null,
-      "nodeNr": null,
-      "CRCInit": null,
-      "flags": null,
-      "hook1": null,
-      "hook2": null,
-      "hook3": null,
-      "mainAddress": null,
-      "canDownloadID": null,
-      "canUploadID": null,
-      "legacyHeaderCRC": null,
-      "version": null,
-      "canBaudrate": null,
-      "canChannel": null,
-      "password": null,
-      "magicSeed": null,
-      "reserved[6 * 4]": null,
-      "headerCRC": null
-    }
-  },
-  {
-    "name": "bl_t_can_id",
-    "parameters": {
-      "extended": null,
-      "ID": null
-    }
-  },
-  {
-    "name": "bl_t_date",
-    "parameters": {
-      "date": null
-    }
-  },
-  {
-    "name": "diag_errorcode",
-    "parameters": {
-      "error_code": null,
-      "device_num": null,
-      "faulty_value": null
-    }
-  },
-  {
-    "name": "io_adc_safety_conf",
-    "parameters": {
-      "adc_val_upper": null,
-      "adc_val_lower": null,
-      "redundant_channel": null
-    }
-  },
-  {
-    "name": "io_can_data_frame",
-    "parameters": {
-      "data[8]": null,
-      "length": null,
-      "id_format": null,
-      "id": null
-    }
-  },
-  {
-    "name": "io_driver_safety_conf",
-    "parameters": {
-      "glitch_filter_time": null,
-      "command_period": null,
-      "timeout_count": null,
-      "CPU_check_loopcount": null
-    }
-  },
-  {
-    "name": "io_pwd_cplx_safety_conf",
-    "parameters": {
-      "pwd_freq_val_upper": null,
-      "pwd_freq_val_lower": null,
-      "pwd_pulse_val_upper": null,
-      "pwd_pulse_val_lower": null
-    }
-  },
-  {
-    "name": "io_pwd_inc_safety_conf",
-    "parameters": {
-      "pwd_cnt_val_upper": null,
-      "pwd_cnt_val_lower": null
-    }
-  },
-  {
-    "name": "io_pwd_pulse_samples",
-    "parameters": {
-      "pulse_samples_count": null,
-      "pulse_sample[9]": null
-    }
-  },
-  {
-    "name": "io_pwm_safety_conf",
-    "parameters": {
-      "resistance": null
+      "frequency_FL": null,
+      "frequency_FR": null,
+      "frequency_RL": null,
+      "frequency_RR": null,
+      "pulsesPerRotation_F": null,
+      "pulsesPerRotation_R": null,
+      "smoothingFactor": null,
+      "tireCircumferenceMeters_F": null,
+      "tireCircumferenceMeters_R": null
     }
   }
 ]

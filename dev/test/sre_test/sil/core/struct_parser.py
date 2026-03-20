@@ -313,9 +313,14 @@ def scan_directory(directory: Path) -> List[Path]:
             continue
         
         for file in files:
-            if file.endswith(('.h', '.c')):
+            if file.endswith('.c'):
+                c_files.append(Path(root) / file)
+            elif file.endswith('.h'):
                 filepath = Path(root) / file
-                c_files.append(filepath)
+                with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                    first_line = f.readline().strip()
+                if not first_line.startswith('// @sre-ignore'):
+                    c_files.append(filepath)
     
     return c_files
 
@@ -338,21 +343,25 @@ def format_output(structs_data: List[Dict[str, Any]], output_file: Path) -> None
     
     # Sort structs by name for consistent output
     sorted_structs = sorted(struct_dict.values(), key=lambda x: x['name'])
-    
-    for struct in sorted_structs:
+
+    # Filter out structs whose names start with a lowercase letter
+    filtered_structs = [s for s in sorted_structs if not s['name'][0].islower()]
+
+    for idx, struct in enumerate(filtered_structs, start=0):
         struct_name = struct['name']
         members = struct['members']
-        
+
         # Create parameters dictionary with member names as keys and null as values
         parameters = {}
-        for member in members:
+        for member in sorted(members, key=lambda m: m['name']):
             parameters[member['name']] = None
-        
+
         struct_entry = {
+            "id": idx,
             "name": struct_name,
             "parameters": parameters
         }
-        
+
         json_data.append(struct_entry)
     
     # Write JSON file
