@@ -9,6 +9,7 @@
 #include "IO_Driver.h" //Includes datatypes, constants, etc - should be included in every c file
 #include "motorController.h"
 #include "powerLimit.h"
+#include "gps.h"
 
 typedef struct _Efficiency
 {
@@ -27,13 +28,17 @@ typedef struct _Efficiency
     float lapEnergy_kWh;      // Total energy used this lap
     float lapDistance_km;     // Accumulated distance this lap
     bool finishedLap;         // Flag indicating lap completion
+    
+    float latitude;           // Latitude at start of lap
+    float longitude;          // Longitude at start of lap
 } Efficiency;
 
 // Constructor
 Efficiency *Efficiency_new(bool efficiencyToggle);
 
 // Main computation functions
-void Efficiency_calculateCommands(Efficiency *me, MotorController *mcm, PowerLimit *pl);
+void Efficiency_calculateCommands(Efficiency *me, MotorController *mcm, PowerLimit *pl, GPS *gps);
+void Efficiency_markLapStart(Efficiency *me, GPS *gps);
 void Efficiency_resetLap(Efficiency *me);
 void Efficiency_completedLap(Efficiency *me, MotorController *mcm);
 
@@ -45,7 +50,8 @@ float Efficiency_getCarryOverEnergy_kWh(Efficiency *me);
 float Efficiency_getCornerEnergy_kWh(Efficiency *me);
 float Efficiency_getStraightEnergy_kWh(Efficiency *me);
 float Efficiency_getLapEnergy_kWh(Efficiency *me);
-float Efficiency_getLapDistance_km(Efficiency *me);
+float Efficiency_getLat(Efficiency *me);
+float Efficiency_getLon(Efficiency *me);
 float Efficiency_getStraightTime_s(Efficiency *me);
 
 #endif // _EFFICIENCY_H

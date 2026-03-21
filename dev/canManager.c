@@ -21,6 +21,7 @@
 #include "PID.h"
 #include "regen.h"
 #include "efficiency.h"
+#include "gps.h"
 #include "brakePressureSensor.h"
 
 
@@ -330,7 +331,7 @@ bool CanManager_dataChangedSinceLastTransmit(IO_CAN_DATA_FRAME* canMessage) //bi
 /*****************************************************************************
 * read
 ****************************************************************************/
-void CanManager_read(CanManager* me, CanChannel channel, MotorController* mcm, InstrumentCluster* ic, BatteryManagementSystem* bms, SafetyChecker* sc, WheelSpeeds* wss)
+void CanManager_read(CanManager* me, CanChannel channel, MotorController* mcm, InstrumentCluster* ic, BatteryManagementSystem* bms, SafetyChecker* sc, WheelSpeeds* wss, GPS* gps)
 {
     IO_CAN_DATA_FRAME canMessages[(channel == CAN0_HIPRI ? me->can0_read_messageLimit : me->can1_read_messageLimit)];
     ubyte1 canMessageCount;
@@ -427,9 +428,15 @@ void CanManager_read(CanManager* me, CanChannel channel, MotorController* mcm, I
         case 0x645:
         case 0x646:
         case 0x647:
-
         case 0x629:
             BMS_parseCanMessage(bms, &canMessages[currMessage]);
+            break;
+
+        //-------------------------------------------------------------------------
+        //GPS from MoTeC DAQ
+        //-------------------------------------------------------------------------
+        case 0x650:
+            GPS_parseCanMessage(gps, &canMessages[currMessage]);
             break;
 
         case 0x702:
@@ -493,7 +500,7 @@ void canOutput_sendSensorMessages(CanManager* me)
 //----------------------------------------------------------------------------
 // 
 //----------------------------------------------------------------------------
-void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressureSensor* bps, MotorController* mcm, InstrumentCluster* ic, BatteryManagementSystem* bms, WheelSpeeds* wss, SafetyChecker* sc, LaunchControl* lc, PowerLimit *pl, DRS *drs, Regen *regen, Efficiency *eff)
+void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressureSensor* bps, MotorController* mcm, InstrumentCluster* ic, BatteryManagementSystem* bms, WheelSpeeds* wss, SafetyChecker* sc, LaunchControl* lc, PowerLimit *pl, DRS *drs, Regen *regen, Efficiency *eff, GPS *gps)
 {
     IO_CAN_DATA_FRAME canMessages[me->can0_write_messageLimit];
     ubyte1 errorCount;
@@ -730,14 +737,30 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     byteNum = 0;
     canMessages[canMessageCount - 1].id_format = IO_CAN_STD_FRAME;
     canMessages[canMessageCount - 1].id = canMessageID + canMessageCount - 1;
-    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte1)(Efficiency_getLapCounter(eff));
-    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(Efficiency_getCornerEnergy_kWh(eff) * 1000); // Convert to Wh
-    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(Efficiency_getCornerEnergy_kWh(eff) * 1000)) >> 8;
-    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(Efficiency_getLapEnergy_kWh(eff) * 1000); // Convert to Wh
-    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(Efficiency_getLapEnergy_kWh(eff) * 1000)) >> 8;
-    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(Efficiency_getFinishedLap(eff) ? 1 : 0);
-    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(Efficiency_getLapDistance_km(eff) * 100); // Convert to 0.01km units
-    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(Efficiency_getLapDistance_km(eff) * 100)) >> 8;
+    bool testing = TRUE;
+    if (testing){
+        sbyte4 latRaw = (sbyte4)(Efficiency_getLat(eff) * 10000.0f);
+        canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(latRaw);
+        canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(latRaw >> 8);
+        canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(latRaw >> 16);
+        canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(latRaw >> 24);
+        // Pack longitude as signed 32-bit (scale 1e-4 degrees for float precision)
+        sbyte4 lonRaw = (sbyte4)(Efficiency_getLon(eff) * 10000.0f);
+        canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(lonRaw);
+        canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(lonRaw >> 8);
+        canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(lonRaw >> 16);
+        canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(lonRaw >> 24);
+    }
+    else {
+        canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(Efficiency_getLapCounter(eff));
+        canMessages[canMessageCount - 1].data[byteNum++] = 0; // reserved
+        canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(Efficiency_getCornerEnergy_kWh(eff) * 1000); // Convert to Wh
+        canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(Efficiency_getCornerEnergy_kWh(eff) * 1000)) >> 8;
+        canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)(Efficiency_getLapEnergy_kWh(eff) * 1000); // Convert to Wh
+        canMessages[canMessageCount - 1].data[byteNum++] = ((ubyte2)(Efficiency_getLapEnergy_kWh(eff) * 1000)) >> 8;
+        canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)(Efficiency_getLapDistance_km(eff) * 100); // Convert to 0.01km
+        canMessages[canMessageCount - 1].data[byteNum++] = ((ubyte2)(Efficiency_getLapDistance_km(eff) * 100)) >> 8;
+    }
     canMessages[canMessageCount - 1].length = byteNum;
 
     //50B: Launch Control Status A
@@ -876,8 +899,7 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     canMessages[canMessageCount - 1].length = byteNum;
 
 
-
-    CanManager_send(me, CAN0_HIPRI, canMessages, canMessageCount); 
+    CanManager_send(me, CAN0_HIPRI, canMessages, canMessageCount);
 
 
     //----------------------------------------------------------------------------

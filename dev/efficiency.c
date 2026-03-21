@@ -10,6 +10,8 @@
 #include "motorController.h"
 #include "IO_RTC.h"
 #include "math.h"
+#include "gps.h"
+#include "sensors.h"
 
 // constants
 #define TOTAL_ENERGY_BUDGET_KWH 5.5f // 80 kWh total energy budget
@@ -33,6 +35,8 @@ Efficiency *Efficiency_new(bool efficiencyToggle)
     me->carryOverEnergy_kWh = 0.0f; // start with no carry-over
 
     // lap variables (reset at the end of each lap)
+    me->latitude = 0.0f;
+    me->longitude = 0.0f;
     me->straightTime_s = 0.0f;
     me->cornerTime_s = 0.0f;
     me->cornerEnergy_kWh = 0.0f;
@@ -44,11 +48,15 @@ Efficiency *Efficiency_new(bool efficiencyToggle)
     return me;
 }
 
-void Efficiency_calculateCommands(Efficiency *me, MotorController *mcm, PowerLimit *pl)
+void Efficiency_calculateCommands(Efficiency *me, MotorController *mcm, PowerLimit *pl, GPS *gps)
 {
     if (!me->efficiencyToggle)
     {
         return;
+    }
+
+    if (gpsButtonPressed()) {
+        Efficiency_markLapStart(me, gps);
     }
 
     // calculate current power consumption in kWh
@@ -84,6 +92,12 @@ void Efficiency_calculateCommands(Efficiency *me, MotorController *mcm, PowerLim
         // reset baby!!
         Efficiency_resetLap(me);
     }
+}
+
+void Efficiency_markLapStart(Efficiency *me, GPS *gps)
+{
+    me->latitude = GPS_getLatitude(gps);
+    me->longitude = GPS_getLongitude(gps);
 }
 
 void Efficiency_completedLap(Efficiency *me, MotorController *mcm)
@@ -137,6 +151,7 @@ float Efficiency_getEnergyBudget_kWh(Efficiency *me) { return me->energyBudget_k
 float Efficiency_getCarryOverEnergy_kWh(Efficiency *me) { return me->carryOverEnergy_kWh; }
 float Efficiency_getCornerEnergy_kWh(Efficiency *me) { return me->cornerEnergy_kWh; }
 float Efficiency_getStraightEnergy_kWh(Efficiency *me) { return me->straightEnergy_kWh; }
-float Efficiency_getLapDistance_km(Efficiency *me) { return me->lapDistance_km; }
+float Efficiency_getLat(Efficiency *me) { return me->latitude; }
+float Efficiency_getLon(Efficiency *me) { return me->longitude; }
 float Efficiency_getLapEnergy_kWh(Efficiency *me) { return me->lapEnergy_kWh; }
 float Efficiency_getStraightTime_s(Efficiency *me) { return me->straightTime_s; }

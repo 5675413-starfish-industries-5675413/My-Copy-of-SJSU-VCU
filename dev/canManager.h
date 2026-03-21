@@ -16,6 +16,7 @@
 #include "PID.h"
 #include "regen.h"
 #include "efficiency.h"
+#include "gps.h"
 //#include "sensorCalculations.h"
 
 typedef enum
@@ -35,12 +36,12 @@ CanManager *CanManager_new(ubyte2 can0_busSpeed, ubyte1 can0_read_messageLimit, 
 IO_ErrorType CanManager_send(CanManager *me, CanChannel channel, IO_CAN_DATA_FRAME canMessages[], ubyte1 canMessageCount);
 
 //Reads and distributes can messages to their appropriate subsystem objects so they can updates themselves
-void CanManager_read(CanManager *me, CanChannel channel, MotorController *mcm, InstrumentCluster *ic, BatteryManagementSystem *bms, SafetyChecker *sc, WheelSpeeds *wss);
+void CanManager_read(CanManager *me, CanChannel channel, MotorController *mcm, InstrumentCluster *ic, BatteryManagementSystem *bms, SafetyChecker *sc, WheelSpeeds *wss, GPS *gps);
 
 void canOutput_sendSensorMessages(CanManager *me);
 void can1utput_sendSensorMessages(CanManager *me);
 //void canOutput_sendMCUControl(CanManager* me, MotorController* mcm, bool sendEvenIfNoChanges);
-void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressureSensor* bps, MotorController* mcm, InstrumentCluster* ic, BatteryManagementSystem* bms, WheelSpeeds* wss, SafetyChecker* sc, LaunchControl* lc, PowerLimit *pl, DRS *drs, Regen *regen, Efficiency *eff);
+void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressureSensor* bps, MotorController* mcm, InstrumentCluster* ic, BatteryManagementSystem* bms, WheelSpeeds* wss, SafetyChecker* sc, LaunchControl* lc, PowerLimit *pl, DRS *drs, Regen *regen, Efficiency *eff, GPS *gps);
 void canOutput_sendDebugMessage1(CanManager *me, MotorController *mcm, TorqueEncoder *tps);
 
 ubyte1 CanManager_getReadStatus(CanManager *me, CanChannel channel);
