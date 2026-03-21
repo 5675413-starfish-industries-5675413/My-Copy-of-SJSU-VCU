@@ -3,6 +3,7 @@ Struct Parser - Extracts struct definitions from C headers using pycparser.
 """
 
 import os
+import re
 import json
 from pathlib import Path
 from typing import List, Dict, Any
@@ -351,10 +352,10 @@ def format_output(structs_data: List[Dict[str, Any]], output_file: Path) -> None
         struct_name = struct['name']
         members = struct['members']
 
-        # Create parameters dictionary with member names as keys and null as values
+        # Create parameters dictionary with member names as keys, each with an id and null value
         parameters = {}
-        for member in sorted(members, key=lambda m: m['name']):
-            parameters[member['name']] = None
+        for param_idx, member in enumerate(sorted(members, key=lambda m: m['name'])):
+            parameters[member['name']] = {"id": param_idx, "value": None}
 
         struct_entry = {
             "id": idx,
@@ -364,9 +365,15 @@ def format_output(structs_data: List[Dict[str, Any]], output_file: Path) -> None
 
         json_data.append(struct_entry)
     
-    # Write JSON file
+    # Write JSON file — collapse parameter value objects onto one line
+    json_str = json.dumps(json_data, indent=2, ensure_ascii=False)
+    json_str = re.sub(
+        r'\{\s*"id":\s*(\d+),\s*"value":\s*(null|true|false|-?\d+(?:\.\d+)?|"[^"]*")\s*\}',
+        r'{"id": \1, "value": \2}',
+        json_str
+    )
     with open(output_file, 'w', encoding='utf-8') as f:
-        json.dump(json_data, f, indent=2, ensure_ascii=False)
+        f.write(json_str)
 
 
 def extract_struct_definitions(output_file: Path = None) -> Dict[str, Any]:

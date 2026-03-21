@@ -1,3 +1,4 @@
+// @sre-ignore [LINE 1 REQUIRED] - ignore this file from the struct_member_output.json call
 //"Include guard" - prevents this file from being #included more than once
 #ifndef _INSTRUMENTCLUSTER_H
 #define _INSTRUMENTCLUSTER_H

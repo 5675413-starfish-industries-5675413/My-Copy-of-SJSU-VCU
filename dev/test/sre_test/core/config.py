@@ -214,9 +214,13 @@ def configs_to_json(*configs: DynamicConfig, output_file: Optional[Path] = None,
         if struct_name in struct_map:
             # Update existing parameters with config values, but keep all original parameters
             original_params = struct_map[struct_name].get('parameters', {})
-            # Merge: keep all original parameters, but update with config values
+            # Merge: keep all original parameters, but update only the value inside each nested dict
             updated_params = original_params.copy()
-            updated_params.update(config_params)
+            for key, val in config_params.items():
+                if key in updated_params:
+                    updated_params[key]['value'] = val
+                else:
+                    updated_params[key] = {"id": len(updated_params), "value": val}
             struct_map[struct_name]['parameters'] = updated_params
         else:
             # Struct doesn't exist, create new entry and add to order
