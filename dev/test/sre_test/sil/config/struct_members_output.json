@@ -84,10 +84,10 @@
       "bps1_calibMin": null,
       "bps1_calibMax": null,
       "bps1_reverse": null,
-      "bps0_voltage": 1208,
+      "bps0_voltage": null,
       "bps0_percent": null,
       "bps0_Pressure": null,
-      "bps1_voltage": 2225,
+      "bps1_voltage": null,
       "bps1_percent": null,
       "bps1_Pressure": null,
       "runCalibration": null,
@@ -101,33 +101,7 @@
   },
   {
     "name": "CanManager",
-    "parameters": {
-      "sm": null,
-      "canMessageLimit": null,
-      "can0_busSpeed": null,
-      "can0_readHandle": null,
-      "can0_read_messageLimit": null,
-      "can0_writeHandle": null,
-      "can0_write_messageLimit": null,
-      "can1_busSpeed": null,
-      "can1_readHandle": null,
-      "can1_read_messageLimit": null,
-      "can1_writeHandle": null,
-      "can1_write_messageLimit": null,
-      "ioErr_can0_Init": null,
-      "ioErr_can1_Init": null,
-      "ioErr_can0_fifoInit_R": null,
-      "ioErr_can0_fifoInit_W": null,
-      "ioErr_can1_fifoInit_R": null,
-      "ioErr_can1_fifoInit_W": null,
-      "ioErr_can0_read": null,
-      "ioErr_can0_write": null,
-      "ioErr_can1_read": null,
-      "ioErr_can1_write": null,
-      "sendDelayus": null,
-      "canMessageHistory[0x800]": null,
-      "canMessageHistory[0x7FF]": null
-    }
+    "parameters": {}
   },
   {
     "name": "CanMessageNode",
@@ -165,19 +139,17 @@
   {
     "name": "Efficiency",
     "parameters": {
-      "efficiencyToggle": true,
-      "energyBudget_kWh": 0.3,
+      "efficiencyToggle": null,
+      "energyBudget_kWh": null,
       "carryOverEnergy_kWh": null,
       "lapCounter": null,
-      "timeInStraights_s": null,
-      "timeInCorners_s": null,
-      "energySpentInCorners_kWh": null,
-      "energySpentInStraights_kWh": null,
-      "lapEnergySpent_kWh": null,
-      "powerLimit_kW": null,
-      "totalLapDistance_km": null,
-      "finishedLap": null,
-      "powerLimit": null
+      "straightTime_s": null,
+      "cornerTime_s": null,
+      "cornerEnergy_kWh": null,
+      "straightEnergy_kWh": null,
+      "lapEnergy_kWh": null,
+      "lapDistance_km": null,
+      "finishedLap": null
     }
   },
   {
@@ -253,7 +225,7 @@
       "commandedTorque": null,
       "feedbackTorque": null,
       "currentPower": null,
-      "motorRPM": 2000,
+      "motorRPM": 1800,
       "timeStamp_lastCommandSent": null,
       "updateCount": null,
       "commands_torque": null,
@@ -295,8 +267,8 @@
     "name": "PowerLimit",
     "parameters": {
       "pid": null,
-      "plToggle": true,
-      "plStatus": true,
+      "plToggle": null,
+      "plStatus": null,
       "plMode": null,
       "plTargetPower": null,
       "plKwLimit": null,
@@ -329,16 +301,16 @@
   {
     "name": "Regen",
     "parameters": {
-      "regenToggle": true,
+      "regenToggle": null,
       "mode": null,
       "torqueLimitDNm": null,
       "appsTorque": null,
-      "bpsTorqueNm": 0,
-      "regenTorqueCommand": 232,
+      "bpsTorqueNm": null,
+      "regenTorqueCommand": null,
       "torqueAtZeroPedalDNm": null,
       "percentBPSForMaxRegen": null,
       "percentAPPSForCoasting": null,
-      "padMu": 0.4,
+      "padMu": null,
       "tick": null
     }
   },
