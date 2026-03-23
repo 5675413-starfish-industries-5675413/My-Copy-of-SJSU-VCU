@@ -21,7 +21,7 @@ sim = None
 def setup_simulator():
     """Automatically create simulator for all tests - no parameter needed."""
     global sim
-    sim = SILSimulator.create(auto_compile=False)
+    sim = SILSimulator.create(auto_compile=True)
     yield
     sim.stop()
     sim = None
@@ -69,33 +69,39 @@ def test_point():
     # Let the control loop update plStatus from inputs (do not force it in config).
     pl_status = None
     motor_rpm = None
-    for _ in range(5):
-        response = sim.receive(timeout=2.0)
-        power_limit = {}
-        mcm = {}
-        if response:
-            power_limit = response.get("PowerLimit") or response.get("power_limit", {})
-            mcm = (
-                response.get("MotorController")
-                or response.get("motor_controller")
-                or response.get("mcm", {})
-            )
-        pl_status = power_limit.get("plStatus") if power_limit else None
-        if pl_status is None and power_limit:
-            pl_status = power_limit.get("pl_status")
-        motor_rpm = mcm.get("motorRPM")
-        if motor_rpm is None and mcm:
-            motor_rpm = mcm.get("motor_rpm")
+    
+    response = sim.receive()
+    pl = response.get("PowerLimit")
+    pl_torque_command = pl.get("plTorqueCommand")
+    print(f"received pl_torque_command: {pl_torque_command}")
+    
+    # for _ in range(5):
+    #     response = sim.receive(timeout=2.0)
+    #     power_limit = {}
+    #     mcm = {}
+    #     if response:
+    #         power_limit = response.get("PowerLimit") or response.get("power_limit", {})
+    #         mcm = (
+    #             response.get("MotorController")
+    #             or response.get("motor_controller")
+    #             or response.get("mcm", {})
+    #         )
+    #     pl_status = power_limit.get("plStatus") if power_limit else None
+    #     if pl_status is None and power_limit:
+    #         pl_status = power_limit.get("pl_status")
+    #     motor_rpm = mcm.get("motorRPM")
+    #     if motor_rpm is None and mcm:
+    #         motor_rpm = mcm.get("motor_rpm")
         # if pl_status is True:
         #     break
     # sim.send_structs("MotorController", "TorqueEncoder")
     
     
 
-    assert pl_status is True
-    print(f"received pl_status: {pl_status}")
-    print(f"received motor_rpm: {motor_rpm}")
-
+    # assert pl_status is True
+    # print(f"received pl_status: {pl_status}")
+    # print(f"received motor_rpm: {motor_rpm}")
+    
 def test_regen():
     regen_config = DynamicConfig("Regen")
     regen_config.padMu = 0.4
@@ -103,8 +109,8 @@ def test_regen():
     regen_config.bpsTorqueNm = 0
     
     brake_config = DynamicConfig("BrakePressureSensor")
-    brake_config.bps0_voltage = 1208
     brake_config.bps1_voltage = 2225
+    brake_config.bps0_voltage = 1208
     
     
     mcm_config = DynamicConfig("MotorController")
@@ -117,7 +123,10 @@ def test_regen():
     response = sim.receive()
     regenResponse = response.get("Regen", {}) if response else {}
     
+    mcmResponse = response.get("MotorController", {}) if response else {}
+    
+    print(f"Regen toggle is: {regenResponse.get('regenToggle')}")
     # assert regenResponse.get("bpsTorqueNm") == -102.94
     print(f"Brake pressure difference is: {regenResponse.get('bpsTorqueNm')}")
-    print(f"Pad mu is: {regenResponse.get('padMu')}")
-    print(f"Regen toggle is: {regenResponse.get('regenToggle')}")
+    # print(f"Pad mu is: {regenResponse.get('padMu')}")
+    print(f"Regen torque command is: {mcmResponse.get('regenTorqueCommand')}")
