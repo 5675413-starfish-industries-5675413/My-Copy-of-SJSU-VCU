@@ -207,21 +207,19 @@ static int parse_MotorController_from_json(MotorController* mcm, cJSON* params)
     
     int int_val;
     
-    // Set DC Voltage (increment from initial value of 13)
+    // Set exact DC Voltage for SIL input (do not clamp to increment helper caps)
     if (get_json_int_safe(params, "DC_Voltage", &int_val)) {
-        sbyte4 increment = (sbyte4)(int_val - 13);
-        MCM_incrementVoltageForTesting(mcm, increment);
+        MCM_setVoltageForTesting(mcm, (sbyte4)int_val);
     }
     
-    // Set DC Current (increment from initial value of 13)
+    // Set exact DC Current for SIL input (do not clamp to increment helper caps)
     if (get_json_int_safe(params, "DC_Current", &int_val)) {
-        sbyte4 increment = (sbyte4)(int_val - 13);
-        MCM_incrementCurrentForTesting(mcm, increment);
+        MCM_setCurrentForTesting(mcm, (sbyte4)int_val);
     }
     
-    // Set Motor RPM (increment from initial value of 0)
+    // Set exact Motor RPM for SIL input.
     if (get_json_int_safe(params, "motorRPM", &int_val)) {
-        MCM_incrementRPMForTesting(mcm, (sbyte4)int_val);
+        MCM_setRPMForTesting(mcm, (sbyte4)int_val);
     }
     
     return 0;
@@ -239,6 +237,9 @@ static int parse_TorqueEncoder_from_json(TorqueEncoder* tps, cJSON* params)
     int int_val;
     double double_val;
     bool bool_val;
+    bool has_tps0_percent = FALSE;
+    bool has_tps1_percent = FALSE;
+    bool has_travel_percent = FALSE;
     
     if (get_json_int_safe(params, "tps0_calibMin", &int_val)) {
         tps->tps0_calibMin = (ubyte4)int_val;
@@ -251,6 +252,7 @@ static int parse_TorqueEncoder_from_json(TorqueEncoder* tps, cJSON* params)
     }
     if (get_json_double_safe(params, "tps0_percent", &double_val)) {
         tps->tps0_percent = (float4)double_val;
+        has_tps0_percent = TRUE;
     }
     if (get_json_int_safe(params, "tps1_calibMin", &int_val)) {
         tps->tps1_calibMin = (ubyte4)int_val;
@@ -263,9 +265,15 @@ static int parse_TorqueEncoder_from_json(TorqueEncoder* tps, cJSON* params)
     }
     if (get_json_double_safe(params, "tps1_percent", &double_val)) {
         tps->tps1_percent = (float4)double_val;
+        has_tps1_percent = TRUE;
     }
     if (get_json_double_safe(params, "travelPercent", &double_val)) {
         tps->travelPercent = (float4)double_val;
+        has_travel_percent = TRUE;
+    }
+    // If travelPercent is not explicitly provided, derive it from TPS sensor percents.
+    if (!has_travel_percent && (has_tps0_percent || has_tps1_percent)) {
+        tps->travelPercent = (tps->tps0_percent + tps->tps1_percent) / 2.0f;
     }
     if (get_json_double_safe(params, "outputCurveExponent", &double_val)) {
         tps->outputCurveExponent = (float4)double_val;
@@ -392,6 +400,174 @@ static int parse_Regen_from_json(Regen* regen, cJSON* params)
 }
 
 /**
+ * Parse top-level PID struct values from JSON object
+ */
+static int parse_PID_struct_from_json(PID* pid, cJSON* params)
+{
+    if (pid == NULL || params == NULL) {
+        return -1;
+    }
+
+    int int_val;
+    double double_val;
+    bool bool_val;
+
+    if (get_json_int_safe(params, "Kp", &int_val)) {
+        pid->Kp = (sbyte1)int_val;
+    }
+    if (get_json_int_safe(params, "Ki", &int_val)) {
+        pid->Ki = (sbyte2)int_val;
+    }
+    if (get_json_int_safe(params, "Kd", &int_val)) {
+        pid->Kd = (sbyte1)int_val;
+    }
+    if (get_json_int_safe(params, "scalefactor", &int_val)) {
+        pid->scalefactor = (sbyte2)int_val;
+    }
+    if (get_json_double_safe(params, "setpoint", &double_val)) {
+        pid->setpoint = (float)double_val;
+    }
+    if (get_json_double_safe(params, "previousError", &double_val)) {
+        pid->previousError = (float)double_val;
+    }
+    if (get_json_double_safe(params, "totalError", &double_val)) {
+        pid->totalError = (float)double_val;
+    }
+    if (get_json_int_safe(params, "dH", &int_val)) {
+        pid->dH = (sbyte2)int_val;
+    }
+    if (get_json_int_safe(params, "dt", &int_val)) {
+        pid->dt = (sbyte2)int_val;
+    }
+    if (get_json_double_safe(params, "output", &double_val)) {
+        pid->output = (float)double_val;
+    }
+    if (get_json_double_safe(params, "proportional", &double_val)) {
+        pid->proportional = (float)double_val;
+    }
+    if (get_json_double_safe(params, "integral", &double_val)) {
+        pid->integral = (float)double_val;
+    }
+    if (get_json_double_safe(params, "derivative", &double_val)) {
+        pid->derivative = (float)double_val;
+    }
+    if (get_json_int_safe(params, "saturationValue", &int_val)) {
+        pid->saturationValue = (sbyte2)int_val;
+    }
+    if (get_json_bool_safe(params, "antiWindupFlag", &bool_val)) {
+        pid->antiWindupFlag = bool_val;
+    }
+
+    return 0;
+}
+
+/**
+ * Parse LaunchControl struct values from JSON object
+ */
+static int parse_LaunchControl_from_json(LaunchControl* lc, cJSON* params)
+{
+    if (lc == NULL || params == NULL) {
+        return -1;
+    }
+
+    int int_val;
+    double double_val;
+    bool bool_val;
+
+    cJSON* pid_json = cJSON_GetObjectItem(params, "pid");
+    if (pid_json != NULL && !cJSON_IsNull(pid_json) && lc->pid != NULL) {
+        parse_PID_from_json(lc->pid, pid_json);
+    }
+
+    if (get_json_bool_safe(params, "lcToggle", &bool_val)) {
+        lc->lcToggle = bool_val;
+    }
+    if (get_json_int_safe(params, "Kp", &int_val)) {
+        lc->Kp = (sbyte1)int_val;
+    }
+    if (get_json_int_safe(params, "Ki", &int_val)) {
+        lc->Ki = (sbyte1)int_val;
+    }
+    if (get_json_int_safe(params, "Kd", &int_val)) {
+        lc->Kd = (sbyte1)int_val;
+    }
+    if (get_json_double_safe(params, "currentSlipRatio", &double_val)) {
+        lc->currentSlipRatio = (float4)double_val;
+    }
+    if (get_json_double_safe(params, "slipRatioTarget", &double_val)) {
+        lc->slipRatioTarget = (float4)double_val;
+    }
+    if (get_json_double_safe(params, "currentVelocityDifference", &double_val)) {
+        lc->currentVelocityDifference = (float4)double_val;
+    }
+    if (get_json_double_safe(params, "targetVelocityDifference", &double_val)) {
+        lc->targetVelocityDifference = (float4)double_val;
+    }
+    if (get_json_int_safe(params, "lcTorqueCommand", &int_val)) {
+        lc->lcTorqueCommand = (sbyte2)int_val;
+    }
+    if (get_json_double_safe(params, "initialTorque", &double_val)) {
+        lc->initialTorque = (float4)double_val;
+    }
+    if (get_json_double_safe(params, "maxTorque", &double_val)) {
+        lc->maxTorque = (float4)double_val;
+    }
+    if (get_json_double_safe(params, "prevTorque", &double_val)) {
+        lc->prevTorque = (float4)double_val;
+    }
+    if (get_json_double_safe(params, "k", &double_val)) {
+        lc->k = (float4)double_val;
+    }
+    if (get_json_bool_safe(params, "useFilter", &bool_val)) {
+        lc->useFilter = bool_val;
+    }
+    if (get_json_int_safe(params, "state", &int_val)) {
+        lc->state = (LC_State)int_val;
+    }
+    if (get_json_int_safe(params, "mode", &int_val)) {
+        lc->mode = (LC_Mode)int_val;
+    }
+    if (get_json_int_safe(params, "phase", &int_val)) {
+        lc->phase = (LC_Phase)int_val;
+    }
+
+    return 0;
+}
+
+/**
+ * Parse WheelSpeeds struct values from JSON object.
+ * Wheel speed runtime data comes from Sensor_WSS_* values, so map JSON
+ * frequency fields directly into those sensor values.
+ */
+static int parse_WheelSpeeds_from_json(WheelSpeeds* wss, cJSON* params)
+{
+    if (wss == NULL || params == NULL) {
+        return -1;
+    }
+
+    int int_val;
+
+    if (get_json_int_safe(params, "frequency_FL", &int_val)) {
+        Sensor_WSS_FL.sensorValue = (ubyte4)int_val;
+        Sensor_WSS_FL.heldSensorValue = (ubyte4)int_val;
+    }
+    if (get_json_int_safe(params, "frequency_FR", &int_val)) {
+        Sensor_WSS_FR.sensorValue = (ubyte4)int_val;
+        Sensor_WSS_FR.heldSensorValue = (ubyte4)int_val;
+    }
+    if (get_json_int_safe(params, "frequency_RL", &int_val)) {
+        Sensor_WSS_RL.sensorValue = (ubyte4)int_val;
+        Sensor_WSS_RL.heldSensorValue = (ubyte4)int_val;
+    }
+    if (get_json_int_safe(params, "frequency_RR", &int_val)) {
+        Sensor_WSS_RR.sensorValue = (ubyte4)int_val;
+        Sensor_WSS_RR.heldSensorValue = (ubyte4)int_val;
+    }
+
+    return 0;
+}
+
+/**
  * Parse JSON string and assign values to structs
  * This is the main function used by sil_read_initial_json and sil_read_json_input
  */
@@ -400,7 +576,10 @@ static int parse_struct_values_from_string(const char* json_string,
                                            MotorController* mcm, 
                                            TorqueEncoder* tps,
                                            BrakePressureSensor* bps,
-                                           Regen* regen)
+                                           Regen* regen,
+                                           PID* pid,
+                                           LaunchControl* lc,
+                                           WheelSpeeds* wss)
 {
     if (json_string == NULL) {
         return -1; // Invalid input
@@ -462,6 +641,12 @@ static int parse_struct_values_from_string(const char* json_string,
             parse_BrakePressureSensor_from_json(bps, params);
         } else if (strcmp(struct_name, "Regen") == 0 && regen != NULL) {
             parse_Regen_from_json(regen, params);
+        } else if (strcmp(struct_name, "PID") == 0 && pid != NULL) {
+            parse_PID_struct_from_json(pid, params);
+        } else if (strcmp(struct_name, "LaunchControl") == 0 && lc != NULL) {
+            parse_LaunchControl_from_json(lc, params);
+        } else if (strcmp(struct_name, "WheelSpeeds") == 0 && wss != NULL) {
+            parse_WheelSpeeds_from_json(wss, params);
         }
     }
     
@@ -519,7 +704,7 @@ static int read_json_from_stdin(char* json_buffer)
     return (int)total_read;
 }
 
-int sil_read_initial_json(PowerLimit* pl, MotorController* mcm, TorqueEncoder* tps, BrakePressureSensor* bps, Regen* regen)
+int sil_read_initial_json(PowerLimit* pl, MotorController* mcm, TorqueEncoder* tps, BrakePressureSensor* bps, Regen* regen, PID* pid, LaunchControl* lc, WheelSpeeds* wss)
 {
     char* json_buffer = (char*)malloc(JSON_BUFFER_SIZE);
     if (json_buffer == NULL) {
@@ -532,7 +717,7 @@ int sil_read_initial_json(PowerLimit* pl, MotorController* mcm, TorqueEncoder* t
     int result = -1;
     
     if (total_read > 0) {
-        result = parse_struct_values_from_string(json_buffer, pl, mcm, tps, bps, regen);
+        result = parse_struct_values_from_string(json_buffer, pl, mcm, tps, bps, regen, pid, lc, wss);
         
         if (result != 0) {
             fprintf(stderr, "SIL: Failed to parse JSON from stdin (error: %d, length: %d)\n",
@@ -553,7 +738,7 @@ int sil_read_initial_json(PowerLimit* pl, MotorController* mcm, TorqueEncoder* t
     return result;
 }
 
-int sil_read_json_input(PowerLimit* pl, MotorController* mcm, TorqueEncoder* tps, BrakePressureSensor* bps, Regen* regen)
+int sil_read_json_input(PowerLimit* pl, MotorController* mcm, TorqueEncoder* tps, BrakePressureSensor* bps, Regen* regen, PID* pid, LaunchControl* lc, WheelSpeeds* wss)
 {
     // Non-blocking check for stdin data
     #ifdef _WIN32
@@ -588,7 +773,7 @@ int sil_read_json_input(PowerLimit* pl, MotorController* mcm, TorqueEncoder* tps
     int parse_result = -1;
     
     if (total_read > 0) {
-        parse_result = parse_struct_values_from_string(json_buffer, pl, mcm, tps, bps, regen);
+        parse_result = parse_struct_values_from_string(json_buffer, pl, mcm, tps, bps, regen, pid, lc, wss);
         if (parse_result != 0) {
             fprintf(stderr, "SIL: Failed to parse JSON in loop (error: %d)\n", parse_result);
             fflush(stderr);
@@ -685,6 +870,7 @@ void sil_write_json_output(MotorController* mcm, PowerLimit* pl, Efficiency* eff
                 cJSON_AddNumberToObject(lc_json, "torqueCommand", (double) LaunchControl_getTorqueCommand(lc));
                 cJSON_AddNumberToObject(lc_json, "slipRatio", (double) LaunchControl_getSlipRatio(lc));
                 cJSON_AddNumberToObject(lc_json, "slipRatioScaled", (double) LaunchControl_getSlipRatioScaled(lc));
+                cJSON_AddNumberToObject(lc_json, "pidOutput", (double) lc->pidOutput);
                 cJSON_AddBoolToObject(lc_json, "initialCurveStatus", LaunchControl_getInitialCurveStatus(lc));
                 cJSON_AddNumberToObject(lc_json, "phase", (double) LaunchControl_getPhase(lc));
                 cJSON_AddBoolToObject(lc_json, "filterStatus", LaunchControl_getFilterStatus(lc));
@@ -801,19 +987,17 @@ void sil_write_json_output(MotorController* mcm, PowerLimit* pl, Efficiency* eff
             cJSON *tps_json = cJSON_CreateObject();
             if (tps_json != NULL) {
                 cJSON_AddBoolToObject(tps_json, "bench", tps->bench);
-                // cJSON_AddNumberToObject(tps_json, "specMin", (double) tps->specMin);
-                // cJSON_AddNumberToObject(tps_json, "tps0", (double) tps->tps0);
-                // cJSON_AddNumberToObject(tps_json, "tps1", (double) tps->tps1);
-                cJSON_AddNumberToObject(tps_json, "calibMin", (double) tps->tps0_calibMin);
-                cJSON_AddNumberToObject(tps_json, "calibMax", (double) tps->tps0_calibMax);
-                cJSON_AddNumberToObject(tps_json, "reverse", (double) tps->tps0_reverse);
-                cJSON_AddNumberToObject(tps_json, "value", (double) tps->tps0_value);
-                cJSON_AddNumberToObject(tps_json, "percent", (double) tps->tps0_percent);
-                cJSON_AddNumberToObject(tps_json, "calibMin", (double) tps->tps1_calibMin);
-                cJSON_AddNumberToObject(tps_json, "calibMax", (double) tps->tps1_calibMax);
-                cJSON_AddNumberToObject(tps_json, "reverse", (double) tps->tps1_reverse);
-                cJSON_AddNumberToObject(tps_json, "value", (double) tps->tps1_value);
-                cJSON_AddNumberToObject(tps_json, "percent", (double) tps->tps1_percent);
+                // Emit explicit per-sensor keys to avoid duplicate-key overwrites.
+                cJSON_AddNumberToObject(tps_json, "tps0_calibMin", (double) tps->tps0_calibMin);
+                cJSON_AddNumberToObject(tps_json, "tps0_calibMax", (double) tps->tps0_calibMax);
+                cJSON_AddNumberToObject(tps_json, "tps0_reverse", (double) tps->tps0_reverse);
+                cJSON_AddNumberToObject(tps_json, "tps0_value", (double) tps->tps0_value);
+                cJSON_AddNumberToObject(tps_json, "tps0_percent", (double) tps->tps0_percent);
+                cJSON_AddNumberToObject(tps_json, "tps1_calibMin", (double) tps->tps1_calibMin);
+                cJSON_AddNumberToObject(tps_json, "tps1_calibMax", (double) tps->tps1_calibMax);
+                cJSON_AddNumberToObject(tps_json, "tps1_reverse", (double) tps->tps1_reverse);
+                cJSON_AddNumberToObject(tps_json, "tps1_value", (double) tps->tps1_value);
+                cJSON_AddNumberToObject(tps_json, "tps1_percent", (double) tps->tps1_percent);
                 cJSON_AddNumberToObject(tps_json, "runCalibration", (double) tps->runCalibration);
                 cJSON_AddNumberToObject(tps_json, "timestamp_calibrationStart", (double) tps->timestamp_calibrationStart);
                 cJSON_AddNumberToObject(tps_json, "calibrationRunTime", (double) tps->calibrationRunTime);
