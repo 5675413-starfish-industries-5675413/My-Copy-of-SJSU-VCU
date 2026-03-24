@@ -497,7 +497,7 @@ static int parse_launchControl_from_json(LaunchControl* lc, cJSON* params) {
     }*/
     /*if (get_json_bool_safe(params, "initialCurveStatus", &bool_val)) {
         lc->initialCurveStatus = bool_val;
-    }*/
+    }*/ // slipRatioScaled and initialCurveStatus aren't defined in the struct so they are giving errors,,
     if (get_json_bool_safe(params, "filterStatus", &bool_val)) {
         lc->useFilter = bool_val;
     }
