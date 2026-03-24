@@ -130,3 +130,66 @@ def test_regen():
     print(f"Brake pressure difference is: {regenResponse.get('bpsTorqueNm')}")
     # print(f"Pad mu is: {regenResponse.get('padMu')}")
     print(f"Regen torque command is: {mcmResponse.get('regenTorqueCommand')}")
+    
+def test_launch():
+    wws_config = DynamicConfig("WheelSpeeds")
+    wws_config.frequency_FL = 100
+    wws_config.frequency_FR = 100
+    wws_config.frequency_RL = 200
+    wws_config.frequency_RR = 200
+    
+    lc_config = DynamicConfig("LaunchControl")
+    lc_config.lcToggle = True
+    lc_config.state = 2
+    
+    tps_config = DynamicConfig("TorqueEncoder")
+    tps_config.tps0_percent = 0.95
+    
+    bps_config = DynamicConfig("BrakePressureSensor")
+    bps_config.percent = 0.00
+    
+    configs_to_json(wws_config, lc_config, tps_config, bps_config)
+    
+    sim.send_structs("WheelSpeeds", "LaunchControl", "TorqueEncoder", "BrakePressureSensor")
+    
+    response = sim.receive()
+    LCResponse = response.get("LaunchControl", {}) if response else {}
+    print(f"PID output is: {LCResponse.get('pidOutput')}")
+    
+def test_efficiency2():
+    mcm_config = DynamicConfig("MotorController")
+
+    mcm_config.DC_Voltage = 200
+    mcm_config.DC_Current = 300
+    
+    eff_config = DynamicConfig("Efficiency")
+    eff_config.efficiencyToggle = True
+    
+    configs_to_json(eff_config, mcm_config)
+    
+    sim.send_structs("Efficiency", "MotorController")
+    
+    response = sim.receive()
+    effResponse = response.get("Efficiency", {}) if response else {}
+    print(f"StraightTime is: {effResponse.get('straightTime_s')}")
+    print(f"CornerTime is: {effResponse.get('cornerTime_s')}")
+    print(f"CornerEnergy is: {effResponse.get('cornerEnergy_kWh')}")
+    print(f"StraightEnergy is: {effResponse.get('straightEnergy_kWh')}")
+    print(f"LapEnergy is: {effResponse.get('lapEnergy_kWh')}")
+    print(f"LapDistance is: {effResponse.get('lapDistance_km')}")
+    print(f"FinishedLap is: {effResponse.get('finishedLap')}")
+
+def test_encoder():
+    tps_config = DynamicConfig("TorqueEncoder")
+    tps_config.tps0_percent = 0.5
+    tps_config.tps1_percent = 0.5
+    
+    configs_to_json(tps_config)
+    
+    sim.send_structs("TorqueEncoder")
+    
+    response = sim.receive()
+    tpsResponse = response.get("TorqueEncoder", {}) if response else {}
+    print(f"TPS0 percent is: {tpsResponse.get('tps0_percent')}")
+    print(f"TPS1 percent is: {tpsResponse.get('tps1_percent')}")
+    print(f"Travel percent is: {tpsResponse.get('travelPercent')}")

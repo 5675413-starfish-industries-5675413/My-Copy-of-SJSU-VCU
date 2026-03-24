@@ -864,6 +864,18 @@ ubyte2 MCM_getMaxTorqueDNm(MotorController* me)
 }
 
 // Testing functions for closed-loop testing
+void MCM_setVoltageForTesting(MotorController* me, sbyte4 voltage) {
+    me->DC_Voltage = voltage;
+}
+
+void MCM_setCurrentForTesting(MotorController* me, sbyte4 current) {
+    me->DC_Current = current;
+}
+
+void MCM_setRPMForTesting(MotorController* me, sbyte4 rpm) {
+    me->motorRPM = rpm;
+}
+
 void MCM_incrementVoltageForTesting(MotorController* me, sbyte4 increment) {
     me->DC_Voltage += increment;
     if (me->DC_Voltage > 1000) {  // Cap at 1000V
