@@ -488,35 +488,66 @@ static int parse_launchControl_from_json(LaunchControl* lc, cJSON* params) {
     double double_val;
     bool bool_val;
 
-    if (get_json_bool_safe(params, "state", &bool_val)) {
-        lc->state = bool_val;
+    cJSON* pid_json = cJSON_GetObjectItem(params, "pid");
+    if (pid_json != NULL && !cJSON_IsNull(pid_json) && lc->pid != NULL) {
+        parse_PID_from_json(lc->pid, pid_json);
     }
-    if (get_json_double_safe(params, "phase", &double_val)) {
-        lc->phase = (float)double_val;
+
+    if (get_json_bool_safe(params, "lcToggle", &bool_val)) {
+        lc->lcToggle = bool_val;
     }
-    if (get_json_double_safe(params, "torqueCommand", &double_val)) {
-        lc->lcTorqueCommand = (sbyte2)double_val;
+    if (get_json_int_safe(params, "Kp", &int_val)) {
+        lc->Kp = (sbyte1)int_val;
+    }
+    if (get_json_int_safe(params, "Ki", &int_val)) {
+        lc->Ki = (sbyte1)int_val;
+    }
+    if (get_json_int_safe(params, "Kd", &int_val)) {
+        lc->Kd = (sbyte1)int_val;
     }
     if (get_json_double_safe(params, "currentSlipRatio", &double_val)) {
-        lc->currentSlipRatio = (float)double_val;
+        lc->currentSlipRatio = (float4)double_val;
     }
-    /*if (get_json_double_safe(params, "slipRatioScaled", &double_val)) {
-        lc->slipRatioScaled = (float)(lc->currentSlipRatio * 1000.0f);
-    }*/
-    /*if (get_json_bool_safe(params, "initialCurveStatus", &bool_val)) {
-        lc->initialCurveStatus = bool_val;
-    }*/ // slipRatioScaled and initialCurveStatus aren't defined in the struct so they are giving errors,,
-    if (get_json_bool_safe(params, "filterStatus", &bool_val)) {
-        lc->useFilter = bool_val;
-    }
-    if (get_json_double_safe(params, "velocityDifferenceTarget", &double_val)) {
-        lc->targetVelocityDifference = (float)double_val;
+    if (get_json_double_safe(params, "slipRatioTarget", &double_val)) {
+        lc->slipRatioTarget = (float4)double_val;
     }
     if (get_json_double_safe(params, "currentVelocityDifference", &double_val)) {
-        lc->currentVelocityDifference = (float)double_val;
+        lc->currentVelocityDifference = (float4)double_val;
+    }
+    if (get_json_double_safe(params, "targetVelocityDifference", &double_val)) {
+        lc->targetVelocityDifference = (float4)double_val;
+    }
+    if (get_json_int_safe(params, "lcTorqueCommand", &int_val)) {
+        lc->lcTorqueCommand = (sbyte2)int_val;
+    }
+    if (get_json_double_safe(params, "initialTorque", &double_val)) {
+        lc->initialTorque = (float4)double_val;
+    }
+    if (get_json_double_safe(params, "maxTorque", &double_val)) {
+        lc->maxTorque = (float4)double_val;
+    }
+    if (get_json_double_safe(params, "prevTorque", &double_val)) {
+        lc->prevTorque = (float4)double_val;
+    }
+    if (get_json_double_safe(params, "k", &double_val)) {
+        lc->k = (float4)double_val;
+    }
+    if (get_json_bool_safe(params, "useFilter", &bool_val)) {
+        lc->useFilter = bool_val;
+    }
+    if (get_json_int_safe(params, "state", &int_val)) {
+        lc->state = (LC_State)int_val;
+    }
+    if (get_json_int_safe(params, "mode", &int_val)) {
+        lc->mode = (LC_Mode)int_val;
+    }
+    if (get_json_int_safe(params, "phase", &int_val)) {
+        lc->phase = (LC_Phase)int_val;
     }
 
     return 0;
+
+    
 }
 
 static int parse_pid_from_json(PID* pid, cJSON* params) {
