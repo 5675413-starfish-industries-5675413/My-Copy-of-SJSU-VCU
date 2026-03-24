@@ -50,6 +50,7 @@ typedef struct _LaunchControl {
     LC_State state;
     LC_Mode mode;
     LC_Phase phase;
+    float pidOutput;
 } LaunchControl;
 
 LaunchControl *LaunchControl_new(bool lcToggle);
@@ -72,5 +73,6 @@ void LaunchControl_updateFilterStatus(LaunchControl *me, MotorController *mcm);
 bool LaunchControl_getFilterStatus(LaunchControl *me);
 sbyte2 LaunchControl_getVelocityDifferenceTarget(LaunchControl *me);
 sbyte2 LaunchControl_getCurrentVelocityDifference(LaunchControl *me);
+float LaunchControl_getPidOutput(LaunchControl *me);
 
 #endif

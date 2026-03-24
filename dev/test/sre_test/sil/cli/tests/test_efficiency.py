@@ -33,9 +33,76 @@ fieldnames = [
     'total_lap_distance',
 ]
 
-csv_file = "./sre_test/sil/tests/data/eff_data.csv"
-csv_path = Path(csv_file)
+csv_path = DATA / "eff_data.csv"
 progress = 10
+SIL_CYCLE_TIME_S = 0.01
+
+def _pick(data, *keys):
+    """Return first non-None value for any key."""
+    for key in keys:
+        if key in data and data[key] is not None:
+            return data[key]
+    return None
+
+
+def _efficiency_row_from_response(response):
+    """
+    Normalize SIL efficiency payloads across schema variants.
+
+    Older code emitted snake_case fields under `efficiency`,
+    newer code emits camelCase fields under `Efficiency`.
+    """
+    if not response:
+        return {k: None for k in fieldnames}
+
+    eff_data = response.get("Efficiency") or response.get("efficiency") or {}
+
+    return {
+        "time_in_straight": _pick(eff_data, "time_in_straight", "straightTime_s"),
+        "time_in_corners": _pick(eff_data, "time_in_corners", "cornerTime_s"),
+        "lap_counter": _pick(eff_data, "lap_counter", "lapCounter"),
+        "pl_target": _pick(eff_data, "pl_target", "plTargetPower"),
+        "energy_consumption_per_lap": _pick(
+            eff_data, "energy_consumption_per_lap", "lapEnergy_kWh"
+        ),
+        "energy_budget_per_lap": _pick(
+            eff_data, "energy_budget_per_lap", "energyBudget_kWh"
+        ),
+        "carry_over_energy": _pick(
+            eff_data, "carry_over_energy", "carryOverEnergy_kWh"
+        ),
+        "total_lap_distance": _pick(
+            eff_data, "total_lap_distance", "totalLapDistance_km", "lapDistance_km"
+        ),
+    }
+
+
+def _resample_rows_to_cycle(rows, cycle_time_s=SIL_CYCLE_TIME_S, time_column="Time"):
+    """Downsample rows so replay cadence matches SIL cycle time."""
+    if cycle_time_s <= 0:
+        return rows
+
+    sampled_rows = []
+    next_sample_time = None
+
+    for row in rows:
+        time_val = parse_csv_value(row.get(time_column))
+        if time_val is None:
+            continue
+        t = float(time_val)
+
+        if next_sample_time is None:
+            sampled_rows.append(row)
+            next_sample_time = t + cycle_time_s
+            continue
+
+        if t + 1e-9 >= next_sample_time:
+            sampled_rows.append(row)
+            while next_sample_time <= t + 1e-9:
+                next_sample_time += cycle_time_s
+
+    return sampled_rows
+
 
 @pytest.fixture(scope="module", autouse=True)
 def setup_simulator():
@@ -59,7 +126,7 @@ def output_writer():
         yield output, f, writer
 
 
-def test_efficiency(output_writer):
+def test_efficiency1(output_writer):
     """
     Run closed-loop efficiency test with CSV data.
 
@@ -73,6 +140,7 @@ def test_efficiency(output_writer):
     
     # Read and filter CSV rows
     rows = read_csv_rows(csv_path)
+    rows = _resample_rows_to_cycle(rows, cycle_time_s=SIL_CYCLE_TIME_S, time_column="Time")
     total_rows = len(rows)
 
     # console.print(f"[cyan]Running efficiency test ({total_rows} rows)[/cyan]")
@@ -99,8 +167,7 @@ def test_efficiency(output_writer):
             #     response = {}
 
             # Build result row from efficiency data
-            data = response.get("efficiency", {})
-            result_row = {k: data.get(k) for k in fieldnames}
+            result_row = _efficiency_row_from_response(response)
             
             writer.writerow(result_row)
 
@@ -113,4 +180,5 @@ def test_efficiency(output_writer):
         f"[green]Completed![/green] {results_written} results written to {output} "
         # f"(failed sends: {failed_rows}, timeouts: {timeout_rows})"
     )
+
 

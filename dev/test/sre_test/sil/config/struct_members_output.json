@@ -94,7 +94,7 @@
       "timestamp_calibrationStart": null,
       "calibrationRunTime": null,
       "calibrated": null,
-      "percent": null,
+      "percent": 0.0,
       "brakesAreOn": null,
       "implausibility": null
     }
@@ -179,7 +179,7 @@
   {
     "name": "LaunchControl",
     "parameters": {
-      "lcToggle": null,
+      "lcToggle": true,
       "pid": null,
       "Kp": null,
       "Ki": null,
@@ -194,7 +194,7 @@
       "prevTorque": null,
       "k": null,
       "useFilter": null,
-      "state": null,
+      "state": 2,
       "mode": null,
       "phase": null
     }
@@ -362,7 +362,7 @@
       "tps0_calibMax": null,
       "tps0_reverse": null,
       "tps0_value": null,
-      "tps0_percent": null,
+      "tps0_percent": 0.95,
       "tps1_calibMin": null,
       "tps1_calibMax": null,
       "tps1_reverse": null,
@@ -392,10 +392,10 @@
       "tireCircumferenceMeters_R": null,
       "pulsesPerRotation_F": null,
       "pulsesPerRotation_R": null,
-      "frequency_FL": null,
-      "frequency_FR": null,
-      "frequency_RL": null,
-      "frequency_RR": null,
+      "frequency_FL": 100,
+      "frequency_FR": 100,
+      "frequency_RL": 200,
+      "frequency_RR": 200,
       "filteredFrequency_FL": null,
       "filteredFrequency_FR": null,
       "filteredFrequency_RL": null,

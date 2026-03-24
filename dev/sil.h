@@ -44,9 +44,12 @@
  * @param tps TorqueEncoder struct pointer (can be NULL if not needed)
  * @param bps BrakePressureSensor struct pointer (can be NULL if not needed)
  * @param regen Regen struct pointer (can be NULL if not needed)
+ * @param pid PID struct pointer (can be NULL if not needed)
+ * @param lc LaunchControl struct pointer (can be NULL if not needed)
+ * @param wss WheelSpeeds struct pointer (can be NULL if not needed)
  * @return 0 on success, -1 on error
  */
-int sil_read_initial_json(PowerLimit* pl, MotorController* mcm, TorqueEncoder* tps, BrakePressureSensor* bps, Regen* regen);
+int sil_read_initial_json(PowerLimit* pl, MotorController* mcm, TorqueEncoder* tps, BrakePressureSensor* bps, Regen* regen, PID* pid, LaunchControl* lc, WheelSpeeds* wss, Sensor* sensor, WatchDog* wd, Efficiency* eff, BatteryManagementSystem* bms);
 
 /**
  * Read JSON input from stdin in the main loop (non-blocking)
@@ -55,9 +58,12 @@ int sil_read_initial_json(PowerLimit* pl, MotorController* mcm, TorqueEncoder* t
  * @param tps TorqueEncoder struct pointer (can be NULL if not needed)
  * @param bps BrakePressureSensor struct pointer (can be NULL if not needed)
  * @param regen Regen struct pointer (can be NULL if not needed)
+ * @param pid PID struct pointer (can be NULL if not needed)
+ * @param lc LaunchControl struct pointer (can be NULL if not needed)
+ * @param wss WheelSpeeds struct pointer (can be NULL if not needed)
  * @return 0 on success, -1 on error, 1 if no data available (non-blocking)
  */
-int sil_read_json_input(PowerLimit* pl, MotorController* mcm, TorqueEncoder* tps, BrakePressureSensor* bps, Regen* regen);
+int sil_read_json_input(PowerLimit* pl, MotorController* mcm, TorqueEncoder* tps, BrakePressureSensor* bps, Regen* regen, PID* pid, LaunchControl* lc, WheelSpeeds* wss, Sensor* sensor, WatchDog* wd, Efficiency* eff, BatteryManagementSystem* bms);
 
 /**
  * Write JSON output to stdout.

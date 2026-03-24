@@ -59,6 +59,9 @@ ubyte4 MCM_commands_getTimeSinceLastCommandSent(MotorController* me);
 void MCM_setMaxTorqueDNm(MotorController* mcm, ubyte2 torque);
 
 // Testing functions for closed-loop testing
+void MCM_setVoltageForTesting(MotorController* me, sbyte4 voltage);
+void MCM_setCurrentForTesting(MotorController* me, sbyte4 current);
+void MCM_setRPMForTesting(MotorController* me, sbyte4 rpm);
 void MCM_incrementVoltageForTesting(MotorController* me, sbyte4 increment);
 void MCM_incrementCurrentForTesting(MotorController* me, sbyte4 increment);
 void MCM_incrementRPMForTesting(MotorController* me, sbyte4 increment);
