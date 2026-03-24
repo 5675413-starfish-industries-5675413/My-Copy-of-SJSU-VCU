@@ -245,7 +245,6 @@ void main(void)
     DRS *drs = DRS_new();
     PowerLimit *pl = POWERLIMIT_new(TRUE);
     Efficiency *eff = Efficiency_new(TRUE);
-    PID *pid = PID_new(0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
     
 //---------------------------------------------------------------------------------------------------------
     //----------------------------------------------------------------------------
@@ -276,7 +275,7 @@ void main(void)
     static ubyte2 saved_bps1_voltage = 0;
     
     // Read initial JSON configuration
-    int parse_result = sil_read_initial_json(pl, mcm0, tps, bps, regen);
+    int parse_result = sil_read_initial_json(pl, mcm0, tps, bps, regen, pid, lc, wss);
     if (parse_result == 0) {
         saved_tps_travelPercent = tps->travelPercent;
         saved_tps0_percent = tps->tps0_percent;
@@ -577,7 +576,7 @@ void main(void)
     /*******************************************/
     #ifdef SIL_BUILD
     // Non-blocking JSON reader for main loop
-    int json_result = sil_read_json_input(pl, mcm0, tps, bps, regen);
+    int json_result = sil_read_json_input(pl, mcm0, tps, bps, regen, pid, lc, wss);
     if (json_result == 0) {
         // Successfully parsed JSON, update saved TPS values
         saved_tps_travelPercent = tps->travelPercent;
