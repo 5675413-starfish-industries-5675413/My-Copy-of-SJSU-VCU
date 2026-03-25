@@ -964,6 +964,26 @@ void canOutput_sendDebugMessage1(CanManager* me, MotorController* mcm, TorqueEnc
     byteNum = 0;
     canMessages[canMessageCount - 1].id_format = IO_CAN_STD_FRAME;
     canMessages[canMessageCount - 1].id = canMessageID + canMessageCount - 1;
+    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->temperature_dC >> 24) & 0xFF;
+    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->temperature_dC >> 16) & 0xFF;
+    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->temperature_dC >> 8) & 0xFF;
+    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->temperature_dC >> 0) & 0xFF;
+    canMessages[canMessageCount - 1].length = byteNum;
+
+    canMessageCount++;
+    byteNum = 0;
+    canMessages[canMessageCount - 1].id_format = IO_CAN_STD_FRAME;
+    canMessages[canMessageCount - 1].id = canMessageID + canMessageCount - 1;
+    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->vBus_mV >> 24) & 0xFF;
+    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->vBus_mV >> 16) & 0xFF;
+    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->vBus_mV >> 8) & 0xFF;
+    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->vBus_mV >> 0) & 0xFF;
+    canMessages[canMessageCount - 1].length = byteNum;
+
+    canMessageCount++;
+    byteNum = 0;
+    canMessages[canMessageCount - 1].id_format = IO_CAN_STD_FRAME;
+    canMessages[canMessageCount - 1].id = canMessageID + canMessageCount - 1;
     canMessages[canMessageCount - 1].data[byteNum++] = (shunt->coulombCount >> 56) & 0xFF;
     canMessages[canMessageCount - 1].data[byteNum++] = (shunt->coulombCount >> 48) & 0xFF;
     canMessages[canMessageCount - 1].data[byteNum++] = (shunt->coulombCount >> 40) & 0xFF;
@@ -972,6 +992,38 @@ void canOutput_sendDebugMessage1(CanManager* me, MotorController* mcm, TorqueEnc
     canMessages[canMessageCount - 1].data[byteNum++] = (shunt->coulombCount >> 16) & 0xFF;
     canMessages[canMessageCount - 1].data[byteNum++] = (shunt->coulombCount >> 8) & 0xFF;
     canMessages[canMessageCount - 1].data[byteNum++] = (shunt->coulombCount >> 0) & 0xFF;
+    canMessages[canMessageCount - 1].length = byteNum;
+
+    canMessageCount++;
+    byteNum = 0;
+    canMessages[canMessageCount - 1].id_format = IO_CAN_STD_FRAME;
+    canMessages[canMessageCount - 1].id = canMessageID + canMessageCount - 1;
+    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->power_dW >> 24) & 0xFF;
+    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->power_dW >> 16) & 0xFF;
+    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->power_dW >> 8) & 0xFF;
+    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->power_dW >> 0) & 0xFF;
+    canMessages[canMessageCount - 1].length = byteNum;
+
+    canMessageCount++;
+    byteNum = 0;
+    canMessages[canMessageCount - 1].id_format = IO_CAN_STD_FRAME;
+    canMessages[canMessageCount - 1].id = canMessageID + canMessageCount - 1;
+    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->energy_Wh >> 56) & 0xFF;
+    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->energy_Wh >> 48) & 0xFF;
+    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->energy_Wh >> 40) & 0xFF;
+    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->energy_Wh >> 32) & 0xFF;
+    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->energy_Wh >> 24) & 0xFF;
+    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->energy_Wh >> 16) & 0xFF;
+    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->energy_Wh >> 8) & 0xFF;
+    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->energy_Wh >> 0) & 0xFF;
+    canMessages[canMessageCount - 1].length = byteNum;
+
+    canMessageCount++;
+    byteNum = 0;
+    canMessages[canMessageCount - 1].id_format = IO_CAN_STD_FRAME;
+    canMessages[canMessageCount - 1].id = canMessageID + canMessageCount - 1;
+    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->errors >> 8) & 0xFF;
+    canMessages[canMessageCount - 1].data[byteNum++] = (shunt->errors >> 0) & 0xFF;
     canMessages[canMessageCount - 1].length = byteNum;
 
     CanManager_send(me, CAN1_LOPRI, canMessages, canMessageCount); 
