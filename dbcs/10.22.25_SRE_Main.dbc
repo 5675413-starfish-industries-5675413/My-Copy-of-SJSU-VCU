@@ -25,7 +25,7 @@ NS_ :
 
 BS_:
 
-BU_: DBG VCU BMS MCM DCU DAQ S2C
+BU_: DBG VCU BMS MCM DCU DAQ S2C SHUNT
 
 
 BO_ 256 EMeter_Measurement: 8 Vector__XXX
@@ -190,6 +190,27 @@ BO_ 469 MCM_U2C_Message_Rxd: 8 MCM
 BO_ 471 MCM_U2C_Command_Txd: 8 MCM
  SG_ MCM_ID_Byte : 0|8@1+ (1,0) [0|255] "" VCU
  SG_ MCM_Setpoint_Calc : 8|8@1+ (1,0) [0|255] "" VCU
+
+BO_ 1009 SHUNT_Current: 4 SHUNT
+ SG_ Current_mA : 0|32@1- (1,0) [-2147483648|2147483647] "mA" VCU
+
+BO_ 1010 SHUNT_Temperature: 4 SHUNT
+ SG_ Temperature_dC : 0|32@1- (0.1,0) [-400|1250] "C" VCU
+
+BO_ 1011 SHUNT_Vbus: 4 SHUNT
+ SG_ Vbus_mV : 0|32@1- (1,0) [-1200000|1200000] "mV" VCU
+
+BO_ 1012 SHUNT_Coulomb: 8 SHUNT
+ SG_ Coulomb_C : 0|64@1- (1,0) [-9223372036854775808|9223372036854775807] "C" VCU
+
+BO_ 1013 SHUNT_Power: 4 SHUNT
+ SG_ Power_W : 0|32@1+ (0.1,0) [0|4294967295] "W" VCU
+
+BO_ 1014 SHUNT_Energy: 8 SHUNT
+ SG_ Energy_Wh : 0|64@1+ (1,0) [0|18446744073709551615] "Wh" VCU
+
+BO_ 1015 SHUNT_Errors: 2 SHUNT
+ SG_ Errors : 0|16@0+ (1,0) [0|65535] "" VCU
 
 BO_ 1200 DAQ_LF_Tire_Temp_Ch1_4: 8 DAQ
  SG_ LF_Temperature_4 : 48|16@0+ (0.001,-100) [0|100] "C" DAQ
