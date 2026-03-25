@@ -210,7 +210,21 @@ BO_ 1014 SHUNT_Energy: 8 SHUNT
  SG_ SHUNT_Energy_Wh : 0|64@1+ (1,0) [0|18446744073709551615] "Wh" VCU
 
 BO_ 1015 SHUNT_Errors: 2 SHUNT
- SG_ SHUNT_Errors : 0|16@0+ (1,0) [0|65535] "" VCU
+ SG_ Vbus_Range_Over           : 7|1@0+ (1,0) [0|1] "" VCU
+ SG_ Current_Range_Over        : 6|1@0+ (1,0) [0|1] "" VCU
+ SG_ Current_Under_Limit       : 5|1@0+ (1,0) [0|1] "" VCU
+ SG_ Current_Over_Limit        : 4|1@0+ (1,0) [0|1] "" VCU
+ SG_ Temp_Over_Limit           : 3|1@0+ (1,0) [0|1] "" VCU
+ SG_ Vbus_Under_Limit          : 2|1@0+ (1,0) [0|1] "" VCU
+ SG_ Vbus_Over_Limit           : 1|1@0+ (1,0) [0|1] "" VCU
+ SG_ Power_Over_Limit          : 0|1@0+ (1,0) [0|1] "" VCU
+ SG_ Coulomb_Overflow          : 15|1@0+ (1,0) [0|1] "" VCU
+ SG_ Energy_Overflow           : 14|1@0+ (1,0) [0|1] "" VCU
+ SG_ ADC_CRC_Read              : 13|1@0+ (1,0) [0|1] "" VCU
+ SG_ ADC_Initialization        : 12|1@0+ (1,0) [0|1] "" VCU
+ SG_ EEPROM_RW_Error           : 11|1@0+ (1,0) [0|1] "" VCU
+ SG_ EEPROM_Corrupt            : 10|1@0+ (1,0) [0|1] "" VCU
+ SG_ ECC_Single_Bit_Error      : 9|1@0+ (1,0) [0|1] "" VCU
 
 BO_ 1200 DAQ_LF_Tire_Temp_Ch1_4: 8 DAQ
  SG_ LF_Temperature_4 : 48|16@0+ (0.001,-100) [0|100] "C" DAQ
@@ -761,8 +775,22 @@ CM_ BO_ 1013 "Shunt measured power";
 CM_ SG_ 1013 SHUNT_Power_W "Instantaneous electrical power (W)";
 CM_ BO_ 1014 "Shunt accumulated energy";
 CM_ SG_ 1014 SHUNT_Energy_Wh "Accumulated energy consumption (Wh)";
-CM_ BO_ 1015 "Shunt error and alert flags";
-CM_ SG_ 1015 SHUNT_Errors "Bitfield of shunt error and alert flags";
+CM_ BO_ 1015 "Shunt error and alert bits";
+CM_ SG_ 1015 SHUNT_Vbus_Range_Over "Bus Voltage exceeds the maximum voltage for the selected range";
+CM_ SG_ 1015 SHUNT_Current_Range_Over "Peak current exceeded the selected range";
+CM_ SG_ 1015 SHUNT_Current_Under_Limit "Current is below the configured limit";
+CM_ SG_ 1015 SHUNT_Current_Over_Limit "Current is above the configured limit";
+CM_ SG_ 1015 SHUNT_Temp_Over_Limit "Temperature is above 125 degC or the configured limit";
+CM_ SG_ 1015 SHUNT_Vbus_Under_Limit "Bus Voltage is below the configured limit";
+CM_ SG_ 1015 SHUNT_Vbus_Over_Limit "Bus Voltage is above the configured limit";
+CM_ SG_ 1015 SHUNT_Power_Over_Limit "Power is above the configured limit";
+CM_ SG_ 1015 SHUNT_Coulomb_Overflow "Coulomb counter overflow";
+CM_ SG_ 1015 SHUNT_Energy_Overflow "Energy counter overflow";
+CM_ SG_ 1015 SHUNT_ADC_CRC_Read "ADC CRC does not match calculated CRC";
+CM_ SG_ 1015 SHUNT_ADC_Initialization "ADC initialized registers do not match written values";
+CM_ SG_ 1015 SHUNT_EEPROM_RW "Error reading or writing internal EEPROM";
+CM_ SG_ 1015 SHUNT_EEPROM_Corrupt "EEPROM CRC does not match saved value";
+CM_ SG_ 1015 SHUNT_ECC_Single_Bit_Error "Flash memory auto-correctable ECC error";
 CM_ BO_ 1280 "Throttle Position Sensor 0 Value";
 CM_ BO_ 1281 "Throttle Position Sensor 1 Value";
 CM_ BO_ 1282 "Brake Pressure Sensor Value";
