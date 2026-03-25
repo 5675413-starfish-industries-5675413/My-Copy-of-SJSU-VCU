@@ -454,6 +454,41 @@ BO_ 1299 VCU_LC_Status_B: 8 VCU
  SG_ VCU_LaunchControl_PID_TotalError : 32|16@1- (1,0) [-32768|32767] "" VCU
  SG_ VCU_LaunchControl_PID_Output : 48|16@1- (1,0) [-32768|32767] "" VCU
 
+BO_ 1300 VCU_BMS_SHUNT_CURRENT: 4 VCU
+ SG_ Shunt_Current_mA        : 31|32@0- (1,0) [-2147483648|2147483647] "mA" BMS
+
+BO_ 1301 VCU_BMS_SHUNT_TEMPERATURE: 4 VCU
+ SG_ Shunt_Temperature_dC    : 31|32@0- (0.1,0) [-40|125] "C" BMS
+
+BO_ 1302 VCU_BMS_SHUNT_VBUS: 4 VCU
+ SG_ Shunt_VBus_mV           : 31|32@0- (1,0) [-1200000|1200000] "mV" BMS
+
+BO_ 1303 VCU_BMS_SHUNT_COULOMB: 8 VCU
+ SG_ Shunt_Coulomb_Count     : 63|64@0- (1,0) [-9223372036854775808|9223372036854775807] "" BMS
+
+BO_ 1304 VCU_BMS_SHUNT_POWER: 4 VCU
+ SG_ Shunt_Power_dW          : 31|32@0+ (0.1,0) [0|429496729.5] "W" BMS
+
+BO_ 1305 VCU_BMS_SHUNT_ENERGY: 8 VCU
+ SG_ Shunt_Energy_Wh         : 63|64@0+ (1,0) [0|18446744073709551615] "Wh" BMS
+
+BO_ 1306 VCU_SHUNT_ERRORS: 2 VCU
+ SG_ Vbus_Range_Over         : 15|1@0+ (1,0) [0|1] "" BMS
+ SG_ Current_Range_Over      : 14|1@0+ (1,0) [0|1] "" BMS
+ SG_ Current_Under_Limit     : 13|1@0+ (1,0) [0|1] "" BMS
+ SG_ Current_Over_Limit      : 12|1@0+ (1,0) [0|1] "" BMS
+ SG_ Temp_Over_Limit         : 11|1@0+ (1,0) [0|1] "" BMS
+ SG_ Vbus_Under_Limit        : 10|1@0+ (1,0) [0|1] "" BMS
+ SG_ Vbus_Over_Limit         : 9|1@0+ (1,0) [0|1] "" BMS
+ SG_ Power_Over_Limit        : 8|1@0+ (1,0) [0|1] "" BMS
+ SG_ Coulomb_Overflow        : 7|1@0+ (1,0) [0|1] "" BMS
+ SG_ Energy_Overflow         : 6|1@0+ (1,0) [0|1] "" BMS
+ SG_ ADC_CRC_Read            : 5|1@0+ (1,0) [0|1] "" BMS
+ SG_ ADC_Initialization      : 4|1@0+ (1,0) [0|1] "" BMS
+ SG_ EEPROM_RW_Error         : 3|1@0+ (1,0) [0|1] "" BMS
+ SG_ EEPROM_Corrupt          : 2|1@0+ (1,0) [0|1] "" BMS
+ SG_ ECC_Single_Bit_Error    : 1|1@0+ (1,0) [0|1] "" BMS
+
 BO_ 1536 BMS_State_Command: 2 VCU
  SG_ BMS_State_Request : 0|8@1+ (1,0) [0|4] "" Vector__XXX
  SG_ BMS_Relay_Driver_1_Command : 10|1@1+ (1,0) [0|1] "" Vector__XXX
@@ -796,6 +831,34 @@ CM_ BO_ 1281 "Throttle Position Sensor 1 Value";
 CM_ BO_ 1282 "Brake Pressure Sensor Value";
 CM_ BO_ 1283 "Wheel Speed Sensor Value";
 CM_ BO_ 1286 "VCU Safety Messages";
+CM_ BO_ 1300 "Shunt current measurement sent from VCU to BMS.";
+CM_ SG_ 1300 Shunt_Current_mA "Shunt current (mA).";
+CM_ BO_ 1301 "Shunt temperature measurement (scaled to C) sent from VCU to BMS.";
+CM_ SG_ 1301 Shunt_Temperature_dC "Shunt temperature (C).";
+CM_ BO_ 1302 "Shunt bus voltage measurement sent from VCU to BMS.";
+CM_ SG_ 1302 Shunt_VBus_mV "Shunt bus voltage (mV).";
+CM_ BO_ 1303 "Shunt accumulated coulomb count sent from VCU to BMS.";
+CM_ SG_ 1303 Shunt_Coulomb_Count "Accumulated coulomb count from shunt.";
+CM_ BO_ 1304 "Shunt power measurement (scaled to watts) sent from VCU to BMS.";
+CM_ SG_ 1304 Shunt_Power_dW "Shunt power (W).";
+CM_ BO_ 1305 "Shunt accumulated energy sent from VCU to BMS.";
+CM_ SG_ 1305 Shunt_Energy_Wh "Accumulated energy from shunt (Wh).";
+CM_ BO_ 1306 "Shunt error and fault status bitfield sent from VCU to BMS.";
+CM_ SG_ 1306 Vbus_Range_Over "Bit0: Bus voltage exceeds configured maximum range.";
+CM_ SG_ 1306 Current_Range_Over "Bit1: Peak current exceeded configured measurement range.";
+CM_ SG_ 1306 Current_Under_Limit "Bit2: Current below configured lower limit.";
+CM_ SG_ 1306 Current_Over_Limit "Bit3: Current above configured upper limit.";
+CM_ SG_ 1306 Temp_Over_Limit "Bit4: Temperature above +125 C or configured limit.";
+CM_ SG_ 1306 Vbus_Under_Limit "Bit5: Bus voltage below configured limit.";
+CM_ SG_ 1306 Vbus_Over_Limit "Bit6: Bus voltage above configured limit.";
+CM_ SG_ 1306 Power_Over_Limit "Bit7: Power above configured limit.";
+CM_ SG_ 1306 Coulomb_Overflow "Bit8: Coulomb counter overflow.";
+CM_ SG_ 1306 Energy_Overflow "Bit9: Energy counter overflow.";
+CM_ SG_ 1306 ADC_CRC_Read "Bit10: ADC CRC mismatch detected.";
+CM_ SG_ 1306 ADC_Initialization "Bit11: ADC initialization register mismatch.";
+CM_ SG_ 1306 EEPROM_RW_Error "Bit12: EEPROM read/write error.";
+CM_ SG_ 1306 EEPROM_Corrupt "Bit13: EEPROM CRC mismatch.";
+CM_ SG_ 1306 ECC_Single_Bit_Error "Bit14: Flash memory auto-corrected single-bit ECC error.";
 CM_ BO_ 1568 "BMS Status and Fault Message";
 CM_ BO_ 1571 "Accumulator Pack Voltage and Current"; 
 CM_ BO_ 1572 "Accumulator Load Voltage and Current"; 
