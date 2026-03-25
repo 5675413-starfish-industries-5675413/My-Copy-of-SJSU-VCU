@@ -12,7 +12,12 @@ Shunt *Shunt_new(void){
     Shunt *me = (Shunt *)malloc(sizeof(Shunt));
     if(me == NULL) return NULL;
     me->current_mA = 0;
+    me->temperature_dC = 0;
+    me->vBus_mV = 0;
     me->coulombCount = 0;
+    me->power_dW = 0;
+    me->energy_Wh = 0;
+    me->errors = 0;
     return me;
 }
 
@@ -58,7 +63,7 @@ static sbyte4 Shunt_parseSbyte4LE(ubyte1* data){
     return (sbyte4) Shunt_parseUbyte4LE(data);
 }
 
-unsigned long long Shunt_parseUint64LE(ubyte1 *data){
+static unsigned long long Shunt_parseUint64LE(ubyte1 *data){
     return (unsigned long long)(
         ((unsigned long long) data[0])        |
         ((unsigned long long) data[1] << 8)   |
@@ -71,7 +76,7 @@ unsigned long long Shunt_parseUint64LE(ubyte1 *data){
     );
 }
 
-long long Shunt_parseInt64LE(ubyte1 *data){
+static long long Shunt_parseInt64LE(ubyte1 *data){
     return (long long) Shunt_parseUint64LE(data);
 }
 
