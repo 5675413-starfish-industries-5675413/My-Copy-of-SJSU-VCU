@@ -19,14 +19,10 @@ typedef enum{
     SHUNT_COMMAND_READING_DELAY     = 0x16
 } ShuntCommand;
 
-typedef struct {
-    sbyte4 high;
-    ubyte4 low;
-} split_sbyte8;
 
 typedef struct _Shunt{
     sbyte4 current_mA;
-    split_sbyte8 coulombCount;
+    long long coulombCount;
 } Shunt;
 
 Shunt *Shunt_new(void);
