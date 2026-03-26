@@ -3,6 +3,7 @@ Struct Parser - Extracts struct definitions from C headers using pycparser.
 """
 
 import os
+import re
 import json
 from pathlib import Path
 from typing import List, Dict, Any
@@ -313,9 +314,14 @@ def scan_directory(directory: Path) -> List[Path]:
             continue
         
         for file in files:
-            if file.endswith(('.h', '.c')):
+            if file.endswith('.c'):
+                c_files.append(Path(root) / file)
+            elif file.endswith('.h'):
                 filepath = Path(root) / file
-                c_files.append(filepath)
+                with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                    first_line = f.readline().strip()
+                if not first_line.startswith('// @sre-ignore'):
+                    c_files.append(filepath)
     
     return c_files
 
@@ -338,26 +344,36 @@ def format_output(structs_data: List[Dict[str, Any]], output_file: Path) -> None
     
     # Sort structs by name for consistent output
     sorted_structs = sorted(struct_dict.values(), key=lambda x: x['name'])
-    
-    for struct in sorted_structs:
+
+    # Filter out structs whose names start with a lowercase letter
+    filtered_structs = [s for s in sorted_structs if not s['name'][0].islower()]
+
+    for idx, struct in enumerate(filtered_structs, start=0):
         struct_name = struct['name']
         members = struct['members']
-        
-        # Create parameters dictionary with member names as keys and null as values
+
+        # Create parameters dictionary with member names as keys, each with an id and null value
         parameters = {}
-        for member in members:
-            parameters[member['name']] = None
-        
+        for param_idx, member in enumerate(sorted(members, key=lambda m: m['name'])):
+            parameters[member['name']] = {"id": param_idx, "value": None}
+
         struct_entry = {
+            "id": idx,
             "name": struct_name,
             "parameters": parameters
         }
-        
+
         json_data.append(struct_entry)
     
-    # Write JSON file
+    # Write JSON file — collapse parameter value objects onto one line
+    json_str = json.dumps(json_data, indent=2, ensure_ascii=False)
+    json_str = re.sub(
+        r'\{\s*"id":\s*(\d+),\s*"value":\s*(null|true|false|-?\d+(?:\.\d+)?|"[^"]*")\s*\}',
+        r'{"id": \1, "value": \2}',
+        json_str
+    )
     with open(output_file, 'w', encoding='utf-8') as f:
-        json.dump(json_data, f, indent=2, ensure_ascii=False)
+        f.write(json_str)
 
 
 def extract_struct_definitions(output_file: Path = None) -> Dict[str, Any]:
