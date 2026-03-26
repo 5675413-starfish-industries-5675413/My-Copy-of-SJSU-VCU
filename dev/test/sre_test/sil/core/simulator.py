@@ -133,7 +133,7 @@ class SILSimulator:
             if isinstance(struct, dict) and struct.get('name') in struct_names:
                 params = struct.get('parameters', {})
                 if filter_none:
-                    params = {k: v for k, v in params.items() if v is not None}
+                    params = {k: obj['value'] for k, obj in params.items() if obj['value'] is not None}
                 structs_to_send.append({
                     "name": struct['name'],
                     "parameters": params
