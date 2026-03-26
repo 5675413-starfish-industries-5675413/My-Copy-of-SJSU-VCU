@@ -365,13 +365,7 @@ def format_output(structs_data: List[Dict[str, Any]], output_file: Path) -> None
 
         json_data.append(struct_entry)
     
-    # Write JSON file — collapse parameter value objects onto one line
-    json_str = json.dumps(json_data, indent=2, ensure_ascii=False)
-    json_str = re.sub(
-        r'\{\s*"id":\s*(\d+),\s*"value":\s*(null|true|false|-?\d+(?:\.\d+)?|"[^"]*")\s*\}',
-        r'{"id": \1, "value": \2}',
-        json_str
-    )
+    # Write JSON file
     with open(output_file, 'w', encoding='utf-8') as f:
         f.write(json_str)
 

@@ -1,5 +1,4 @@
-// @sre-ignore [LINE 1 REQUIRED] - ignore this file from the struct_member_output.json call
-
+// @sre-ignore [LINE 1 REQUIRED] - ignore this file from the struct_members_output.json call
 #ifndef _SERIALMANAGER_H
 #define _SERIALMANAGER_H
 

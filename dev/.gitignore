@@ -59,3 +59,6 @@ venv/
 __pycache__/
 *.pyc
 *.egg-info/
+
+# Generated output files
+struct_members_output.json
