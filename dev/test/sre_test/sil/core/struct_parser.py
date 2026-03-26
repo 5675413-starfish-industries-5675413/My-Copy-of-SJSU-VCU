@@ -11,7 +11,7 @@ from typing import List, Dict, Any
 from pycparser import parse_file, c_ast
 import pycparser
 
-from sre_test.sil.core.helpers.path import DEV, INC, CONFIG, STRUCT_MEMBERS
+from sre_test.sil.core.helpers.path import DEV, INC, STRUCT_MEMBERS
 
 
 def strip_comments_and_directives(content: str) -> str:
@@ -406,7 +406,7 @@ def extract_struct_definitions(output_file: Path = None) -> Dict[str, Any]:
     # Use provided output_file or default to STRUCT_MEMBERS
     if output_file is None:
         output_file = STRUCT_MEMBERS
-        CONFIG.mkdir(exist_ok=True)
+        output_file.parent.mkdir(parents=True, exist_ok=True)
         
     # Scan dev directory
     if dev_dir.exists():

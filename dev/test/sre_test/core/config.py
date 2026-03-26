@@ -88,7 +88,7 @@ class DynamicConfig:
         self._load_struct_definition()
 
     def _load_struct_definition(self):
-        """Load struct definition from struct_members_output.json."""
+        """Load struct definition from vcu_structs_map.json."""
         if not STRUCT_MEMBERS.exists():
             return
 
@@ -172,7 +172,7 @@ def configs_to_json(*configs: DynamicConfig, output_file: Optional[Path] = None,
     if output_file is None:
         output_file = STRUCT_MEMBERS
 
-    # Read existing struct_members_output.json if it exists
+    # Read existing vcu_structs_map.json if it exists
     existing_structs = []
     if output_file.exists():
         try:

@@ -61,7 +61,7 @@ def test_point():
     tps_config.travelPercent = 0.5
     tps_config.calibrated = True
 
-    # Update struct_members_output.json with the config
+    # Update vcu_structs_map.json with the config
     configs_to_json(mcm_config, tps_config)
     
     sim.send_structs("MotorController", "TorqueEncoder")

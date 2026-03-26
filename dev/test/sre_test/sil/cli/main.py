@@ -51,8 +51,8 @@ def extract(output):
     if output:
         output_file = Path(output)
     else:
-        from sre_test.sil.core.helpers.path import CONFIG, STRUCT_MEMBERS
-        CONFIG.mkdir(exist_ok=True)
+        from sre_test.sil.core.helpers.path import STRUCT_MEMBERS
+        STRUCT_MEMBERS.parent.mkdir(parents=True, exist_ok=True)
         output_file = STRUCT_MEMBERS
     
     console.print("[cyan]Extracting struct definitions...[/cyan]")

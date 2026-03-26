@@ -31,4 +31,4 @@ CLI_TESTS = _sil_dir / 'cli' / 'tests'
 DATA = _sil_dir / 'tests' / 'data'
 
 # Common files
-STRUCT_MEMBERS = _sil_dir / 'config' / 'struct_members_output.json'
+STRUCT_MEMBERS = _sre_test_dir / 'config' / 'vcu_structs_map.json'
