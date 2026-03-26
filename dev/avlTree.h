@@ -1,3 +1,4 @@
+// @sre-ignore [LINE 1 REQUIRED] - ignore this file from the struct_members_output.json call
 //http://www.zentut.com/c-tutorial/c-avl-tree/
 
 #ifndef AVLTREE_H_INCLUDED
