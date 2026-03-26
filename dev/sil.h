@@ -44,12 +44,11 @@
  * @param tps TorqueEncoder struct pointer (can be NULL if not needed)
  * @param bps BrakePressureSensor struct pointer (can be NULL if not needed)
  * @param regen Regen struct pointer (can be NULL if not needed)
- * @param pid PID struct pointer (can be NULL if not needed)
  * @param lc LaunchControl struct pointer (can be NULL if not needed)
  * @param wss WheelSpeeds struct pointer (can be NULL if not needed)
  * @return 0 on success, -1 on error
  */
-int sil_read_initial_json(PowerLimit* pl, MotorController* mcm, TorqueEncoder* tps, BrakePressureSensor* bps, Regen* regen, PID* pid, LaunchControl* lc, WheelSpeeds* wss, Sensor* sensor, WatchDog* wd, Efficiency* eff, BatteryManagementSystem* bms);
+int SIL_read_config(PowerLimit* pl, MotorController* mcm, TorqueEncoder* tps, BrakePressureSensor* bps, Regen* regen, LaunchControl* lc, WheelSpeeds* wss, Efficiency* eff, BatteryManagementSystem* bms);
 
 /**
  * Read JSON input from stdin in the main loop (non-blocking)
@@ -58,12 +57,11 @@ int sil_read_initial_json(PowerLimit* pl, MotorController* mcm, TorqueEncoder* t
  * @param tps TorqueEncoder struct pointer (can be NULL if not needed)
  * @param bps BrakePressureSensor struct pointer (can be NULL if not needed)
  * @param regen Regen struct pointer (can be NULL if not needed)
- * @param pid PID struct pointer (can be NULL if not needed)
  * @param lc LaunchControl struct pointer (can be NULL if not needed)
  * @param wss WheelSpeeds struct pointer (can be NULL if not needed)
  * @return 0 on success, -1 on error, 1 if no data available (non-blocking)
  */
-int sil_read_json_input(PowerLimit* pl, MotorController* mcm, TorqueEncoder* tps, BrakePressureSensor* bps, Regen* regen, PID* pid, LaunchControl* lc, WheelSpeeds* wss, Sensor* sensor, WatchDog* wd, Efficiency* eff, BatteryManagementSystem* bms);
+int SIL_read(PowerLimit* pl, MotorController* mcm, TorqueEncoder* tps, BrakePressureSensor* bps, Regen* regen, LaunchControl* lc, WheelSpeeds* wss, Efficiency* eff, BatteryManagementSystem* bms);
 
 /**
  * Write JSON output to stdout.
@@ -74,19 +72,22 @@ int sil_read_json_input(PowerLimit* pl, MotorController* mcm, TorqueEncoder* tps
  * @param pl PowerLimit struct pointer (can be NULL)
  * @param eff Efficiency struct pointer (can be NULL)
  */
-// void sil_write_json_output(MotorController* mcm, PowerLimit* pl, Efficiency* eff);
-void sil_write_json_output(MotorController* mcm, PowerLimit* pl, Efficiency* eff, BatteryManagementSystem* bms, LaunchControl* lc, BrakePressureSensor* bps, PID* pid, Regen *regen, InstrumentCluster *ic, ReadyToDriveSound *rtds, SafetyChecker *sc, Sensor *sensor, TorqueEncoder *tps, WatchDog *wd, ubyte1 output_mode);
+// void SIL_write(MotorController* mcm, PowerLimit* pl, Efficiency* eff);
+void SIL_write(MotorController* mcm, PowerLimit* pl, Efficiency* eff, BatteryManagementSystem* bms, LaunchControl* lc, BrakePressureSensor* bps, Regen *regen, WheelSpeeds *wss, TorqueEncoder *tps);
 
 /**
- * Restore TPS values after TorqueEncoder_update overwrites them
- * This should be called after TorqueEncoder_update() in the main loop
+ * Restore cached SIL TPS values after TorqueEncoder_update overwrites them.
+ * This should be called after TorqueEncoder_update() in the main loop.
  * @param tps TorqueEncoder struct pointer
- * @param saved_travelPercent Saved travel percent value
- * @param saved_tps0_percent Saved TPS0 percent value
- * @param saved_tps1_percent Saved TPS1 percent value
  */
-void sil_restore_tps_values(TorqueEncoder* tps, float4* saved_travelPercent, 
-                            float4* saved_tps0_percent, float4* saved_tps1_percent);
+void SIL_restore_tps(TorqueEncoder* tps);
+
+/**
+ * Restore cached SIL BPS voltages after BrakePressureSensor_update overwrites them.
+ * This should be called after BrakePressureSensor_update() in the main loop.
+ * @param bps BrakePressureSensor struct pointer
+ */
+void SIL_restore_bps(BrakePressureSensor* bps);
 
 #endif // SIL_BUILD
 

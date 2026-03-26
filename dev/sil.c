@@ -27,6 +27,15 @@
 // JSON buffer size for reading from stdin
 #define JSON_BUFFER_SIZE (256 * 1024)
 
+// Cached SIL inputs that must survive module update functions in the main loop.
+static float4 sil_saved_tps_travelPercent = 0.0f;
+static float4 sil_saved_tps0_percent = 0.0f;
+static float4 sil_saved_tps1_percent = 0.0f;
+static ubyte2 sil_saved_bps0_voltage = 0;
+static ubyte2 sil_saved_bps1_voltage = 0;
+static bool sil_has_tps_cache = FALSE;
+static bool sil_has_bps_cache = FALSE;
+
 /*****************************************************************************
  * JSON Parsing Functions
  * Parse JSON configuration values into structs
@@ -35,7 +44,7 @@
 /**
  * Helper function to safely get integer value from JSON, skipping if null
  */
-static int get_json_int_safe(cJSON* item, const char* key, int* out_value)
+static int get_int(cJSON* item, const char* key, int* out_value)
 {
     cJSON* json_item = cJSON_GetObjectItem(item, key);
     if (json_item == NULL || cJSON_IsNull(json_item)) {
@@ -51,7 +60,7 @@ static int get_json_int_safe(cJSON* item, const char* key, int* out_value)
 /**
  * Helper function to safely get double value from JSON, skipping if null
  */
-static int get_json_double_safe(cJSON* item, const char* key, double* out_value)
+static int get_double(cJSON* item, const char* key, double* out_value)
 {
     cJSON* json_item = cJSON_GetObjectItem(item, key);
     if (json_item == NULL || cJSON_IsNull(json_item)) {
@@ -67,7 +76,7 @@ static int get_json_double_safe(cJSON* item, const char* key, double* out_value)
 /**
  * Helper function to safely get boolean value from JSON, skipping if null
  */
-static int get_json_bool_safe(cJSON* item, const char* key, bool* out_value)
+static int get_bool(cJSON* item, const char* key, bool* out_value)
 {
     cJSON* json_item = cJSON_GetObjectItem(item, key);
     if (json_item == NULL || cJSON_IsNull(json_item)) {
@@ -83,7 +92,7 @@ static int get_json_bool_safe(cJSON* item, const char* key, bool* out_value)
 /**
  * Parse PID nested structure from JSON
  */
-static void parse_PID_from_json(PID* pid, cJSON* pid_json)
+static void set_PID(PID* pid, cJSON* pid_json)
 {
     if (pid == NULL || pid_json == NULL) {
         return;
@@ -91,19 +100,19 @@ static void parse_PID_from_json(PID* pid, cJSON* pid_json)
     
     int int_val;
     
-    if (get_json_int_safe(pid_json, "Kp", &int_val)) {
+    if (get_int(pid_json, "Kp", &int_val)) {
         pid->Kp = (sbyte1)int_val;
     }
-    if (get_json_int_safe(pid_json, "Ki", &int_val)) {
+    if (get_int(pid_json, "Ki", &int_val)) {
         pid->Ki = (sbyte2)int_val;
     }
-    if (get_json_int_safe(pid_json, "Kd", &int_val)) {
+    if (get_int(pid_json, "Kd", &int_val)) {
         pid->Kd = (sbyte1)int_val;
     }
-    if (get_json_int_safe(pid_json, "saturation", &int_val)) {
+    if (get_int(pid_json, "saturation", &int_val)) {
         pid->saturationValue = (sbyte2)int_val;
     }
-    if (get_json_int_safe(pid_json, "gain", &int_val)) {
+    if (get_int(pid_json, "gain", &int_val)) {
         pid->scalefactor = (sbyte2)int_val;
     }
 }
@@ -111,7 +120,7 @@ static void parse_PID_from_json(PID* pid, cJSON* pid_json)
 /**
  * Parse PowerLimit struct values from JSON object
  */
-static int parse_PowerLimit_from_json(PowerLimit* pl, cJSON* params)
+static int set_PL(PowerLimit* pl, cJSON* params)
 {
     if (pl == NULL || params == NULL) {
         return -1;
@@ -124,71 +133,71 @@ static int parse_PowerLimit_from_json(PowerLimit* pl, cJSON* params)
     // Parse nested PID structure
     cJSON* pid_json = cJSON_GetObjectItem(params, "pid");
     if (pid_json != NULL && !cJSON_IsNull(pid_json) && pl->pid != NULL) {
-        parse_PID_from_json(pl->pid, pid_json);
+        set_PID(pl->pid, pid_json);
     }
     
     // Parse simple fields (skip if null)
-    if (get_json_bool_safe(params, "plToggle", &bool_val)) {
+    if (get_bool(params, "plToggle", &bool_val)) {
         pl->plToggle = bool_val;
     }
-    if (get_json_bool_safe(params, "plStatus", &bool_val)) {
+    if (get_bool(params, "plStatus", &bool_val)) {
         pl->plStatus = bool_val;
     }
-    if (get_json_int_safe(params, "plMode", &int_val)) {
+    if (get_int(params, "plMode", &int_val)) {
         pl->plMode = (ubyte1)int_val;
     }
-    if (get_json_int_safe(params, "plTargetPower", &int_val)) {
+    if (get_int(params, "plTargetPower", &int_val)) {
         pl->plTargetPower = (ubyte1)int_val;
     }
-    if (get_json_int_safe(params, "plKwLimit", &int_val)) {
+    if (get_int(params, "plKwLimit", &int_val)) {
         pl->plKwLimit = (ubyte1)int_val;
     }
-    if (get_json_int_safe(params, "plInitializationThreshold", &int_val)) {
+    if (get_int(params, "plInitializationThreshold", &int_val)) {
         pl->plInitializationThreshold = (ubyte1)int_val;
     }
-    if (get_json_int_safe(params, "plTorqueCommand", &int_val)) {
+    if (get_int(params, "plTorqueCommand", &int_val)) {
         pl->plTorqueCommand = (sbyte2)int_val;
     }
-    if (get_json_int_safe(params, "clampingMethod", &int_val)) {
+    if (get_int(params, "clampingMethod", &int_val)) {
         pl->clampingMethod = (ubyte1)int_val;
     }
-    if (get_json_double_safe(params, "previousPower", &double_val)) {
+    if (get_double(params, "previousPower", &double_val)) {
         pl->previousPower = (float)double_val;
     }
-    if (get_json_double_safe(params, "powerChangeRate", &double_val)) {
+    if (get_double(params, "powerChangeRate", &double_val)) {
         pl->powerChangeRate = (float)double_val;
     }
-    if (get_json_int_safe(params, "settlingCounter", &int_val)) {
+    if (get_int(params, "settlingCounter", &int_val)) {
         pl->settlingCounter = (ubyte2)int_val;
     }
-    if (get_json_bool_safe(params, "usePowerPID", &bool_val)) {
+    if (get_bool(params, "usePowerPID", &bool_val)) {
         pl->usePowerPID = bool_val;
     }
-    if (get_json_int_safe(params, "SETTLING_THRESHOLD", &int_val)) {
+    if (get_int(params, "SETTLING_THRESHOLD", &int_val)) {
         pl->SETTLING_THRESHOLD = (ubyte2)int_val;
     }
-    if (get_json_double_safe(params, "POWER_CHANGE_THRESHOLD", &double_val)) {
+    if (get_double(params, "POWER_CHANGE_THRESHOLD", &double_val)) {
         pl->POWER_CHANGE_THRESHOLD = (float)double_val;
     }
-    if (get_json_double_safe(params, "POWER_BELOW_SETPOINT_THRESHOLD", &double_val)) {
+    if (get_double(params, "POWER_BELOW_SETPOINT_THRESHOLD", &double_val)) {
         pl->POWER_BELOW_SETPOINT_THRESHOLD = (float)double_val;
     }
-    if (get_json_int_safe(params, "vFloorRFloor", &int_val)) {
+    if (get_int(params, "vFloorRFloor", &int_val)) {
         pl->vFloorRFloor = (ubyte1)int_val;
     }
-    if (get_json_int_safe(params, "vFloorRCeiling", &int_val)) {
+    if (get_int(params, "vFloorRCeiling", &int_val)) {
         pl->vFloorRCeiling = (ubyte1)int_val;
     }
-    if (get_json_int_safe(params, "vCeilingRFloor", &int_val)) {
+    if (get_int(params, "vCeilingRFloor", &int_val)) {
         pl->vCeilingRFloor = (ubyte1)int_val;
     }
-    if (get_json_int_safe(params, "vCeilingRCeiling", &int_val)) {
+    if (get_int(params, "vCeilingRCeiling", &int_val)) {
         pl->vCeilingRCeiling = (ubyte1)int_val;
     }
-    if (get_json_bool_safe(params, "plAlwaysOn", &bool_val)) {
+    if (get_bool(params, "plAlwaysOn", &bool_val)) {
         pl->plAlwaysOn = bool_val;
     }
-    if (get_json_int_safe(params, "plThresholdDiscrepancy", &int_val)) {
+    if (get_int(params, "plThresholdDiscrepancy", &int_val)) {
         pl->plThresholdDiscrepancy = (ubyte1)int_val;
     }
     
@@ -199,7 +208,7 @@ static int parse_PowerLimit_from_json(PowerLimit* pl, cJSON* params)
  * Parse MotorController struct values from JSON object
  * Uses increment functions from motorController.h to set values
  */
-static int parse_MotorController_from_json(MotorController* mcm, cJSON* params)
+static int set_MCM(MotorController* mcm, cJSON* params)
 {
     if (mcm == NULL || params == NULL) {
         return -1;
@@ -208,17 +217,17 @@ static int parse_MotorController_from_json(MotorController* mcm, cJSON* params)
     int int_val;
     
     // Set exact DC Voltage for SIL input (do not clamp to increment helper caps)
-    if (get_json_int_safe(params, "DC_Voltage", &int_val)) {
+    if (get_int(params, "DC_Voltage", &int_val)) {
         MCM_setVoltageForTesting(mcm, (sbyte4)int_val);
     }
     
     // Set exact DC Current for SIL input (do not clamp to increment helper caps)
-    if (get_json_int_safe(params, "DC_Current", &int_val)) {
+    if (get_int(params, "DC_Current", &int_val)) {
         MCM_setCurrentForTesting(mcm, (sbyte4)int_val);
     }
     
     // Set exact Motor RPM for SIL input.
-    if (get_json_int_safe(params, "motorRPM", &int_val)) {
+    if (get_int(params, "motorRPM", &int_val)) {
         MCM_setRPMForTesting(mcm, (sbyte4)int_val);
     }
     
@@ -228,7 +237,7 @@ static int parse_MotorController_from_json(MotorController* mcm, cJSON* params)
 /**
  * Parse TorqueEncoder struct values from JSON object
  */
-static int parse_TorqueEncoder_from_json(TorqueEncoder* tps, cJSON* params)
+static int set_TPS(TorqueEncoder* tps, cJSON* params)
 {
     if (tps == NULL || params == NULL) {
         return -1;
@@ -241,33 +250,33 @@ static int parse_TorqueEncoder_from_json(TorqueEncoder* tps, cJSON* params)
     bool has_tps1_percent = FALSE;
     bool has_travel_percent = FALSE;
     
-    if (get_json_int_safe(params, "tps0_calibMin", &int_val)) {
+    if (get_int(params, "tps0_calibMin", &int_val)) {
         tps->tps0_calibMin = (ubyte4)int_val;
     }
-    if (get_json_int_safe(params, "tps0_calibMax", &int_val)) {
+    if (get_int(params, "tps0_calibMax", &int_val)) {
         tps->tps0_calibMax = (ubyte4)int_val;
     }
-    if (get_json_bool_safe(params, "tps0_reverse", &bool_val)) {
+    if (get_bool(params, "tps0_reverse", &bool_val)) {
         tps->tps0_reverse = bool_val;
     }
-    if (get_json_double_safe(params, "tps0_percent", &double_val)) {
+    if (get_double(params, "tps0_percent", &double_val)) {
         tps->tps0_percent = (float4)double_val;
         has_tps0_percent = TRUE;
     }
-    if (get_json_int_safe(params, "tps1_calibMin", &int_val)) {
+    if (get_int(params, "tps1_calibMin", &int_val)) {
         tps->tps1_calibMin = (ubyte4)int_val;
     }
-    if (get_json_int_safe(params, "tps1_calibMax", &int_val)) {
+    if (get_int(params, "tps1_calibMax", &int_val)) {
         tps->tps1_calibMax = (ubyte4)int_val;
     }
-    if (get_json_bool_safe(params, "tps1_reverse", &bool_val)) {
+    if (get_bool(params, "tps1_reverse", &bool_val)) {
         tps->tps1_reverse = bool_val;
     }
-    if (get_json_double_safe(params, "tps1_percent", &double_val)) {
+    if (get_double(params, "tps1_percent", &double_val)) {
         tps->tps1_percent = (float4)double_val;
         has_tps1_percent = TRUE;
     }
-    if (get_json_double_safe(params, "travelPercent", &double_val)) {
+    if (get_double(params, "travelPercent", &double_val)) {
         tps->travelPercent = (float4)double_val;
         has_travel_percent = TRUE;
     }
@@ -275,13 +284,13 @@ static int parse_TorqueEncoder_from_json(TorqueEncoder* tps, cJSON* params)
     if (!has_travel_percent && (has_tps0_percent || has_tps1_percent)) {
         tps->travelPercent = (tps->tps0_percent + tps->tps1_percent) / 2.0f;
     }
-    if (get_json_double_safe(params, "outputCurveExponent", &double_val)) {
+    if (get_double(params, "outputCurveExponent", &double_val)) {
         tps->outputCurveExponent = (float4)double_val;
     }
-    if (get_json_bool_safe(params, "calibrated", &bool_val)) {
+    if (get_bool(params, "calibrated", &bool_val)) {
         tps->calibrated = bool_val;
     }
-    if (get_json_bool_safe(params, "implausibility", &bool_val)) {
+    if (get_bool(params, "implausibility", &bool_val)) {
         tps->implausibility = bool_val;
     }
     
@@ -291,7 +300,7 @@ static int parse_TorqueEncoder_from_json(TorqueEncoder* tps, cJSON* params)
 /**
  * Parse BrakePressureSensor struct values from JSON object
  */
-static int parse_BrakePressureSensor_from_json(BrakePressureSensor* bps, cJSON* params)
+static int set_BPS(BrakePressureSensor* bps, cJSON* params)
 {
     if (bps == NULL || params == NULL) {
         return -1;
@@ -301,48 +310,48 @@ static int parse_BrakePressureSensor_from_json(BrakePressureSensor* bps, cJSON* 
     double double_val;
     bool bool_val;
 
-    if (get_json_int_safe(params, "bps0_calibMin", &int_val)) {
+    if (get_int(params, "bps0_calibMin", &int_val)) {
         bps->bps0_calibMin = (ubyte2)int_val;
     }
-    if (get_json_int_safe(params, "bps0_calibMax", &int_val)) {
+    if (get_int(params, "bps0_calibMax", &int_val)) {
         bps->bps0_calibMax = (ubyte2)int_val;
     }
-    if (get_json_bool_safe(params, "bps0_reverse", &bool_val)) {
+    if (get_bool(params, "bps0_reverse", &bool_val)) {
         bps->bps0_reverse = bool_val;
     }
-    if (get_json_int_safe(params, "bps0_voltage", &int_val)) {
+    if (get_int(params, "bps0_voltage", &int_val)) {
         bps->bps0_voltage = (ubyte2)int_val;
     }
 
-    if (get_json_int_safe(params, "bps1_calibMin", &int_val)) {
+    if (get_int(params, "bps1_calibMin", &int_val)) {
         bps->bps1_calibMin = (ubyte2)int_val;
     }
-    if (get_json_int_safe(params, "bps1_calibMax", &int_val)) {
+    if (get_int(params, "bps1_calibMax", &int_val)) {
         bps->bps1_calibMax = (ubyte2)int_val;
     }
-    if (get_json_bool_safe(params, "bps1_reverse", &bool_val)) {
+    if (get_bool(params, "bps1_reverse", &bool_val)) {
         bps->bps1_reverse = bool_val;
     }
-    if (get_json_int_safe(params, "bps1_voltage", &int_val)) {
+    if (get_int(params, "bps1_voltage", &int_val)) {
         bps->bps1_voltage = (ubyte2)int_val;
     }
 
-    if (get_json_bool_safe(params, "runCalibration", &bool_val)) {
+    if (get_bool(params, "runCalibration", &bool_val)) {
         bps->runCalibration = bool_val;
     }
-    if (get_json_int_safe(params, "calibrationRunTime", &int_val)) {
+    if (get_int(params, "calibrationRunTime", &int_val)) {
         bps->calibrationRunTime = (ubyte1)int_val;
     }
-    if (get_json_bool_safe(params, "calibrated", &bool_val)) {
+    if (get_bool(params, "calibrated", &bool_val)) {
         bps->calibrated = bool_val;
     }
-    if (get_json_double_safe(params, "percent", &double_val)) {
+    if (get_double(params, "percent", &double_val)) {
         bps->percent = (float4)double_val;
     }
-    if (get_json_bool_safe(params, "brakesAreOn", &bool_val)) {
+    if (get_bool(params, "brakesAreOn", &bool_val)) {
         bps->brakesAreOn = bool_val;
     }
-    if (get_json_bool_safe(params, "implausibility", &bool_val)) {
+    if (get_bool(params, "implausibility", &bool_val)) {
         bps->implausibility = bool_val;
     }
 
@@ -352,7 +361,7 @@ static int parse_BrakePressureSensor_from_json(BrakePressureSensor* bps, cJSON* 
 /**
  * Parse Regen struct values from JSON object
  */
-static int parse_Regen_from_json(Regen* regen, cJSON* params)
+static int set_Regen(Regen* regen, cJSON* params)
 {
     if (regen == NULL || params == NULL) {
         return -1;
@@ -362,44 +371,44 @@ static int parse_Regen_from_json(Regen* regen, cJSON* params)
     double double_val;
     bool bool_val;
 
-    if (get_json_bool_safe(params, "regenToggle", &bool_val)) {
+    if (get_bool(params, "regenToggle", &bool_val)) {
         regen->regenToggle = bool_val;
     }
-    if (get_json_int_safe(params, "mode", &int_val)) {
+    if (get_int(params, "mode", &int_val)) {
         regen->mode = (RegenMode)int_val;
     }
-    if (get_json_int_safe(params, "torqueLimitDNm", &int_val)) {
+    if (get_int(params, "torqueLimitDNm", &int_val)) {
         regen->torqueLimitDNm = (sbyte2)int_val;
     }
-    if (get_json_double_safe(params, "appsTorque", &double_val)) {
+    if (get_double(params, "appsTorque", &double_val)) {
         regen->appsTorque = (float4)double_val;
     }
-    if (get_json_double_safe(params, "bpsTorqueNm", &double_val)) {
+    if (get_double(params, "bpsTorqueNm", &double_val)) {
         regen->bpsTorqueNm = (float4)double_val;
     }
-    if (get_json_int_safe(params, "regenTorqueCommand", &int_val)) {
+    if (get_int(params, "regenTorqueCommand", &int_val)) {
         regen->regenTorqueCommand = (sbyte2)int_val;
     }
-    if (get_json_int_safe(params, "torqueAtZeroPedalDNm", &int_val)) {
+    if (get_int(params, "torqueAtZeroPedalDNm", &int_val)) {
         regen->torqueAtZeroPedalDNm = (ubyte2)int_val;
     }
-    if (get_json_double_safe(params, "percentBPSForMaxRegen", &double_val)) {
+    if (get_double(params, "percentBPSForMaxRegen", &double_val)) {
         regen->percentBPSForMaxRegen = (float4)double_val;
     }
-    if (get_json_double_safe(params, "percentAPPSForCoasting", &double_val)) {
+    if (get_double(params, "percentAPPSForCoasting", &double_val)) {
         regen->percentAPPSForCoasting = (float4)double_val;
     }
-    if (get_json_double_safe(params, "padMu", &double_val)) {
+    if (get_double(params, "padMu", &double_val)) {
         regen->padMu = (float4)double_val;
     }
-    if (get_json_int_safe(params, "tick", &int_val)) {
+    if (get_int(params, "tick", &int_val)) {
         regen->tick = (sbyte1)int_val;
     }
 
     return 0;
 }
 
-static int parse_Efficiency_from_json(Efficiency* eff, cJSON* params) {
+static int set_Eff(Efficiency* eff, cJSON* params) {
     if (eff == NULL || params == NULL) {
         return -1;
     }
@@ -408,37 +417,37 @@ static int parse_Efficiency_from_json(Efficiency* eff, cJSON* params) {
     double double_val;
     bool bool_val;
 
-    if (get_json_bool_safe(params, "efficiencyToggle", &bool_val)) {
+    if (get_bool(params, "efficiencyToggle", &bool_val)) {
         eff->efficiencyToggle = bool_val;
     }
-    if (get_json_double_safe(params, "energyBudget_kWh", &double_val)) {
+    if (get_double(params, "energyBudget_kWh", &double_val)) {
         eff->energyBudget_kWh = (float)double_val;
     }
-    if (get_json_double_safe(params, "carryOverEnergy_kWh", &double_val)) {
+    if (get_double(params, "carryOverEnergy_kWh", &double_val)) {
         eff->carryOverEnergy_kWh = (float)double_val;
     }
-    if (get_json_int_safe(params, "lapCounter", &int_val)) {
+    if (get_int(params, "lapCounter", &int_val)) {
         eff->lapCounter = (ubyte1)int_val;
     }
-    if (get_json_double_safe(params, "straightTime_s", &double_val)) {
+    if (get_double(params, "straightTime_s", &double_val)) {
         eff->straightTime_s = (float)double_val;
     }
-    if (get_json_double_safe(params, "cornerTime_s", &double_val)) {
+    if (get_double(params, "cornerTime_s", &double_val)) {
         eff->cornerTime_s = (float)double_val;
     }
-    if (get_json_double_safe(params, "cornerEnergy_kWh", &double_val)) {
+    if (get_double(params, "cornerEnergy_kWh", &double_val)) {
         eff->cornerEnergy_kWh = (float)double_val;
     }
-    if (get_json_double_safe(params, "straightEnergy_kWh", &double_val)) {
+    if (get_double(params, "straightEnergy_kWh", &double_val)) {
         eff->straightEnergy_kWh = (float)double_val;
     }
-    if (get_json_double_safe(params, "lapEnergy_kWh", &double_val)) {
+    if (get_double(params, "lapEnergy_kWh", &double_val)) {
         eff->lapEnergy_kWh = (float)double_val;
     }
-    if (get_json_double_safe(params, "lapDistance_km", &double_val)) {
+    if (get_double(params, "lapDistance_km", &double_val)) {
         eff->lapDistance_km = (float)double_val;
     }
-    if (get_json_bool_safe(params, "finishedLap", &bool_val)) {
+    if (get_bool(params, "finishedLap", &bool_val)) {
         eff->finishedLap = bool_val;
     }
 
@@ -453,32 +462,32 @@ static int parse_bms_from_json(BatteryManagementSystem* bms, cJSON* params) {
     int int_val;
     double double_val;
 
-    if (get_json_double_safe(params, "highestCellVoltage_mV", &double_val)) {
+    if (get_double(params, "highestCellVoltage_mV", &double_val)) {
         bms->highestCellVoltage_mV = (float)double_val;
     }
-    if (get_json_double_safe(params, "lowestCellVoltage_mV", &double_val)) {
+    if (get_double(params, "lowestCellVoltage_mV", &double_val)) {
         bms->lowestCellVoltage_mV = (float)double_val;
     }
-    if (get_json_double_safe(params, "packVoltage_mV", &double_val)) {
+    if (get_double(params, "packVoltage_mV", &double_val)) {
         bms->packVoltage_mV = (float)double_val;
     }
-    if (get_json_double_safe(params, "highestCellTemp_d_degC", &double_val)) {
+    if (get_double(params, "highestCellTemp_d_degC", &double_val)) {
         bms->highestCellTemp_d_degC = (double)double_val;
     }
-    if (get_json_double_safe(params, "highestCellTemp_degC", &double_val)) {
+    if (get_double(params, "highestCellTemp_degC", &double_val)) {
         bms->highestCellTemp_degC = (double)double_val;
     }
-    if (get_json_double_safe(params, "power_uW", &double_val)) {
+    if (get_double(params, "power_uW", &double_val)) {
         bms->power_uW = (double)double_val;
     }
-    if (get_json_double_safe(params, "power_W", &double_val)) {
+    if (get_double(params, "power_W", &double_val)) {
         bms->power_W = (double)double_val;
     }
 
     return 0;
 }*/ // BMS struct isn't completely defined yet and thats why its giving an error.
 
-static int parse_launchControl_from_json(LaunchControl* lc, cJSON* params) {
+static int set_LC(LaunchControl* lc, cJSON* params) {
 
     if (lc == NULL || params == NULL) {
         return -1;
@@ -490,58 +499,58 @@ static int parse_launchControl_from_json(LaunchControl* lc, cJSON* params) {
 
     cJSON* pid_json = cJSON_GetObjectItem(params, "pid");
     if (pid_json != NULL && !cJSON_IsNull(pid_json) && lc->pid != NULL) {
-        parse_PID_from_json(lc->pid, pid_json);
+        set_PID(lc->pid, pid_json);
     }
 
-    if (get_json_bool_safe(params, "lcToggle", &bool_val)) {
+    if (get_bool(params, "lcToggle", &bool_val)) {
         lc->lcToggle = bool_val;
     }
-    if (get_json_int_safe(params, "Kp", &int_val)) {
+    if (get_int(params, "Kp", &int_val)) {
         lc->Kp = (sbyte1)int_val;
     }
-    if (get_json_int_safe(params, "Ki", &int_val)) {
+    if (get_int(params, "Ki", &int_val)) {
         lc->Ki = (sbyte1)int_val;
     }
-    if (get_json_int_safe(params, "Kd", &int_val)) {
+    if (get_int(params, "Kd", &int_val)) {
         lc->Kd = (sbyte1)int_val;
     }
-    if (get_json_double_safe(params, "currentSlipRatio", &double_val)) {
+    if (get_double(params, "currentSlipRatio", &double_val)) {
         lc->currentSlipRatio = (float4)double_val;
     }
-    if (get_json_double_safe(params, "slipRatioTarget", &double_val)) {
+    if (get_double(params, "slipRatioTarget", &double_val)) {
         lc->slipRatioTarget = (float4)double_val;
     }
-    if (get_json_double_safe(params, "currentVelocityDifference", &double_val)) {
+    if (get_double(params, "currentVelocityDifference", &double_val)) {
         lc->currentVelocityDifference = (float4)double_val;
     }
-    if (get_json_double_safe(params, "targetVelocityDifference", &double_val)) {
+    if (get_double(params, "targetVelocityDifference", &double_val)) {
         lc->targetVelocityDifference = (float4)double_val;
     }
-    if (get_json_int_safe(params, "lcTorqueCommand", &int_val)) {
+    if (get_int(params, "lcTorqueCommand", &int_val)) {
         lc->lcTorqueCommand = (sbyte2)int_val;
     }
-    if (get_json_double_safe(params, "initialTorque", &double_val)) {
+    if (get_double(params, "initialTorque", &double_val)) {
         lc->initialTorque = (float4)double_val;
     }
-    if (get_json_double_safe(params, "maxTorque", &double_val)) {
+    if (get_double(params, "maxTorque", &double_val)) {
         lc->maxTorque = (float4)double_val;
     }
-    if (get_json_double_safe(params, "prevTorque", &double_val)) {
+    if (get_double(params, "prevTorque", &double_val)) {
         lc->prevTorque = (float4)double_val;
     }
-    if (get_json_double_safe(params, "k", &double_val)) {
+    if (get_double(params, "k", &double_val)) {
         lc->k = (float4)double_val;
     }
-    if (get_json_bool_safe(params, "useFilter", &bool_val)) {
+    if (get_bool(params, "useFilter", &bool_val)) {
         lc->useFilter = bool_val;
     }
-    if (get_json_int_safe(params, "state", &int_val)) {
+    if (get_int(params, "state", &int_val)) {
         lc->state = (LC_State)int_val;
     }
-    if (get_json_int_safe(params, "mode", &int_val)) {
+    if (get_int(params, "mode", &int_val)) {
         lc->mode = (LC_Mode)int_val;
     }
-    if (get_json_int_safe(params, "phase", &int_val)) {
+    if (get_int(params, "phase", &int_val)) {
         lc->phase = (LC_Phase)int_val;
     }
 
@@ -550,118 +559,9 @@ static int parse_launchControl_from_json(LaunchControl* lc, cJSON* params) {
     
 }
 
-static int parse_pid_from_json(PID* pid, cJSON* params) {
-    if (pid == NULL || params == NULL) {
-        return -1;
-    }
 
-    int int_val;
-    double double_val;
-    bool bool_val;
 
-    if (get_json_double_safe(params, "Kp", &double_val)) {
-        pid->Kp = (sbyte1)double_val;
-    }
-    if (get_json_double_safe(params, "Ki", &double_val)) {
-        pid->Ki = (sbyte2)double_val;
-    }
-    if (get_json_double_safe(params, "Kd", &double_val)) {
-        pid->Kd = (sbyte1)double_val;
-    }
-    if (get_json_double_safe(params, "setPoint", &double_val)) {
-        pid->setpoint = (float)double_val;
-    }
-    if (get_json_double_safe(params, "previousError", &double_val)) {
-        pid->previousError = (float)double_val;
-    }
-    if (get_json_double_safe(params, "totalError", &double_val)) {
-        pid->totalError = (float)double_val;
-    }
-    if (get_json_double_safe(params, "output", &double_val)) {
-        pid->output = (float)double_val;
-    }
-    if (get_json_double_safe(params, "proportional", &double_val)) {
-        pid->proportional = (float)double_val;
-    }
-    if (get_json_double_safe(params, "integral", &double_val)) {
-        pid->integral = (float)double_val;
-    }
-    if (get_json_double_safe(params, "derivative", &double_val)) {
-        pid->derivative = (float)double_val;
-    }
-    if (get_json_double_safe(params, "saturationValue", &double_val)) {
-        pid->saturationValue = (sbyte2)double_val;
-    }
-    if (get_json_bool_safe(params, "antiWindupFlag", &bool_val)) {
-        pid->antiWindupFlag = bool_val;
-    }
-
-    return 0;
-}
-
-static int parse_sensor_from_json(Sensor* sensor, cJSON* params) {
-    if (sensor == NULL || params == NULL) {
-        return -1;
-    }
-
-    int int_val;
-    double double_val;
-    bool bool_val;
-
-    if (get_json_double_safe(params, "specMax", &double_val)) {
-        sensor->specMax = (ubyte4)double_val;
-    }
-    if (get_json_double_safe(params, "sensorValue", &double_val)) {
-        sensor->sensorValue = (ubyte4)double_val;
-    }
-    if (get_json_double_safe(params, "heldSensorValue", &double_val)) {
-        sensor->heldSensorValue = (ubyte4)double_val;
-    }
-    if (get_json_double_safe(params, "timestamp", &double_val)) {
-        sensor->timestamp = (ubyte4)double_val;
-    }
-    if (get_json_bool_safe(params, "fresh", &bool_val)) {
-        sensor->fresh = bool_val;
-    }
-    if (get_json_double_safe(params, "ioErr_powerInit", &double_val)) {
-        sensor->ioErr_powerInit = (IO_ErrorType)double_val;
-    }
-    if (get_json_double_safe(params, "ioErr_powerSet", &double_val)) {
-        sensor->ioErr_powerSet = (IO_ErrorType)double_val;
-    }
-    if (get_json_double_safe(params, "ioErr_signalInit", &double_val)) {
-        sensor->ioErr_signalInit = (IO_ErrorType)double_val;
-    }
-    if (get_json_double_safe(params, "ioErr_signalGet", &double_val)) {
-        sensor->ioErr_signalGet = (IO_ErrorType)double_val;
-    }
-
-    return 0;
-}
-
-static int parse_watchdog_from_json(WatchDog* wd, cJSON* params) {
-    if (wd == NULL || params == NULL) {
-        return -1;
-    }
-
-    int int_val;
-    double double_val;
-    bool bool_val;
-
-    if (get_json_double_safe(params, "timestamp", &double_val)) {
-        wd->timestamp = (ubyte4)double_val;
-    }
-    if (get_json_double_safe(params, "timeout", &double_val)) {
-        wd->timeout = (ubyte4)double_val;
-    }
-    if (get_json_double_safe(params, "running", &double_val)) {
-        wd->running = double_val;
-    }
-
-    return 0;
-}
-
-static int parse_WheelSpeeds_from_json(WheelSpeeds* wss, cJSON* params)
+static int set_WSS(WheelSpeeds* wss, cJSON* params)
 {
     if (wss == NULL || params == NULL) {
         return -1;
@@ -669,19 +569,19 @@ static int parse_WheelSpeeds_from_json(WheelSpeeds* wss, cJSON* params)
 
     int int_val;
 
-    if (get_json_int_safe(params, "frequency_FL", &int_val)) {
+    if (get_int(params, "frequency_FL", &int_val)) {
         Sensor_WSS_FL.sensorValue = (ubyte4)int_val;
         Sensor_WSS_FL.heldSensorValue = (ubyte4)int_val;
     }
-    if (get_json_int_safe(params, "frequency_FR", &int_val)) {
+    if (get_int(params, "frequency_FR", &int_val)) {
         Sensor_WSS_FR.sensorValue = (ubyte4)int_val;
         Sensor_WSS_FR.heldSensorValue = (ubyte4)int_val;
     }
-    if (get_json_int_safe(params, "frequency_RL", &int_val)) {
+    if (get_int(params, "frequency_RL", &int_val)) {
         Sensor_WSS_RL.sensorValue = (ubyte4)int_val;
         Sensor_WSS_RL.heldSensorValue = (ubyte4)int_val;
     }
-    if (get_json_int_safe(params, "frequency_RR", &int_val)) {
+    if (get_int(params, "frequency_RR", &int_val)) {
         Sensor_WSS_RR.sensorValue = (ubyte4)int_val;
         Sensor_WSS_RR.heldSensorValue = (ubyte4)int_val;
     }
@@ -691,21 +591,20 @@ static int parse_WheelSpeeds_from_json(WheelSpeeds* wss, cJSON* params)
 
 /**
  * Parse JSON string and assign values to structs
- * This is the main function used by sil_read_initial_json and sil_read_json_input
+ * This is the main function used by SIL_read_config and SIL_read
  */
-static int parse_struct_values_from_string(const char* json_string, 
-                                           PowerLimit* pl, 
-                                           MotorController* mcm, 
-                                           TorqueEncoder* tps,
-                                           BrakePressureSensor* bps,
-                                           Regen* regen,
-                                           Efficiency* eff,
-                                           BatteryManagementSystem* bms,
-                                           LaunchControl* lc,
-                                           PID* pid,
-                                           Sensor* sensor,
-                                           WatchDog* wd,
-                                           WheelSpeeds* wss)
+static int set_struct(
+                        const char* json_string, 
+                        PowerLimit* pl, 
+                        MotorController* mcm, 
+                        TorqueEncoder* tps,
+                        BrakePressureSensor* bps,
+                        Regen* regen,
+                        Efficiency* eff,
+                        BatteryManagementSystem* bms,
+                        LaunchControl* lc,
+                        WheelSpeeds* wss
+                    )
 {
     if (json_string == NULL) {
         return -1; // Invalid input
@@ -758,36 +657,27 @@ static int parse_struct_values_from_string(const char* json_string,
         
         // Parse based on struct name
         if (strcmp(struct_name, "PowerLimit") == 0 && pl != NULL) {
-            parse_PowerLimit_from_json(pl, params);
+            set_PL(pl, params);
         } else if (strcmp(struct_name, "MotorController") == 0 && mcm != NULL) {
-            parse_MotorController_from_json(mcm, params);
+            set_MCM(mcm, params);
         } else if (strcmp(struct_name, "TorqueEncoder") == 0 && tps != NULL) {
-            parse_TorqueEncoder_from_json(tps, params);
+            set_TPS(tps, params);
         } else if (strcmp(struct_name, "BrakePressureSensor") == 0 && bps != NULL) {
-            parse_BrakePressureSensor_from_json(bps, params);
+            set_BPS(bps, params);
         } else if (strcmp(struct_name, "Regen") == 0 && regen != NULL) {
-            parse_Regen_from_json(regen, params);
+            set_Regen(regen, params);
         }
         else if (strcmp(struct_name, "Efficiency") == 0 && eff != NULL) {
-            parse_Efficiency_from_json(eff, params);
+            set_Eff(eff, params);
         }
         /*else if (strcmp(struct_name, "BatteryManagementSystem") == 0 && bms != NULL) {
             parse_bms_from_json(bms, params);
         }*/
         else if (strcmp(struct_name, "LaunchControl") == 0 && lc != NULL) {
-            parse_launchControl_from_json(lc, params);
-        }
-        else if (strcmp(struct_name, "PID") == 0 && pid != NULL) {
-            parse_pid_from_json(pid, params);
-        }
-        else if (strcmp(struct_name, "Sensor") == 0 && sensor != NULL) {
-            parse_sensor_from_json(sensor, params);
-        }
-        else if (strcmp(struct_name, "WatchDog") == 0 && wd != NULL) {
-            parse_watchdog_from_json(wd, params);
+            set_LC(lc, params);
         }
         else if (strcmp(struct_name, "WheelSpeeds") == 0 && wss != NULL) {
-            parse_WheelSpeeds_from_json(wss, params);
+            set_WSS(wss, params);
         }
     }
     
@@ -800,7 +690,7 @@ static int parse_struct_values_from_string(const char* json_string,
  * @param json_buffer Buffer to store JSON (must be at least JSON_BUFFER_SIZE)
  * @return Number of bytes read, or -1 on error
  */
-static int read_json_from_stdin(char* json_buffer)
+static int read_stdin(char* json_buffer)
 {
     size_t total_read = 0;
     int brace_count = 0;
@@ -845,7 +735,22 @@ static int read_json_from_stdin(char* json_buffer)
     return (int)total_read;
 }
 
-int sil_read_initial_json(PowerLimit* pl, MotorController* mcm, TorqueEncoder* tps, BrakePressureSensor* bps, Regen* regen, PID* pid, LaunchControl* lc, WheelSpeeds* wss, Sensor* sensor, WatchDog* wd, Efficiency* eff, BatteryManagementSystem* bms)
+static void SIL_cache_inputs(TorqueEncoder* tps, BrakePressureSensor* bps)
+{
+    if (tps != NULL) {
+        sil_saved_tps_travelPercent = tps->travelPercent;
+        sil_saved_tps0_percent = tps->tps0_percent;
+        sil_saved_tps1_percent = tps->tps1_percent;
+        sil_has_tps_cache = TRUE;
+    }
+    if (bps != NULL) {
+        sil_saved_bps0_voltage = bps->bps0_voltage;
+        sil_saved_bps1_voltage = bps->bps1_voltage;
+        sil_has_bps_cache = TRUE;
+    }
+}
+
+int SIL_read_config(PowerLimit* pl, MotorController* mcm, TorqueEncoder* tps, BrakePressureSensor* bps, Regen* regen, LaunchControl* lc, WheelSpeeds* wss, Efficiency* eff, BatteryManagementSystem* bms)
 {
     char* json_buffer = (char*)malloc(JSON_BUFFER_SIZE);
     if (json_buffer == NULL) {
@@ -854,11 +759,14 @@ int sil_read_initial_json(PowerLimit* pl, MotorController* mcm, TorqueEncoder* t
         return -1;
     }
     
-    int total_read = read_json_from_stdin(json_buffer);
+    int total_read = read_stdin(json_buffer);
     int result = -1;
     
     if (total_read > 0) {
-        result = parse_struct_values_from_string(json_buffer, pl, mcm, tps, bps, regen, eff, bms, lc, pid, sensor, wd, wss);
+        result = set_struct(json_buffer, pl, mcm, tps, bps, regen, eff, bms, lc, wss);
+        if (result == 0) {
+            SIL_cache_inputs(tps, bps);
+        }
         
         if (result != 0) {
             fprintf(stderr, "SIL: Failed to parse JSON from stdin (error: %d, length: %d)\n",
@@ -879,7 +787,7 @@ int sil_read_initial_json(PowerLimit* pl, MotorController* mcm, TorqueEncoder* t
     return result;
 }
 
-int sil_read_json_input(PowerLimit* pl, MotorController* mcm, TorqueEncoder* tps, BrakePressureSensor* bps, Regen* regen, PID* pid, LaunchControl* lc, WheelSpeeds* wss, Sensor* sensor, WatchDog* wd, Efficiency* eff, BatteryManagementSystem* bms)
+int SIL_read(PowerLimit* pl, MotorController* mcm, TorqueEncoder* tps, BrakePressureSensor* bps, Regen* regen, LaunchControl* lc, WheelSpeeds* wss, Efficiency* eff, BatteryManagementSystem* bms)
 {
     // Non-blocking check for stdin data
     #ifdef _WIN32
@@ -910,11 +818,14 @@ int sil_read_json_input(PowerLimit* pl, MotorController* mcm, TorqueEncoder* tps
         return -1;
     }
     
-    int total_read = read_json_from_stdin(json_buffer);
+    int total_read = read_stdin(json_buffer);
     int parse_result = -1;
     
     if (total_read > 0) {
-        parse_result = parse_struct_values_from_string(json_buffer, pl, mcm, tps, bps, regen, eff, bms, lc, pid, sensor, wd, wss);
+        parse_result = set_struct(json_buffer, pl, mcm, tps, bps, regen, eff, bms, lc, wss);
+        if (parse_result == 0) {
+            SIL_cache_inputs(tps, bps);
+        }
         if (parse_result != 0) {
             fprintf(stderr, "SIL: Failed to parse JSON in loop (error: %d)\n", parse_result);
             fflush(stderr);
@@ -931,7 +842,7 @@ int sil_read_json_input(PowerLimit* pl, MotorController* mcm, TorqueEncoder* tps
 
 
 // NOTE: cJSON ONLY ACCEPTS DOUBLE DATA TYPES FOR NUMBER VALUES
-void sil_write_json_output(MotorController* mcm, PowerLimit* pl, Efficiency* eff, BatteryManagementSystem* bms, LaunchControl* lc, BrakePressureSensor* bps, PID* pid, Regen *regen, InstrumentCluster *ic, ReadyToDriveSound *rtds, SafetyChecker *sc, Sensor *sensor, TorqueEncoder *tps, WatchDog *wd, ubyte1 output_mode) {
+void SIL_write(MotorController* mcm, PowerLimit* pl, Efficiency* eff, BatteryManagementSystem* bms, LaunchControl* lc, BrakePressureSensor* bps, Regen *regen, WheelSpeeds *wss, TorqueEncoder *tps) {
     
         cJSON *root = cJSON_CreateObject();
         if (root == NULL) {
@@ -1030,24 +941,6 @@ void sil_write_json_output(MotorController* mcm, PowerLimit* pl, Efficiency* eff
                cJSON_AddItemToObject(root, "BrakePressureSensor", bps_json);
             }
         }
-        if (pid != NULL) {
-            cJSON *pid_json = cJSON_CreateObject();
-            if (pid_json != NULL) {
-                cJSON_AddNumberToObject(pid_json, "Kp", (double) PID_getKp(pid));
-                cJSON_AddNumberToObject(pid_json, "Ki", (double) PID_getKi(pid));
-                cJSON_AddNumberToObject(pid_json, "Kd", (double) PID_getKd(pid));
-                cJSON_AddNumberToObject(pid_json, "setPoint", (double) PID_getSetpoint(pid));
-                cJSON_AddNumberToObject(pid_json, "previousError", (double) PID_getPreviousError(pid));
-                cJSON_AddNumberToObject(pid_json, "totalError", (double) PID_getTotalError(pid));
-                cJSON_AddNumberToObject(pid_json, "output", (double) PID_getOutput(pid));
-                cJSON_AddNumberToObject(pid_json, "proportional", (double) PID_getProportional(pid));
-                cJSON_AddNumberToObject(pid_json, "integral", (double) PID_getIntegral(pid));
-                cJSON_AddNumberToObject(pid_json, "derivative", (double) PID_getDerivative(pid));
-                cJSON_AddNumberToObject(pid_json, "saturationValue", (double) PID_getSaturationValue(pid));
-                cJSON_AddBoolToObject(pid_json, "antiWindupFlag", (double) PID_getAntiWindupFlag(pid));
-                cJSON_AddItemToObject(root, "PID", pid_json);
-            }
-        }
         if (regen != NULL) {
             cJSON *regen_json = cJSON_CreateObject();
             if (regen_json != NULL) {
@@ -1067,32 +960,19 @@ void sil_write_json_output(MotorController* mcm, PowerLimit* pl, Efficiency* eff
             }
         }
         
-        if (ic != NULL) {
-            cJSON *ic_json = cJSON_CreateObject();
-            if (ic_json != NULL) {
-                // cJSON_AddNumberToObject(ic_json, "serialMan", (double) ic->serialMan);
-                // cJSON_AddNumberToObject(ic_json, "canMessageBaseId", (double) ic->canMessageBaseId);
-                cJSON_AddNumberToObject(ic_json, "torqueMapMode", (double) IC_getTorqueMapMode(ic));
-                cJSON_AddNumberToObject(ic_json, "launchControlSensitivity", (double) IC_getLaunchControlSensitivity(ic));
-                cJSON_AddItemToObject(root, "InstrumentCluster", ic_json);
-            }
-        } 
-        if (sensor != NULL) {
-            cJSON *sensor_json = cJSON_CreateObject();
-            if (sensor_json != NULL) {
-                // cJSON_AddNumberToObject(sensor_json, "specMin", (double) sensor->specMin); compiler says this doesn't exist, but it's defined in the header file. We can add this back in once we resolve this issue.
-                cJSON_AddNumberToObject(sensor_json, "specMax", (double) sensor->specMax);
-                cJSON_AddNumberToObject(sensor_json, "sensorValue", (double) sensor->sensorValue);
-                cJSON_AddNumberToObject(sensor_json, "heldSensorValue", (double) sensor->heldSensorValue);
-                cJSON_AddNumberToObject(sensor_json, "timestamp", (double) sensor->timestamp);
-                cJSON_AddBoolToObject(sensor_json, "fresh", sensor->fresh);
-                cJSON_AddNumberToObject(sensor_json, "ioErr_powerInit", (double) sensor->ioErr_powerInit);
-                cJSON_AddNumberToObject(sensor_json, "ioErr_powerSet", (double) sensor->ioErr_powerSet);
-                cJSON_AddNumberToObject(sensor_json, "ioErr_signalInit", (double) sensor->ioErr_signalInit);
-                cJSON_AddNumberToObject(sensor_json, "ioErr_signalGet", (double) sensor->ioErr_signalGet);
-                cJSON_AddItemToObject(root, "Sensor", sensor_json);
+        if (wss != NULL) {
+            cJSON *wss_json = cJSON_CreateObject();
+            if (wss_json != NULL) {
+                cJSON_AddNumberToObject(wss_json, "wheelSpeedRPM_FL", (double) WheelSpeeds_getWheelSpeedRPM(wss, FL, FALSE));
+                cJSON_AddNumberToObject(wss_json, "wheelSpeedRPM_FR", (double) WheelSpeeds_getWheelSpeedRPM(wss, FR, FALSE));
+                cJSON_AddNumberToObject(wss_json, "wheelSpeedRPM_RL", (double) WheelSpeeds_getWheelSpeedRPM(wss, RL, FALSE));
+                cJSON_AddNumberToObject(wss_json, "wheelSpeedRPM_RR", (double) WheelSpeeds_getWheelSpeedRPM(wss, RR, FALSE));
+                cJSON_AddNumberToObject(wss_json, "groundSpeedKPH", (double) WheelSpeeds_getGroundSpeedKPH(wss, 0, FALSE));
+                cJSON_AddNumberToObject(wss_json, "fastestRearRPM", (double) WheelSpeeds_getFastestRearRPM(wss, FALSE));
+                cJSON_AddItemToObject(root, "WheelSpeeds", wss_json);
             }
         }
+
         if (tps != NULL) {
             cJSON *tps_json = cJSON_CreateObject();
             if (tps_json != NULL) {
@@ -1119,17 +999,6 @@ void sil_write_json_output(MotorController* mcm, PowerLimit* pl, Efficiency* eff
                 cJSON_AddItemToObject(root, "TorqueEncoder", tps_json);
             }
         }
-        if (wd != NULL) {
-            cJSON *wd_json = cJSON_CreateObject();
-            if (wd_json != NULL) {
-                cJSON_AddNumberToObject(wd_json, "timestamp", (double) wd->timestamp);
-                cJSON_AddNumberToObject(wd_json, "timeout", (double) wd->timeout);
-                cJSON_AddNumberToObject(wd_json, "running", (double) wd->running);
-                cJSON_AddItemToObject(root, "WatchDog", wd_json);
-            }
-        }
-        
-        
         
         char* json_output = cJSON_PrintUnformatted(root);
         if (json_output != NULL) {
@@ -1142,146 +1011,21 @@ void sil_write_json_output(MotorController* mcm, PowerLimit* pl, Efficiency* eff
     
     
 }
-/*
-void sil_write_json_output(MotorController* mcm, PowerLimit* pl, Efficiency* eff, ubyte1 output_mode)
+
+void SIL_restore_tps(TorqueEncoder* tps)
 {
-    int first_field = 1;  // Track if this is the first field in JSON
-    
-    printf("{");
-
-    if (eff != NULL) {
-        if (!first_field) printf(",");
-        printf("\"efficiency\":{");
-        int first_eff = 1;
-
-        if (mcm != NULL) {
-            if (!first_eff) printf(",");
-            printf("\"mcm_motorRPM\":%.4f", (float4)MCM_getMotorRPM(mcm));
-            first_eff = 0;
-        }
-
-        if (!first_eff) printf(",");
-        printf("\"time_in_straight\":%.4f", eff->straightTime_s);
-        first_eff = 0;
-
-        if (!first_eff) printf(",");
-        printf("\"time_in_corners\":%.4f", eff->cornerTime_s);
-
-        if (!first_eff) printf(",");
-        printf("\"lap_counter\":%d", eff->lapCounter);
-
-        if (pl != NULL) {
-            if (!first_eff) printf(",");
-            printf("\"pl_target\":%.4f", (float4)pl->plTargetPower);
-        }
-
-        if (!first_eff) printf(",");
-        printf("\"energy_consumption_per_lap\":%.4f", eff->lapEnergy_kWh);
-
-        if (!first_eff) printf(",");
-        printf("\"energy_budget_per_lap\":%.4f", eff->energyBudget_kWh);
-
-        if (!first_eff) printf(",");
-        printf("\"carry_over_energy\":%.4f", eff->carryOverEnergy_kWh);
-
-        if (!first_eff) printf(",");
-        printf("\"total_lap_distance\":%.4f", eff->lapDistance_km);
-
-        printf("}");
-        first_field = 0;
+    if (tps != NULL && sil_has_tps_cache) {
+        tps->travelPercent = sil_saved_tps_travelPercent;
+        tps->tps0_percent = sil_saved_tps0_percent;
+        tps->tps1_percent = sil_saved_tps1_percent;
     }
+}
 
-    if (pl != NULL) {
-        if (!first_field) printf(",");
-        printf("\"power_limit\":{");
-        int first_pl = 1;
-        
-        if (!first_pl) printf(",");
-        printf("\"pl_status\":%s", pl->plStatus ? "true" : "false");
-        first_pl = 0;
-        
-        if (!first_pl) printf(",");
-        printf("\"pl_mode\":%u", pl->plMode);
-        
-        if (!first_pl) printf(",");
-        printf("\"pl_target_power\":%.4f", (float4)pl->plTargetPower);
-        
-        if (!first_pl) printf(",");
-        printf("\"pl_initialization_threshold\":%.4f", (float4)pl->plInitializationThreshold);
-        
-        if (!first_pl) printf(",");
-        printf("\"pl_torque_command\":%.4f", (float4)pl->plTorqueCommand / 10.0f);  // Convert DNm to Nm
-        
-        if (!first_pl) printf(",");
-        printf("\"pl_clamping_method\":%u", pl->clampingMethod);
-        
-        if (!first_pl) printf(",");
-        printf("\"pl_always_on\":%s", pl->plAlwaysOn ? "true" : "false");
-        
-        // Only output current_power_kw if mcm is available
-        if (mcm != NULL) {
-            sbyte4 current_power_kw = (MCM_getDCVoltage(mcm) * MCM_getDCCurrent(mcm)) / 1000;
-            if (!first_pl) printf(",");
-            printf("\"current_power_kw\":%.4f", (float4)current_power_kw);
-        }
-        
-        printf("}");
-        first_field = 0;
-    }
-
-    if (mcm != NULL) {
-        if (!first_field) printf(",");
-        printf("\"motor_controller\":{");
-        int first_mcm = 1;
-        
-        printf("\"motor_rpm\":%.4f", (float4)MCM_getMotorRPM(mcm));
-        first_mcm = 0;
-        
-        if (!first_mcm) printf(",");
-        printf("\"dc_voltage\":%.4f", (float4)MCM_getDCVoltage(mcm));
-        
-        if (!first_mcm) printf(",");
-        printf("\"dc_current\":%.4f", (float4)MCM_getDCCurrent(mcm));
-        
-        if (!first_mcm) printf(",");
-        sbyte4 power_kw = (MCM_getDCVoltage(mcm) * MCM_getDCCurrent(mcm)) / 1000;
-        printf("\"power_kw\":%.4f", (float4)power_kw);
-        
-        if (!first_mcm) printf(",");
-        printf("\"commanded_torque\":%.4f", (float4)MCM_getCommandedTorque(mcm) / 10.0f);  // Convert DNm to Nm
-        
-        if (!first_mcm) printf(",");
-        printf("\"apps_torque\":%.4f", (float4)MCM_commands_getAppsTorque(mcm) / 10.0f);  // Convert DNm to Nm
-        
-        if (!first_mcm) printf(",");
-        printf("\"pl_torque_command\":%.4f", (float4)MCM_get_PL_torqueCommand(mcm) / 10.0f);  // Convert DNm to Nm
-        
-        if (!first_mcm) printf(",");
-        printf("\"max_torque\":%.4f", (float4)MCM_getMaxTorqueDNm(mcm) / 10.0f);  // Convert DNm to Nm
-        
-        if (!first_mcm) printf(",");
-        printf("\"ground_speed_kph\":%.4f", MCM_getGroundSpeedKPH(mcm));
-        
-        printf("}");
-        first_field = 0;
-    }
-    
-    printf("}\n");
-    fflush(stdout);
-}*/
-
-void sil_restore_tps_values(TorqueEncoder* tps, float4* saved_travelPercent, 
-                            float4* saved_tps0_percent, float4* saved_tps1_percent)
+void SIL_restore_bps(BrakePressureSensor* bps)
 {
-    if (tps != NULL && saved_travelPercent != NULL && 
-        *saved_travelPercent != 0.0f) {
-        tps->travelPercent = *saved_travelPercent;
-        if (saved_tps0_percent != NULL) {
-            tps->tps0_percent = *saved_tps0_percent;
-        }
-        if (saved_tps1_percent != NULL) {
-            tps->tps1_percent = *saved_tps1_percent;
-        }
+    if (bps != NULL && sil_has_bps_cache) {
+        bps->bps0_voltage = sil_saved_bps0_voltage;
+        bps->bps1_voltage = sil_saved_bps1_voltage;
     }
 }
 
