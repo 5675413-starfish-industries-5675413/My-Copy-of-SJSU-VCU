@@ -365,9 +365,24 @@ def format_output(structs_data: List[Dict[str, Any]], output_file: Path) -> None
 
         json_data.append(struct_entry)
     
+    # Serialize with readable indentation, then compact parameter value objects
+    # from:
+    #   "member": {
+    #     "id": 0,
+    #     "value": null
+    #   }
+    # to:
+    #   "member": {"id": 0, "value": null}
+    json_str = json.dumps(json_data, indent=2)
+    json_str = re.sub(
+        r'\{\n\s*"id": (\d+),\n\s*"value": null\n\s*\}',
+        r'{"id": \1, "value": null}',
+        json_str,
+    )
+
     # Write JSON file
     with open(output_file, 'w', encoding='utf-8') as f:
-        f.write(json_str)
+        f.write(json_str + '\n')
 
 
 def extract_struct_definitions(output_file: Path = None) -> Dict[str, Any]:
