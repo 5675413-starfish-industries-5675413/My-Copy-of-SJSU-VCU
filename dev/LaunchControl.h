@@ -19,6 +19,12 @@ typedef enum {
     LC_MODE_VELOCITY_DIFFERENCE
 } LC_Mode;
 
+// added 
+typedef enum {
+    LC_COMMAND_TORQUE,
+    LC_COMMAND_SPEED
+}LC_CommandMode;
+
 typedef enum {
     LC_PHASE_RAMP,
     LC_PHASE_NONLINEAR,
@@ -42,6 +48,12 @@ typedef struct _LaunchControl {
     float currentVelocityDifference;
     float targetVelocityDifference;
     sbyte2 lcTorqueCommand;
+    // add
+    sbyte4 lcSpeedCommand; // rpm value
+    float maxRPM; 
+    float prevRPM;
+    LC_CommandMode commandMode; 
+    // end
     float initialTorque;
     float maxTorque;
     float prevTorque;
@@ -72,5 +84,12 @@ void LaunchControl_updateFilterStatus(LaunchControl *me, MotorController *mcm);
 bool LaunchControl_getFilterStatus(LaunchControl *me);
 sbyte2 LaunchControl_getVelocityDifferenceTarget(LaunchControl *me);
 sbyte2 LaunchControl_getCurrentVelocityDifference(LaunchControl *me);
+
+//add
+void LaunchControl_applySpeedCurve(LaunchControl *me, MotorController *mcm);
+sbyte4 LaunchControl_getSpeedCommand(LaunchControl *me);
+bool LaunchControl_getActiveStatus(LaunchControl *me);
+void LaunchControl_updateVelocityDifference(LaunchControl *me, WheelSpeeds *wss);
+//end
 
 #endif

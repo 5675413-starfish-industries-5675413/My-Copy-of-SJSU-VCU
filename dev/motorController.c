@@ -96,6 +96,9 @@ struct _MotorController
     ubyte2 updateCount;               //Number of updates since lastCommandSent
 
     sbyte2 commands_torque;
+    //add
+    sbyte4 commands_speed;
+    //end
     sbyte2 appsTorque;
     sbyte2 commands_torqueLimit;
     ubyte1 commands_direction;
@@ -128,6 +131,10 @@ struct _MotorController
     //};
 
     sbyte2 lcTorqueCommand;
+    //add
+    sbyte4 lcSpeedCommand;
+    bool isSpeedModeEnabled;
+    //end
     bool lcEngaged;
     Event currentEvent;
     sbyte2 plTorqueCommand;
@@ -171,6 +178,10 @@ MotorController *MotorController_new(SerialManager *sm, ubyte2 canMessageBaseID,
     me->motor_temp = 99;
 
     me->lcTorqueCommand = 0;
+
+    me->lcSpeedCommand = 0; // no speed porfa
+    me->isSpeedModeEnabled = FALSE; //Speed mode toggle
+
     me->lcEngaged = FALSE;
     me->currentEvent = currentEvent;
 
@@ -229,43 +240,53 @@ void MCM_calculateCommands(MotorController *me, TorqueEncoder *tps, BrakePressur
     me->appsTorque = 0;
 
     sbyte2 torqueOutput = 0;
+    sbyte4 speedOutput = 0; // holds commanded rpm
     
     float4 appsOutputPercent;
 
     TorqueEncoder_getOutputPercent(tps, &appsOutputPercent);
     
+/** MOTOR TORQUE COMMAND LOGIC **/
+// abstraction might be warranted for the below logic
+
+    if (me->isSpeedModeEnabled)
+{
+    MCM_commands_setTorqueDNm(me, 0);
+    speedOutput = me->lcSpeedCommand;
+    MCM_commands_setSpeedRPM(me, speedOutput);
+}
+    else
+{
+    // Normal torque mode: apply driver demand then clamp via LC / PL / regen.
     me->appsTorque = me->torqueMaximumDNm * appsOutputPercent;
-
-    /** MOTOR TORQUE COMMAND LOGIC **/
-    // abstraction might be warranted for the below logic
-
     torqueOutput = me->appsTorque;
 
-    if(me->lcEngaged == TRUE && me->lcTorqueCommand < torqueOutput)
-    {
-        torqueOutput = me->lcTorqueCommand;
-    } 
-    if(me->plActive == TRUE && me->plTorqueCommand < torqueOutput)
-    {
-        me->lcEngaged = FALSE;
-        torqueOutput = me->plTorqueCommand;
+        if (me->lcEngaged == TRUE && me->lcTorqueCommand < torqueOutput)
+        {
+            torqueOutput = me->lcTorqueCommand;
+        }
+        if (me->plActive == TRUE && me->plTorqueCommand < torqueOutput)
+        {
+            me->lcEngaged = FALSE;
+            torqueOutput = me->plTorqueCommand;
+        }
+        if (me->regenActive == TRUE && me->regenTorqueCommand < torqueOutput)
+        {
+            torqueOutput = me->regenTorqueCommand;
+        }
+
+        // Redundant safety check: torqueOutput should never exceed ±231 Nm (2310 dNm)
+        if (me->regenActive == TRUE && (torqueOutput > 2310 || torqueOutput < -2310))
+        {
+            torqueOutput = me->appsTorque;
+        }
+        if (me->regenActive == FALSE && (torqueOutput > 2400 || torqueOutput < 0))
+        {
+            torqueOutput = me->appsTorque;
+        }
+
+        MCM_commands_setTorqueDNm(me, torqueOutput);
     }
-    if(me->regenActive == TRUE && me->regenTorqueCommand < torqueOutput)
-    {
-        torqueOutput = me->regenTorqueCommand;
-    }
-  
-    // Redunant Safety Check. torqueOutput Should never rise above 231 or below -231
-    if(me->regenActive == TRUE && (torqueOutput > 2310 || torqueOutput < -2310))
-    {
-        torqueOutput = me->appsTorque;
-    }
-    if(me->regenActive == FALSE && (torqueOutput > 2400 || torqueOutput < 0)) //attempt to fix issue of -3000
-    {
-        torqueOutput = me->appsTorque;
-    }
-    
-    MCM_commands_setTorqueDNm(me, torqueOutput);
 
     //Causes MCM relay to be driven after 30 seconds with TTC60?
     // me->HVILOverride = (IO_RTC_GetTimeUS(me->timeStamp_HVILOverrideCommandReceived) < 1000000);
@@ -276,7 +297,7 @@ void MCM_calculateCommands(MotorController *me, TorqueEncoder *tps, BrakePressur
     // Inverter override
     if (IO_RTC_GetTimeUS(me->timeStamp_InverterDisableOverrideCommandReceived) < 1000000)
         me->InverterOverride = DISABLED;
-    else if (IO_RTC_GetTimeUS(me->timeStamp_InverterDisableOverrideCommandReceived) < 1000000)
+    else if (IO_RTC_GetTimeUS(me->timeStamp_InverterEnableOverrideCommandReceived) < 1000000)
         me->InverterOverride = ENABLED;
     else
         me->InverterOverride = UNKNOWN;
@@ -588,6 +609,21 @@ void MCM_commands_setTorqueDNm(MotorController *me, sbyte2 newTorque)
     me->commands_torque = newTorque;
 }
 
+//add
+// i just copied the function above
+void MCM_commands_setSpeedRPM(MotorController *me, sbyte4 newSpeed)
+{
+    me->updateCount += (me->commands_speed == newSpeed) ? 0 : 1;
+    me->commands_speed = newSpeed;
+}
+
+// returns commanded rpm | getSpeed yo
+sbyte4 MCM_commands_getSpeed(MotorController *me)
+{
+    return me->commands_speed;
+}
+
+//end
 void MCM_commands_setDirection(MotorController *me, Direction newDirection)
 {
     switch (newDirection)
@@ -680,6 +716,37 @@ bool MCM_get_LC_engagedStatus(MotorController *me) {
 sbyte2 MCM_get_LC_torqueCommand(MotorController *me) {
     return me->lcTorqueCommand;
 }
+//add
+void MCM_update_LC_speedCommand(MotorController *me, sbyte4 lcSpeedCommand)
+{
+    me->lcSpeedCommand = lcSpeedCommand; // returns rpm target from LC | stores it in mcm
+}
+
+void MCM_commands_setSpeedRPM(MotorController* me, sbyte4 speed)
+{
+me->commands_speed = (ubyte4)speed;
+}
+
+sbyte4 MCM_commands_getSpeed(MotorController* me)
+{
+return (sbyte4)me->commands_speed;
+}
+
+sbyte4 MCM_get_LC_speedCommand(MotorController *me)
+{
+    return me->lcSpeedCommand; // returns stored speed command from LC | 
+}
+
+void MCM_updateSpeedModeStatus(MotorController *me, bool value)
+{
+    me->isSpeedModeEnabled = value; // enables or disables speed mode | true = MCM_calculateCommands() sends RPM instead of torque
+}
+
+bool MCM_getSpeedModeEnabled(MotorController *me)
+{
+    return me->isSpeedModeEnabled; // checks speed mode status 
+}
+//end
 
 //------------------------------Regen------------------------------------------
 void MCM_set_Regen_torqueCommand(MotorController *me, sbyte2 regenTorqueCommand)
