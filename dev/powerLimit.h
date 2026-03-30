@@ -11,6 +11,7 @@
 #include "motorController.h"
 #include "PID.h"
 #include "math.h"
+#include "shunt.h"
 
 // Define a structure for the PID controller
 typedef struct _PowerLimit {
@@ -73,12 +74,12 @@ typedef struct _PowerLimit {
 PowerLimit* POWERLIMIT_new(bool plToggle); 
 
 /** COMPUTATIONS **/
-void PowerLimit_calculateCommands(PowerLimit *me, MotorController *mcm, TorqueEncoder *tps);
+void PowerLimit_calculateCommands(PowerLimit *me, MotorController *mcm, TorqueEncoder *tps, Shunt *shunt);
 void POWERLIMIT_TorquePID(PowerLimit *me, MotorController *mcm);
-void POWERLIMIT_PowerPID(PowerLimit *me, MotorController *mcm);
+void POWERLIMIT_PowerPID(PowerLimit *me, MotorController *mcm, Shunt *shunt);
 void POWERLIMIT_updatePIDController(PowerLimit* me, float pidSetpoint, float sensorValue);
 void PowerLimit_updatePLPower(PowerLimit* me);
-void PowerLimit_entryConditions(PowerLimit* me, MotorController *mcm );
+void PowerLimit_entryConditions(PowerLimit* me, MotorController *mcm, Shunt *shunt);
 void PowerLimit_PIDReset(PowerLimit* me);
 
 /** GETTER FUNCTIONS **/
