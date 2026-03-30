@@ -7,6 +7,8 @@
 #include "IO_CAN.h"
 
 
+#define METERS_IN_KILOMETER 1000.0f
+#define MINUTES_IN_HOUR 60.0f
 typedef enum { FL,FR,RL,RR } Wheel;
 
 //After update(), access to tps Sensor objects should no longer be necessary.
@@ -26,5 +28,7 @@ float4 WheelSpeeds_getGroundSpeedKPH(WheelSpeeds *me, ubyte1 tire_config, bool f
 float4 WheelSpeeds_getGroundSpeedRPM(WheelSpeeds *me, ubyte1 tire_config, bool filter);
 bool WheelSpeeds_isWheelSpeedsNonZero(WheelSpeeds *me, bool filter);
 void WheelSpeeds_parseCanMessage(WheelSpeeds *me, IO_CAN_DATA_FRAME *wssCanMessage);
+bool WheelSpeeds_isDAQWheelSpeedsNonZero(WheelSpeeds *me);
+float4 WheelSpeeds_getDAQWheelSpeedRPM(WheelSpeeds *me, Wheel wheel);
 
 #endif //  _WHEELSPEEDS_H
