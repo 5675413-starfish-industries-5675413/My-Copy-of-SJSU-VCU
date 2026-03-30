@@ -55,6 +55,7 @@
 #include "PID.h"
 #include "efficiency.h"
 #include "gps.h"
+#include "shunt.h"
 
 //Application Database, needed for TTC-Downloader
 APDB appl_db =
@@ -225,9 +226,8 @@ void main(void)
     Regen *regen = Regen_new(FALSE);
     LaunchControl *lc = LaunchControl_new(FALSE);
     DRS *drs = DRS_new();
-    PowerLimit *pl = POWERLIMIT_new(TRUE);
-    Efficiency *eff = Efficiency_new(TRUE);
-    GPS *gps = GPS_new();
+    PowerLimit *pl = POWERLIMIT_new(FALSE);
+    Efficiency *eff = EFFICIENCY_new(FALSE);
 //---------------------------------------------------------------------------------------------------------
     //----------------------------------------------------------------------------
     // TODO: Additional Initial Power-up functions
@@ -277,7 +277,7 @@ void main(void)
 
         //Pull messages from CAN FIFO and update our object representations.
         //Also echoes can0 messages to can1 for DAQ.
-        CanManager_read(canMan, CAN0_HIPRI, mcm0, ic0, bms, sc, wss, gps);
+        CanManager_read(canMan, CAN0_HIPRI, mcm0, ic0, bms, sc, wss);
         // if (Sensor_TestButton.sensorValue == TRUE ) {
         //     // TODO rewire Sensor_TestButton 
         //     lc->buttonDebug |= 0x02;
@@ -487,7 +487,7 @@ void main(void)
         //canOutput_sendMCUControl(mcm0, FALSE);
 
         //Send debug data
-        canOutput_sendDebugMessage(canMan, tps, bps, mcm0, ic0, bms, wss, sc, lc, pl, drs, regen, eff, gps);
+        canOutput_sendDebugMessage(canMan, tps, bps, mcm0, ic0, bms, wss, sc, lc, pl, drs, regen, eff);
         canOutput_sendDebugMessage1(canMan, mcm0, tps);
         //canOutput_sendSensorMessages();
         //canOutput_sendStatusMessages(mcm0);
