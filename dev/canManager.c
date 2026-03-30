@@ -373,6 +373,9 @@ void CanManager_read(CanManager* me, CanChannel channel, MotorController* mcm, I
             MCM_parseCanMessage(mcm, &canMessages[currMessage]);
             break;
 
+		case 0x578:
+			WheelSpeeds_parseCanMessage(wss, &canMessages[currMessage]);
+			break;
         //-------------------------------------------------------------------------
         //BMS
         //-------------------------------------------------------------------------
