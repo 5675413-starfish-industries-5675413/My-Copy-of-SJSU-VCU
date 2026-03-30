@@ -224,6 +224,8 @@ void main(void)
     SafetyChecker *sc = SafetyChecker_new(serialMan, 320, 32); //Must match amp limits
     CoolingSystem *cs = CoolingSystem_new(serialMan);
     Regen *regen = Regen_new(FALSE);
+    GPS *gps = GPS_new();
+    Shunt *shunt = Shunt_new();
     LaunchControl *lc = LaunchControl_new(FALSE);
     DRS *drs = DRS_new();
     PowerLimit *pl = POWERLIMIT_new(FALSE);
@@ -456,7 +458,7 @@ void main(void)
         LaunchControl_calculateCommands(lc, tps, bps, mcm0, wss);
         Regen_calculateCommands(regen, mcm0,tps, bps);
         // PowerLimit_updatePLPower(pl);
-        Efficiency_calculateCommands(eff, mcm0, pl, gps);
+        Efficiency_calculateCommands(eff, mcm0, pl, gps, shunt);
         PowerLimit_calculateCommands(pl, mcm0, tps);
         MCM_calculateCommands(mcm0, tps, bps);
 

@@ -10,6 +10,7 @@
 #include "motorController.h"
 #include "powerLimit.h"
 #include "gps.h"
+#include "shunt.h"
 
 typedef struct _Efficiency
 {
@@ -37,12 +38,13 @@ typedef struct _Efficiency
 Efficiency *Efficiency_new(bool efficiencyToggle);
 
 // Main computation functions
-void Efficiency_calculateCommands(Efficiency *me, MotorController *mcm, PowerLimit *pl, GPS *gps);
+void Efficiency_calculateCommands(Efficiency *me, MotorController *mcm, PowerLimit *pl, GPS *gps, Shunt *shunt);
 void Efficiency_markLapStart(Efficiency *me, GPS *gps);
 void Efficiency_resetLap(Efficiency *me);
-void Efficiency_completedLap(Efficiency *me, MotorController *mcm);
+bool Efficiency_completedLap(Efficiency *me, MotorController *mcm, GPS *gps);
 
 // Getter functions
+float Efficiency_getScoreError(Efficiency *me);
 bool Efficiency_getFinishedLap(Efficiency *me);
 ubyte1 Efficiency_getLapCounter(Efficiency *me);
 float Efficiency_getEnergyBudget_kWh(Efficiency *me);

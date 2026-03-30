@@ -12,12 +12,12 @@
 #include "math.h"
 #include "gps.h"
 #include "sensors.h"
+#include "shunt.h"
 
 // constants
-#define TOTAL_ENERGY_BUDGET_KWH 5.5f // 80 kWh total energy budget
-#define CYCLE_TIME_S 0.01f           // 10ms cycle time
+#define TOTAL_ENERGY_BUDGET_KWH 6.6f // total energy budget for the entire race
+#define CYCLE_TIME_S 0.01f           // 10ms vcu cycle time
 #define SECONDS_PER_HOUR 3600.0f
-#define WATTS_PER_KILOWATT 1000.0f
 
 Efficiency *Efficiency_new(bool efficiencyToggle)
 {
@@ -48,7 +48,7 @@ Efficiency *Efficiency_new(bool efficiencyToggle)
     return me;
 }
 
-void Efficiency_calculateCommands(Efficiency *me, MotorController *mcm, PowerLimit *pl, GPS *gps)
+void Efficiency_calculateCommands(Efficiency *me, MotorController *mcm, PowerLimit *pl, GPS *gps, Shunt *shunt)
 {
     if (!me->efficiencyToggle)
     {
@@ -60,7 +60,7 @@ void Efficiency_calculateCommands(Efficiency *me, MotorController *mcm, PowerLim
     }
 
     // calculate current power consumption in kWh
-    float currentPower_kW = (MCM_getDCVoltage(mcm) * MCM_getDCCurrent(mcm)) / WATTS_PER_KILOWATT;
+    float currentPower_kW = ((float)shunt->current_mA * (float)shunt->vBus_mV) / 1e9f;
     float cycleEnergy_kWh = (currentPower_kW * CYCLE_TIME_S) / SECONDS_PER_HOUR;
 
     // track time and accumulate energy based on power limit status
@@ -76,12 +76,10 @@ void Efficiency_calculateCommands(Efficiency *me, MotorController *mcm, PowerLim
     }
     me->lapEnergy_kWh = me->straightEnergy_kWh + me->cornerEnergy_kWh;
 
-    // Check if lap is complete
-    Efficiency_completedLap(me, mcm);
-    if (me->finishedLap)
+    if (Efficiency_completedLap(me, mcm, gps))
     {
         // calculate the carryover for just one lap
-        me->carryOverEnergy_kWh = me->energyBudget_kWh - me->lapEnergy_kWh;
+        me->carryOverEnergy_kWh += me->energyBudget_kWh - me->lapEnergy_kWh;
 
         // calculate the power limit for next lap using the algorithm
         float straightTime_h = me->straightTime_s / SECONDS_PER_HOUR;
@@ -100,15 +98,16 @@ void Efficiency_markLapStart(Efficiency *me, GPS *gps)
     me->longitude = GPS_getLongitude(gps);
 }
 
-void Efficiency_completedLap(Efficiency *me, MotorController *mcm)
+bool Efficiency_completedLap(Efficiency *me, MotorController *mcm, GPS *gps)
 {
-    // accumulate the distance traveled this cycle
-    float wheelSpeed_kph = MCM_getGroundSpeedKPH(mcm); // later switch to wheelspeeds.c
-    float distance_this_cycle_km = wheelSpeed_kph * CYCLE_TIME_S / SECONDS_PER_HOUR;
-    me->lapDistance_km += distance_this_cycle_km;
+    float wheelSpeed_kph = MCM_getGroundSpeedKPH(mcm);
+    me->lapDistance_km += wheelSpeed_kph * CYCLE_TIME_S / SECONDS_PER_HOUR;
 
-    if (me->lapDistance_km > 1.0f)
-    { // if accumulated distance is greater than 1 km, then we have completed a lap
+    if (me->lapDistance_km > 0.5f &&
+        (me->latitude != 0.0f || me->longitude != 0.0f) &&
+        fabsf(GPS_getLatitude(gps) - me->latitude) <= 0.00005f &&
+        fabsf(GPS_getLongitude(gps) - me->longitude) <= 0.00005f)
+    {
         me->lapCounter++;
         me->finishedLap = TRUE;
     }
@@ -116,15 +115,16 @@ void Efficiency_completedLap(Efficiency *me, MotorController *mcm)
     {
         me->finishedLap = FALSE;
     }
+    return me->finishedLap;
 }
 
 float Efficiency_getScoreError(Efficiency* me) {
     if (me->energyBudget_kWh < 0.001f) return 0.0f;
 
-    // What fraction of the lap is done based on distance?
+    // What fraction of the lap is done based on distance
     float lapFraction = me->lapDistance_km; // 0.0 → 1.0 km
 
-    // How much energy should we have spent by now (linear budget)?
+    // How much energy should we have spent by now (linear budget)
     float expectedEnergy = lapFraction * me->energyBudget_kWh;
 
     // Error normalized to lap budget → gives a fraction like +0.06 or -0.04
