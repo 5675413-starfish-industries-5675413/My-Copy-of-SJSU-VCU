@@ -37,12 +37,10 @@ LaunchControl *LaunchControl_new(bool lcToggle) {
     me->k = 0.2;
     me->maxTorque = 231;
     me->prevTorque = me->initialTorque;
-    //add
     me->lcSpeedCommand = 0;
-    me->maxRPM = 7200; // idk max rpm value
+    me->maxRPM = 7200;  // TODO: Determine max RPM for initial speed curve
     me->prevRPM = 0;
     me->commandMode = LC_COMMAND_TORQUE;
-    //end
     me->useFilter = FALSE;
     me->mode = LC_MODE_SLIP_RATIO;
     me->state = LC_STATE_IDLE;
@@ -146,7 +144,7 @@ void LaunchControl_applyTorqueCurve(LaunchControl *me, MotorController *mcm) {
 
 void LaunchControl_applySpeedCurve(LaunchControl *me, MotorController *mcm) {
     float rpm = me->k * me->maxRPM + (1 - me->k) * me->prevRPM;
-    me->lcSpeedCommand = (sbyte4) rpm;
+    me->lcSpeedCommand = (sbyte2) rpm;
     me->prevRPM = (float)me->lcSpeedCommand;
 }
 
@@ -179,7 +177,6 @@ void LaunchControl_calculateCommands(LaunchControl *me, TorqueEncoder *tps, Brak
             break;
     
 
-//i vibe coded this entire block
         case LC_STATE_ACTIVE:
             // Tell the MCM which command channel to use for this launch
             MCM_updateSpeedModeStatus(mcm, (me->commandMode == LC_COMMAND_SPEED));
@@ -199,19 +196,16 @@ void LaunchControl_calculateCommands(LaunchControl *me, TorqueEncoder *tps, Brak
             else { 
                 LaunchControl_calculatePIDOutput(me);
                 if (me->commandMode == LC_COMMAND_SPEED) {
-                    //adjust rpm by pid output (explicit cast: float pid output -> sbyte4)
-                    me->lcSpeedCommand = MCM_getMotorRPM(mcm) + (sbyte4)me->pid->output;
+                    me->lcSpeedCommand = (sbyte2)MCM_getMotorRPM(mcm) + (sbyte2)me->pid->output;
                 }
-                else {
-                    //adjust torque by pid output (explicit cast: float pid output -> sbyte2)
-                    me->lcTorqueCommand = (sbyte2)(MCM_getCommandedTorque(mcm) + (sbyte2)me->pid->output);
+                else if (me->commandMode == LC_COMMAND_TORQUE) {
+                    me->lcTorqueCommand = (sbyte2)MCM_getCommandedTorque(mcm) + (sbyte2)me->pid->output;
                 }
             }
-            //clamps
             if (me->commandMode == LC_COMMAND_SPEED) {
-                //max rpm
-                if (me->lcSpeedCommand > (sbyte4)me->maxRPM) {
-                    MCM_update_LC_speedCommand(mcm, (sbyte4)me->maxRPM);
+				// TODO: change maxRPM
+                if (me->lcSpeedCommand > (sbyte2)me->maxRPM) {
+                    MCM_update_LC_speedCommand(mcm, (sbyte2)me->maxRPM);
                 }
                 else if (me->lcSpeedCommand < 0) {
                     MCM_update_LC_speedCommand(mcm, 0);
@@ -220,10 +214,9 @@ void LaunchControl_calculateCommands(LaunchControl *me, TorqueEncoder *tps, Brak
                     MCM_update_LC_speedCommand(mcm, me->lcSpeedCommand);
                 }
             }
-            //Torque clamp: use me->maxTorque so the cap matches the struct value (was hardcoded 240)
-            else {
-                if (me->lcTorqueCommand > (sbyte2)me->maxTorque) {
-                    MCM_update_LC_torqueCommand(mcm, (sbyte2)me->maxTorque);
+            else if (me->commandMode == LC_COMMAND_TORQUE) {
+                if (me->lcTorqueCommand > 220) {
+                    MCM_update_LC_torqueCommand(mcm, 220);
                 }
                 else if (me->lcTorqueCommand < 0) {
                     MCM_update_LC_torqueCommand(mcm, 0);
@@ -293,8 +286,7 @@ bool LaunchControl_getActiveStatus(LaunchControl *me) { return me->state == LC_S
 
 bool LaunchControl_getFilterStatus(LaunchControl *me) { return me->useFilter; }
 
-
-sbyte4 LaunchControl_getSpeedCommand(LaunchControl *me) { return me->lcSpeedCommand; }
+sbyte2 LaunchControl_getSpeedCommand(LaunchControl *me) { return me->lcSpeedCommand; }
 
 
 
