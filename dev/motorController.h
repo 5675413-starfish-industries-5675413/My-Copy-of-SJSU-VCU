@@ -34,12 +34,9 @@ MotorController* MotorController_new(SerialManager* sm, ubyte2 canMessageBaseID,
 //Note: Speed Command (angular velocity) not used when in torque mode
 void MCM_commands_setTorqueDNm(MotorController* me, sbyte2 torque); //Will be divided by 10 e.g. pass in 100 for 10.0 Nm
 
-//add
-// turns rpm target into CAN 
-void MCM_commands_setSpeedRPM(MotorController* me, sbyte4 speed);
-// returns rpm command
-sbyte4 MCM_commands_getSpeed(MotorController* me);
-//end
+
+void MCM_commands_setSpeedRPM(MotorController* me, sbyte2 speed);
+sbyte2 MCM_commands_getSpeed(MotorController* me);
 
 void MCM_commands_setDirection(MotorController* me, Direction rotation);
 void MCM_commands_setInverter(MotorController* me, Status inverterState);
@@ -91,15 +88,12 @@ void MCM_update_LC_engagedStatus(MotorController *me, bool newState);
 bool MCM_get_LC_engagedStatus(MotorController *me);
 sbyte2 MCM_get_LC_torqueCommand(MotorController *me);
 
-//add
-//Stores RPM target from LaunchControl into mcm
-void MCM_update_LC_speedCommand(MotorController *me, sbyte4 lcSpeedCommand);
-
-sbyte4 MCM_get_LC_speedCommand(MotorController *me);
 void MCM_updateSpeedModeStatus(MotorController *me, bool value);
+
+void MCM_update_LC_speedCommand(MotorController *me, sbyte4 lcSpeedCommand);
+sbyte4 MCM_get_LC_speedCommand(MotorController *me);
 bool MCM_getSpeedModeEnabled(MotorController *me);
 
-//end
 
 void MCM_set_Regen_torqueCommand(MotorController *me, sbyte2 regenTorqueCommand);
 void MCM_set_Regen_activeStatus(MotorController *me, bool newState);
