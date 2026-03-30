@@ -295,7 +295,7 @@ void main(void)
         // else {
         //     lc->buttonDebug &= ~0x04;
         // }
-6         // }
+        // }
         // else {
         //     lc->buttonDebug &= ~0x08; vbn/
         // }
