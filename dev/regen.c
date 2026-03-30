@@ -9,12 +9,14 @@
 #define MIN_REGEN_SPEED_KPH                5
 #define REGEN_RAMPDOWN_START_SPEED        10
 
-// Pressure Formula Constants
-#define GEAR_RATIO                      3.2f
+// Imperical Conversions
 #define kPa_TO_MPa                    0.001f
 #define mm_TO_m                       0.001f
-#define REAR_PISTON_AREA         4 * 791.73f    // mm^2  // 4x, because 4 calipers total (2 for each wheel)
-#define ROTOR_RADIUS                  74.17f    // mm
+
+// SR-17 Constants for Pressure Formula
+#define GEAR_RATIO                      3.2f
+#define REAR_PISTON_AREA         4 * 791.73f    // mm^2  | 4x, because 4 calipers total (2 for each wheel)
+#define ROTOR_RADIUS                163.322f    // mm    | Effective rear rotor radius
 
 Regen* Regen_new(bool regenToggle)
 {
@@ -120,9 +122,11 @@ void Regen_calculateCommands(Regen *me, MotorController *mcm, TorqueEncoder *tps
     // }
 */
 
+/*  This saftey check doesn't make sense theoretically: Source Aidan @ Regen DDR
     if (MCM_getMotorRPM(mcm) > 2400){
         me->torqueLimitDNm -= 0.022 * (MCM_getMotorRPM(mcm)-2400); //Torque limit is reduced by -0.022 DNm for each RPM over 2400
     }
+*/
 
     float4 appsOutputPercent;
     TorqueEncoder_getOutputPercent(tps, &appsOutputPercent);
@@ -150,7 +154,7 @@ void Regen_calculateCommands(Regen *me, MotorController *mcm, TorqueEncoder *tps
     
     me->regenTorqueCommand = (sbyte2)(me->appsTorque - me->bpsTorqueNm);
 
-    // clamps regen -50 Nm to 231 Nm
+    // clamps torque: -50 Nm to 231 Nm
     if (me->regenTorqueCommand > 231) {
         MCM_set_Regen_torqueCommand(mcm, 231);
     }

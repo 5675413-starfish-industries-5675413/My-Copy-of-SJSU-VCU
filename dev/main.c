@@ -295,11 +295,9 @@ void main(void)
         // else {
         //     lc->buttonDebug &= ~0x04;
         // }
-        // if (Sensor_LCButton.sensorValue == TRUE) { //drs gives 08
-        //   lc->buttonDebug |= 0x08;
-        // }
+6         // }
         // else {
-        //     lc->buttonDebug &= ~0x08;
+        //     lc->buttonDebug &= ~0x08; vbn/
         // }
 
         /*switch (CanManager_getReadStatus(canMan, CAN0_HIPRI))
