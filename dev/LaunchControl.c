@@ -91,7 +91,7 @@ void LaunchControl_updateState(LaunchControl *me, TorqueEncoder *tps, BrakePress
 
 void LaunchControl_updatePhase(LaunchControl *me, WheelSpeeds *wss) {
     //Use preset torque curve during intial part of launch when wheel speeds are not reading
-    if (!WheelSpeeds_isWheelSpeedsNonZero(wss, me->useFilter)) {
+    if (!WheelSpeeds_isDAQWheelSpeedsNonZero(wss)) {
         me->phase = LC_PHASE_RAMP;
         return;
     }
@@ -121,31 +121,32 @@ void LaunchControl_updatePhase(LaunchControl *me, WheelSpeeds *wss) {
 }
 
 void LaunchControl_updateSlipRatio(LaunchControl *me, WheelSpeeds *wss) {
-    float fastestRearWheelsRPM = WheelSpeeds_getFastestRearRPM(wss, me->useFilter);
-    float avgFrontWheelsRPM = WheelSpeeds_getGroundSpeedRPM(wss, 0, me->useFilter);
+	float4 avgRearWheelsRPM = (WheelSpeeds_getDAQWheelSpeedRPM(wss, RL) + WheelSpeeds_getDAQWheelSpeedRPM(wss, RR)) / 2;
+	float4 avgFrontWheelsRPM = (WheelSpeeds_getDAQWheelSpeedRPM(wss, FL) + WheelSpeeds_getDAQWheelSpeedRPM(wss, FR)) / 2;
     if ((avgFrontWheelsRPM) != 0) {
-        me->currentSlipRatio = (fastestRearWheelsRPM / avgFrontWheelsRPM) - 1.0f;
+        me->currentSlipRatio = (avgRearWheelsRPM / avgFrontWheelsRPM) - 1.0f;
     }
 }
 
 void LaunchControl_updateVelocityDifference(LaunchControl *me, WheelSpeeds *wss) 
 {
-    float estimatedVehicleVelocity = WheelSpeeds_getGroundSpeedMPS(wss, 0, me->useFilter);
+	// TODO: Change to DAQ wheel speeds
+    float4 estimatedVehicleVelocity = WheelSpeeds_getGroundSpeedMPS(wss, 0, me->useFilter);
     me->currentVelocityDifference = WheelSpeeds_getFastestRearMPS(wss, me->useFilter) - estimatedVehicleVelocity;
     me->targetVelocityDifference = me->slipRatioTarget * estimatedVehicleVelocity;
 }
 
 
 void LaunchControl_applyTorqueCurve(LaunchControl *me, MotorController *mcm) {
-    float torque = me->k * me->maxTorque + (1 - me->k) * me->prevTorque;
+    float4 torque = me->k * me->maxTorque + (1 - me->k) * me->prevTorque;
     me->lcTorqueCommand = (sbyte2) torque;
     me->prevTorque = me->lcTorqueCommand;
 }
 
 void LaunchControl_applySpeedCurve(LaunchControl *me, MotorController *mcm) {
-    float rpm = me->k * me->maxRPM + (1 - me->k) * me->prevRPM;
+    float4 rpm = me->k * me->maxRPM + (1 - me->k) * me->prevRPM;
     me->lcSpeedCommand = (sbyte2) rpm;
-    me->prevRPM = (float)me->lcSpeedCommand;
+    me->prevRPM = (float4)me->lcSpeedCommand;
 }
 
 void LaunchControl_calculateCommands(LaunchControl *me, TorqueEncoder *tps, BrakePressureSensor *bps, MotorController *mcm, WheelSpeeds *wss)
@@ -228,7 +229,6 @@ void LaunchControl_calculateCommands(LaunchControl *me, TorqueEncoder *tps, Brak
             break;
     }
 }
-//end
 
 void LaunchControl_updateFilterStatus(LaunchControl *me, MotorController *mcm) {
     if (MCM_getMotorRPM(mcm) > LC_MIN_FILTER_THRESHOLD_RPM) {
@@ -272,7 +272,7 @@ ubyte1 LaunchControl_getPhase(LaunchControl *me) { return me->phase; }
 
 sbyte2 LaunchControl_getTorqueCommand(LaunchControl *me) { return me->lcTorqueCommand; }
 
-float LaunchControl_getSlipRatio(LaunchControl *me) { return me->currentSlipRatio; }
+float4 LaunchControl_getSlipRatio(LaunchControl *me) { return me->currentSlipRatio; }
 
 sbyte2 LaunchControl_getSlipRatioScaled(LaunchControl *me) { return (sbyte2)(me->currentSlipRatio * 1000.0f); }
 
