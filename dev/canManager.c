@@ -820,12 +820,12 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     byteNum = 0;
     canMessages[canMessageCount - 1].id_format = IO_CAN_STD_FRAME;
     canMessages[canMessageCount - 1].id = 0xC0;
-    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)MCM_commands_getTorque(mcm);
+    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)MCM_commands_getTorque(mcm); // When speed mode is enabled, torque command is added to speed mode torque output
     canMessages[canMessageCount - 1].data[byteNum++] = MCM_commands_getTorque(mcm) >> 8;
-    canMessages[canMessageCount - 1].data[byteNum++] = 0;  //Speed (RPM?) - not needed - mcu should be in torque mode
-    canMessages[canMessageCount - 1].data[byteNum++] = 0;  //Speed (RPM?) - not needed - mcu should be in torque mode
+    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)MCM_commands_getSpeed(mcm);
+    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(MCM_commands_getSpeed(mcm) >> 8);
     canMessages[canMessageCount - 1].data[byteNum++] = 0;  //Motor direction (0 = Reverse, 1 = Forward)
-    canMessages[canMessageCount - 1].data[byteNum++] = (MCM_commands_getInverter(mcm) == ENABLED) ? 1 : 0; //unused/unused/unused/unused unused/unused/Discharge/Inverter Enable
+    canMessages[canMessageCount - 1].data[byteNum++] = (MCM_getSpeedModeEnabled(mcm) << 2) | (0 << 1) | ((MCM_commands_getInverter(mcm) == ENABLED) << 0); //unused/unused/unused/unused/unused/Speed Mode Enable/Discharge/Inverter Enable
     canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)MCM_commands_getTorqueLimit(mcm);
     canMessages[canMessageCount - 1].data[byteNum++] = MCM_commands_getTorqueLimit(mcm) >> 8;
     canMessages[canMessageCount - 1].length = byteNum;
