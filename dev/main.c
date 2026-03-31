@@ -228,8 +228,8 @@ void main(void)
     Shunt *shunt = Shunt_new();
     LaunchControl *lc = LaunchControl_new(FALSE);
     DRS *drs = DRS_new();
-    PowerLimit *pl = POWERLIMIT_new(FALSE);
-    Efficiency *eff = EFFICIENCY_new(FALSE);
+    PowerLimit *pl = POWERLIMIT_new(TRUE);
+    Efficiency *eff = EFFICIENCY_new(TRUE);
 //---------------------------------------------------------------------------------------------------------
     //----------------------------------------------------------------------------
     // TODO: Additional Initial Power-up functions
