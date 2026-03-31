@@ -37,6 +37,10 @@ LaunchControl *LaunchControl_new(bool lcToggle) {
     me->k = 0.2;
     me->maxTorque = 231;
     me->prevTorque = me->initialTorque;
+    me->lcSpeedCommand = 0;
+    me->maxRPM = 7200;  // TODO: Determine max RPM for initial speed curve
+    me->prevRPM = 0;
+    me->commandMode = LC_COMMAND_TORQUE;
     me->useFilter = FALSE;
     me->mode = LC_MODE_SLIP_RATIO;
     me->state = LC_STATE_IDLE;
@@ -49,7 +53,12 @@ void LaunchControl_reset(LaunchControl *me, MotorController *mcm) {
     me->phase = LC_PHASE_RAMP;
     me->lcTorqueCommand = 0;
     me->prevTorque = me->initialTorque;
+    me->lcSpeedCommand = 0;
+    me->prevRPM = 0;
     MCM_update_LC_torqueCommand(mcm, me->lcTorqueCommand);
+    MCM_update_LC_speedCommand(mcm, me->lcSpeedCommand);
+    //Always leave the MCM in torque mode when LC is not active
+    MCM_updateSpeedModeStatus(mcm, FALSE);
 
     me->pid->totalError = 0;
     me->pid->previousError = 0;
@@ -82,7 +91,7 @@ void LaunchControl_updateState(LaunchControl *me, TorqueEncoder *tps, BrakePress
 
 void LaunchControl_updatePhase(LaunchControl *me, WheelSpeeds *wss) {
     //Use preset torque curve during intial part of launch when wheel speeds are not reading
-    if (!WheelSpeeds_isWheelSpeedsNonZero(wss, me->useFilter)) {
+    if (!WheelSpeeds_isDAQWheelSpeedsNonZero(wss)) {
         me->phase = LC_PHASE_RAMP;
         return;
     }
@@ -112,25 +121,32 @@ void LaunchControl_updatePhase(LaunchControl *me, WheelSpeeds *wss) {
 }
 
 void LaunchControl_updateSlipRatio(LaunchControl *me, WheelSpeeds *wss) {
-    float fastestRearWheelsRPM = WheelSpeeds_getFastestRearRPM(wss, me->useFilter);
-    float avgFrontWheelsRPM = WheelSpeeds_getGroundSpeedRPM(wss, 0, me->useFilter);
+	float4 avgRearWheelsRPM = (WheelSpeeds_getDAQWheelSpeedRPM(wss, RL) + WheelSpeeds_getDAQWheelSpeedRPM(wss, RR)) / 2;
+	float4 avgFrontWheelsRPM = (WheelSpeeds_getDAQWheelSpeedRPM(wss, FL) + WheelSpeeds_getDAQWheelSpeedRPM(wss, FR)) / 2;
     if ((avgFrontWheelsRPM) != 0) {
-        me->currentSlipRatio = (fastestRearWheelsRPM / avgFrontWheelsRPM) - 1.0f;
+        me->currentSlipRatio = (avgRearWheelsRPM / avgFrontWheelsRPM) - 1.0f;
     }
 }
 
 void LaunchControl_updateVelocityDifference(LaunchControl *me, WheelSpeeds *wss) 
 {
-    float estimatedVehicleVelocity = WheelSpeeds_getGroundSpeedMPS(wss, 0, me->useFilter);
+	// TODO: Change to DAQ wheel speeds
+    float4 estimatedVehicleVelocity = WheelSpeeds_getGroundSpeedMPS(wss, 0, me->useFilter);
     me->currentVelocityDifference = WheelSpeeds_getFastestRearMPS(wss, me->useFilter) - estimatedVehicleVelocity;
     me->targetVelocityDifference = me->slipRatioTarget * estimatedVehicleVelocity;
 }
 
 
 void LaunchControl_applyTorqueCurve(LaunchControl *me, MotorController *mcm) {
-    float torque = me->k * me->maxTorque + (1 - me->k) * me->prevTorque;
+    float4 torque = me->k * me->maxTorque + (1 - me->k) * me->prevTorque;
     me->lcTorqueCommand = (sbyte2) torque;
     me->prevTorque = me->lcTorqueCommand;
+}
+
+void LaunchControl_applySpeedCurve(LaunchControl *me, MotorController *mcm) {
+    float4 rpm = me->k * me->maxRPM + (1 - me->k) * me->prevRPM;
+    me->lcSpeedCommand = (sbyte2) rpm;
+    me->prevRPM = (float4)me->lcSpeedCommand;
 }
 
 void LaunchControl_calculateCommands(LaunchControl *me, TorqueEncoder *tps, BrakePressureSensor *bps, MotorController *mcm, WheelSpeeds *wss)
@@ -152,30 +168,63 @@ void LaunchControl_calculateCommands(LaunchControl *me, TorqueEncoder *tps, Brak
             break;
 
         case LC_STATE_READY:
-            //During ready state, driver is able to press throttle without requesting any torque
+            //During ready state, driver is able to press throttle without requesting any torque.
+            //Reset both command values  
             me->lcTorqueCommand = 0;
+            me->lcSpeedCommand = 0;
             MCM_update_LC_torqueCommand(mcm, me->lcTorqueCommand);
+            MCM_update_LC_speedCommand(mcm, me->lcSpeedCommand);
+            MCM_updateSpeedModeStatus(mcm, FALSE);
             break;
+    
 
         case LC_STATE_ACTIVE:
-            //LaunchControl_updateFilterStatus(me, mcm);
+            // Tell the MCM which command channel to use for this launch
+            MCM_updateSpeedModeStatus(mcm, (me->commandMode == LC_COMMAND_SPEED));
             LaunchControl_updatePhase(me, wss);
-            if (me->phase == LC_PHASE_RAMP) {
-                LaunchControl_applyTorqueCurve(me, mcm);
-            }
-            else {
-                LaunchControl_calculatePIDOutput(me);
-                me->lcTorqueCommand = MCM_getCommandedTorque(mcm) + me->pid->output;
-            }
 
-            if (me->lcTorqueCommand > 240) {
-                MCM_update_LC_torqueCommand(mcm, 240);
+            //if one WSS < 0, use speed curve 
+            if (me->phase == LC_PHASE_RAMP) {
+                //chooses curve based on mode
+                if (me->commandMode == LC_COMMAND_SPEED) {
+                    LaunchControl_applySpeedCurve(me, mcm);
+                }
+                else {
+                    LaunchControl_applyTorqueCurve(me, mcm);
+                }
             }
-            else if (me->lcTorqueCommand < 0) {
-                MCM_update_LC_torqueCommand(mcm, 0);
+            //if all WSS > 0, use PID
+            else { 
+                LaunchControl_calculatePIDOutput(me);
+                if (me->commandMode == LC_COMMAND_SPEED) {
+                    me->lcSpeedCommand = (sbyte2)MCM_getMotorRPM(mcm) + (sbyte2)me->pid->output;
+                }
+                else if (me->commandMode == LC_COMMAND_TORQUE) {
+                    me->lcTorqueCommand = (sbyte2)MCM_getCommandedTorque(mcm) + (sbyte2)me->pid->output;
+                }
             }
-            else {
-                MCM_update_LC_torqueCommand(mcm, me->lcTorqueCommand);
+            if (me->commandMode == LC_COMMAND_SPEED) {
+				// TODO: change maxRPM
+                if (me->lcSpeedCommand > (sbyte2)me->maxRPM) {
+                    MCM_update_LC_speedCommand(mcm, (sbyte2)me->maxRPM);
+                }
+                else if (me->lcSpeedCommand < 0) {
+                    MCM_update_LC_speedCommand(mcm, 0);
+                }
+                else {
+                    MCM_update_LC_speedCommand(mcm, me->lcSpeedCommand);
+                }
+            }
+            else if (me->commandMode == LC_COMMAND_TORQUE) {
+                if (me->lcTorqueCommand > 220) {
+                    MCM_update_LC_torqueCommand(mcm, 220);
+                }
+                else if (me->lcTorqueCommand < 0) {
+                    MCM_update_LC_torqueCommand(mcm, 0);
+                }
+                else {
+                    MCM_update_LC_torqueCommand(mcm, me->lcTorqueCommand);
+                }
             }
             break;
     }
@@ -223,7 +272,7 @@ ubyte1 LaunchControl_getPhase(LaunchControl *me) { return me->phase; }
 
 sbyte2 LaunchControl_getTorqueCommand(LaunchControl *me) { return me->lcTorqueCommand; }
 
-float LaunchControl_getSlipRatio(LaunchControl *me) { return me->currentSlipRatio; }
+float4 LaunchControl_getSlipRatio(LaunchControl *me) { return me->currentSlipRatio; }
 
 sbyte2 LaunchControl_getSlipRatioScaled(LaunchControl *me) { return (sbyte2)(me->currentSlipRatio * 1000.0f); }
 
@@ -237,6 +286,7 @@ bool LaunchControl_getActiveStatus(LaunchControl *me) { return me->state == LC_S
 
 bool LaunchControl_getFilterStatus(LaunchControl *me) { return me->useFilter; }
 
+sbyte2 LaunchControl_getSpeedCommand(LaunchControl *me) { return me->lcSpeedCommand; }
 
 
 

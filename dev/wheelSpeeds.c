@@ -34,6 +34,10 @@ struct _WheelSpeeds
     ubyte4 filteredFrequency_RL;
     ubyte4 filteredFrequency_RR;
     float4 smoothingFactor;
+	float4 DAQ_wheelSpeedFL_kph;
+	float4 DAQ_wheelSpeedFR_kph;
+	float4 DAQ_wheelSpeedRR_kph;
+	float4 DAQ_wheelSpeedRL_kph;
 };
 
 /*****************************************************************************
@@ -47,7 +51,7 @@ WheelSpeeds *WheelSpeeds_new(float4 tireDiameterInches_F, float4 tireDiameterInc
     WheelSpeeds *me = (WheelSpeeds *)malloc(sizeof(struct _WheelSpeeds));
 
     //1 inch = .0254 m
-    me->tireCircumferenceMeters_F = 3.14159 * (.0254 * tireDiameterInches_F);
+    me->tireCircumferenceMeters_F = 3.14159 * (.0254 * tireDiameterInches_F); // TODO: Update diameter if needed
     me->tireCircumferenceMeters_R = 3.14159 * (.0254 * tireDiameterInches_R);
     me->pulsesPerRotation_F = pulsesPerRotation_F;
     me->pulsesPerRotation_R = pulsesPerRotation_R;
@@ -60,6 +64,10 @@ WheelSpeeds *WheelSpeeds_new(float4 tireDiameterInches_F, float4 tireDiameterInc
     me->filteredFrequency_RL = 0;
     me->filteredFrequency_RR = 0;
     me->smoothingFactor = 0.2;
+	me->DAQ_wheelSpeedFR_kph = 0;
+	me->DAQ_wheelSpeedFL_kph = 0;
+	me->DAQ_wheelSpeedRR_kph = 0;
+	me->DAQ_wheelSpeedRL_kph = 0;
 
     //Turn on WSS power pins
     IO_DO_Set(IO_DO_07, TRUE); // WSS x4
@@ -211,12 +219,37 @@ float4 WheelSpeeds_getGroundSpeedRPM(WheelSpeeds *me, ubyte1 tire_config, bool f
 }
 
 bool WheelSpeeds_isWheelSpeedsNonZero(WheelSpeeds *me, bool filter) {
-	float speed_FL = WheelSpeeds_getWheelSpeedMPS(me, FL, filter);
-	float speed_FR = WheelSpeeds_getWheelSpeedMPS(me, FR, filter);
-	float speed_RL = WheelSpeeds_getWheelSpeedMPS(me, RL, filter);
-	float speed_RR = WheelSpeeds_getWheelSpeedMPS(me, RR, filter);
+	float4 speed_FL = WheelSpeeds_getWheelSpeedMPS(me, FL, filter);
+	float4 speed_FR = WheelSpeeds_getWheelSpeedMPS(me, FR, filter);
+	float4 speed_RL = WheelSpeeds_getWheelSpeedMPS(me, RL, filter);
+	float4 speed_RR = WheelSpeeds_getWheelSpeedMPS(me, RR, filter);
     return (speed_FL != 0 && speed_FR != 0 && speed_RL != 0 && speed_RR != 0);
 }
+
+float4 WheelSpeeds_getDAQWheelSpeedRPM(WheelSpeeds *me, Wheel wheel) 
+{
+	switch(wheel)
+	{
+		case FL:
+			return me->DAQ_wheelSpeedFL_kph * (float4)(METERS_IN_KILOMETER/MINUTES_IN_HOUR) / (float4)me->tireCircumferenceMeters_F;
+		case FR:
+			return me->DAQ_wheelSpeedFR_kph * (float4)(METERS_IN_KILOMETER/MINUTES_IN_HOUR) / (float4)me->tireCircumferenceMeters_F;
+		case RL:
+			return me->DAQ_wheelSpeedRL_kph * (float4)(METERS_IN_KILOMETER/MINUTES_IN_HOUR) / (float4)me->tireCircumferenceMeters_R;
+		case RR:
+			return me->DAQ_wheelSpeedRR_kph * (float4)(METERS_IN_KILOMETER/MINUTES_IN_HOUR) / (float4)me->tireCircumferenceMeters_R;
+	}
+	return 0;
+}
+
+bool WheelSpeeds_isDAQWheelSpeedsNonZero(WheelSpeeds *me) {
+	float4 speedFL_rpm = WheelSpeeds_getDAQWheelSpeedRPM(me, FL);
+	float4 speedFR_rpm = WheelSpeeds_getDAQWheelSpeedRPM(me, FR);
+	float4 speedRR_rpm = WheelSpeeds_getDAQWheelSpeedRPM(me, RR);
+	float4 speedRL_rpm = WheelSpeeds_getDAQWheelSpeedRPM(me, RL);
+	return (speedFL_rpm != 0 && speedFR_rpm != 0 && speedRR_rpm != 0 && speedRL_rpm != 0);
+}
+
 
 void WheelSpeeds_parseCanMessage(WheelSpeeds *me, IO_CAN_DATA_FRAME *wssCanMessage) {
     switch (wssCanMessage->id) {
@@ -225,5 +258,12 @@ void WheelSpeeds_parseCanMessage(WheelSpeeds *me, IO_CAN_DATA_FRAME *wssCanMessa
             Sensor_WSS_FR.heldSensorValue = ((ubyte2)wssCanMessage->data[2] << 8 | wssCanMessage->data[3]);
             Sensor_WSS_RL.heldSensorValue = ((ubyte2)wssCanMessage->data[4] << 8 | wssCanMessage->data[5]);
             Sensor_WSS_RR.heldSensorValue = ((ubyte2)wssCanMessage->data[6] << 8 | wssCanMessage->data[7]);
+			break;
+		case 0x578: 
+			me->DAQ_wheelSpeedFL_kph = (((ubyte2)wssCanMessage->data[0] << 8) | (ubyte2)wssCanMessage->data[1]) * 0.1f;
+			me->DAQ_wheelSpeedFR_kph = (((ubyte2)wssCanMessage->data[2] << 8) | (ubyte2)wssCanMessage->data[3]) * 0.1f;
+			me->DAQ_wheelSpeedRL_kph = (((ubyte2)wssCanMessage->data[4] << 8) | (ubyte2)wssCanMessage->data[5]) * 0.1f;
+			me->DAQ_wheelSpeedRR_kph = (((ubyte2)wssCanMessage->data[6] << 8) | (ubyte2)wssCanMessage->data[7]) * 0.1f;
+			break;
     }
 }
