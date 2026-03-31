@@ -2,79 +2,77 @@
 Parameter Injector for SRE VCU testing
 
 To save space on the VCU CAN bus, this module uses one CAN ID to manipulate subsystem/algorithm struct parameters.
-Flow: Pass parameter name as string → encode string to 32-bit value → inject value into CAN → VCU decodes value then maps to struct parameter.
+Flow: Pass struct name and parameter name → look up (identifier, param_number) from struct_members_output.json → build CAN frame with integer IDs → VCU maps to struct field via its sorted parameter table.
 """
 
 import struct
+import json
+from pathlib import Path
 from typing import Optional
 import can
-
 from .can_interface import CANInterface
-
-# Encoding constants
-CHARSET = " abcdefghijklmnopqrstuvwxyz01234"
-BITS_PER_CHAR = 5
-MAX_NAME_LENGTH = 6
-CHAR_MASK = 0x1F
 
 # CAN ID(s)
 HIL_CAN_ID_INJECT = 0x5FE
 HIL_CAN_ID_RESPONSE = 0     # to be changed
+"""
+raise NotImplementedError(
+        "Param lookup requires SIL to emit identifier/param_number in struct_members_output.json. "
+        "Implement this function once that JSON update is available."
+    )
+"""
 
-def encode_name(name: str) -> int:
+
+STRUCT_MEMBERS_JSON = (
+    Path(__file__).resolve().parents[4]
+    / "dev"
+    / "test"
+    / "sre_test"
+    / "sil"
+    / "config"
+    / "struct_members_output.json"
+)
+
+def _lookup_param(struct_name: str, param_name: str) -> tuple[int, int]:
     """
-    Encode parameter name (up to 6 characters) into a 32-bit integer.
+    Look up (identifier, param_number) for a parameter from struct_members_output.json.
+
+    NOTE: This is a stub. It will be fully implemented once SIL generates
+    identifier and param_number fields in struct_members_output.json.
+    At that point, this function should:
+      1. Load the JSON file.
+      2. Find the entry matching struct_name.
+      3. Return (entry["identifier"], entry["parameters"][param_name]["param_number"]).
     """
+    with STRUCT_MEMBERS_JSON.open("r", encoding="utf-8") as f:
+        data = json.load(f)
 
-    if len(name) > MAX_NAME_LENGTH:
-        raise ValueError(f"Name '{name}' exceeds {MAX_NAME_LENGTH} characters.")
-    if len(name) == 0:
-        raise ValueError("Name cannot be empty.")
-    
-    name_lower = name.lower()
+    entry = next((e for e in data if e.get("name") == struct_name), None)
+    if entry is None:
+        raise KeyError(f"Struct '{struct_name}' not found in {STRUCT_MEMBERS_JSON}")
 
-    encoded = 0
-    for char in name_lower:
-        if char not in CHARSET:
-            raise ValueError(f"Invalid character: '{char}' (allowed: a-z, 0-4, space)")
-        idx = CHARSET.index(char)
-        encoded = (encoded << BITS_PER_CHAR) | idx
+    if param_name not in entry.get("parameters", {}):
+        raise KeyError(f"Parameter '{param_name}' not found under struct '{struct_name}'")
 
-    # Fill remaining positions with zeros (terminator)
-    remaining =  MAX_NAME_LENGTH - len(name_lower)
-    encoded <<= (remaining * BITS_PER_CHAR)
+    return (entry["identifier"], entry["parameters"][param_name]["param_number"])
 
-    return encoded
 
-def decode_name(encoded: int) -> str:
-    """
-    Decode 32-bit integer back into parameter name string.
-    """
-
-    chars = []
-    for i in range(MAX_NAME_LENGTH):
-        shift = (MAX_NAME_LENGTH - 1 - i) * BITS_PER_CHAR
-        idx = (encoded >> shift) & CHAR_MASK
-        if idx == 0:    # Terminator
-            break
-        chars.append(CHARSET[idx])
-    
-    return ''.join(chars)
-
-def build_inject_message(name: str, value: int | float) -> can.Message:
+def build_inject_message(identifier: int, param_number: int, value: int | float) -> can.Message:
     """
     Build parameter injection CAN message.
     """
 
-    encoded_name = encode_name(name)
-
     data = bytearray(8)
 
-    # Bytes 0-3: Encoded parameter name (big-endian)
-    data[0] = (encoded_name >> 24) & 0xFF
-    data[1] = (encoded_name >> 16) & 0xFF
-    data[2] = (encoded_name >> 8) & 0xFF
-    data[3] = encoded_name & 0xFF
+    # Byte 0: struct identifier
+    data[0] = identifier & 0xFF
+
+    # Byte 1: parameter number
+    data[1] = param_number & 0xFF
+
+    # Bytes 2-3: reserved
+    data[2] = 0x00
+    data[3] = 0x00
 
     # Bytes 4-7: Parameter value (little-endian)
     if isinstance(value, float):
@@ -111,19 +109,20 @@ class HILParamInjector:
         self.can = can_interface
         self.timeout = response_timeout
 
-    def inject(self, name: str, value: int | float, wait_response: bool = False):
+    def inject(self, struct_name: str, param_name: str, value: int | float, wait_response: bool = False):
         """
         Inject parameter into VCU.
         """
 
-        msg = build_inject_message(name, value)
+        identifier, param_number = _lookup_param(struct_name, param_name)
+        msg = build_inject_message(identifier, param_number, value)
         success = self.can.send(msg)
 
         if not success:
             return False
-        
+
         if wait_response:
-            return self._wait_response(name)
+            return self._wait_response()
         return True
 
     def _wait_response(self) -> Optional[dict]:
@@ -139,29 +138,3 @@ class HILParamInjector:
             
         return None
     
-### VERIFICATION/TESTING ###
-def verify_encoding():
-    """Verify encoding/decoding scheme works as intended"""
-
-    test_names = ["pltog", "plstat", "plmode", "lctog", "rgntog", "a", "zzzzzz"]
-
-    all_passed = True
-    for name in test_names:
-        try:
-            encoded = encode_name(name)
-            decoded = decode_name(encoded)
-            passed = (decoded == name)
-            all_passed &= passed
-
-            status = "PASS" if passed else "FAIL"
-            print(f"  '{name}' -> 0x{encoded:08X} -> '{decoded}'  [{status}]")
-        except ValueError as e:
-            print(f"  '{name}' -> ERROR: {e}")
-            all_passed = False
-    
-    print("-" * 50)
-    print(f"Overall: {'ALL PASSED' if all_passed else 'SOME FAILED'}")
-    return all_passed
-
-if __name__ == "__main__":
-    verify_encoding()
