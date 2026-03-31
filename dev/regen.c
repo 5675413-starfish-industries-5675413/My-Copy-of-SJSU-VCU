@@ -6,31 +6,38 @@
 #include "mathFunctions.h"
 
 // Rules & Saftey Features
-#define MIN_REGEN_SPEED_KPH                5
+#define MIN_REGEN_SPEED_KPH                5    // Car cannot regen under 5km/hr per rules
 #define REGEN_RAMPDOWN_START_SPEED        10
 
-// Pressure Formula Constants
-#define GEAR_RATIO                      3.2f
+// Imperical Conversions
 #define kPa_TO_MPa                    0.001f
 #define mm_TO_m                       0.001f
-#define REAR_PISTON_AREA         4 * 791.73f    // mm^2  // 4x, because 4 calipers total (2 for each wheel)
-#define ROTOR_RADIUS                  74.17f    // mm
+
+// SR-17 Constants (used for prop valve Pressure <--> Torque conversion)
+#define GEAR_RATIO                     2.92f    // (12:35 Enduro) (10:35 Accel)
+#define REAR_PISTON_AREA         4 * 791.73f    // mm^2 | 4x, because 4 calipers total (2 for each wheel)
+#define ROTOR_RADIUS                 163.32f    // mm   | effective rear rotor radius
 
 Regen* Regen_new(bool regenToggle)
 {
     Regen* me = (Regen*)malloc(sizeof(Regen));
-    me->regenToggle=regenToggle;
-
-    me->mode = REGENMODE_FORMULAE;
     
-    me->appsTorque = 0;
-    me->bpsTorqueNm = 0;
-    me->regenTorqueCommand = 0;
-    me->torqueLimitDNm = 0;
-    me->torqueAtZeroPedalDNm = 0;
-    me->percentBPSForMaxRegen = 0; //zero to one.. 1 = 100%
-    me->percentAPPSForCoasting = 0;
-    me->padMu = 0.4;
+    me->regenToggle = regenToggle;          // on/off switch
+    me->appsTorque = 0;                     // regen on throttle (if none, simply linear map of APPS)
+    me->bpsTorque = 0;                      // regen on brakes
+    me->regenTorqueCommand = 0;             // when negative, mcm regens
+    me->mode = REGENMODE_FORMULAE;
+    me->torqueLimit = 50;                   // Nm | AKA regen-tq-limit
+
+    // regen-on-APPS
+    me->maxRegenAPPS = 0;                   // torque sent at zero throttle
+    me->percentAPPSForCoasting = 0;         // APPS% required to coast w/ regen-on-APPS enabled
+
+    // regen-on-brakes
+    me->padMu = 0.45;                       // treated as constant. TODO: might be good idea to relate w/ rotor temps
+    me->percentBPSForMaxRegen  = 0;         // what % of BPS activates max regen-on-brakes (legacy)
+
+    // saftey check(s)
     me->tick = 0;
 
     Regen_updateSettings(me);
@@ -42,120 +49,112 @@ void Regen_updateSettings(Regen* me)
 {
     switch (me->mode)
     {
-    case REGENMODE_FORMULAE:    // Regen only on brakes
-        me->torqueLimitDNm = 500;//me->torqueMaximumDNm * 0.5;
-        me->torqueAtZeroPedalDNm = 0;
-        me->percentAPPSForCoasting = 0;
-        me->percentBPSForMaxRegen = .3; //zero to one.. 1 = 100%
+    case REGENMODE_FORMULAE:    // regen only on brakes
+//      me->torqueLimit = 50;
+        me->padMu = 0.45;
         break;
 
-    case REGENMODE_TESLA:       // Regen only on throttle
-        me->torqueLimitDNm = 500;//me->torqueMaximumDNm * .5;
-        me->torqueAtZeroPedalDNm = me->torqueLimitDNm;
-        me->percentAPPSForCoasting = .1;
-        me->percentBPSForMaxRegen = 0;
+    case REGENMODE_TESLA:       // regen only on throttle
+//      me->torqueLimit = 50;
+        me->maxRegenAPPS = me->torqueLimit;          // all of regen-tq-limit allocated for regen-on-apps
+        me->percentAPPSForCoasting = .10;               // range is 0-1 (.50 = 50%; 1 = 100%, etc.)
+        me->percentBPSForMaxRegen = 0;                  // range is 0-1 (.50 = 50%; 1 = 100%, etc.)
         break;
 
-    case REGENMODE_HYBRID:      // Mix of FormulaE & Tesla (light "engine braking")
-        me->torqueLimitDNm = 500;//me->torqueMaximumDNm * 0.5;
-        me->torqueAtZeroPedalDNm = me->torqueLimitDNm * 0.3;
-        me->percentAPPSForCoasting = .2;
-        me->percentBPSForMaxRegen = .3; //zero to one.. 1 = 100%
-        break;
-
-    case REGENMODE_FIXED:       // Fixed regen (outdated)
-        me->torqueLimitDNm = 250; //1000 = 100Nm
-        me->torqueAtZeroPedalDNm = me->torqueLimitDNm;
-        me->percentAPPSForCoasting = .05;
-        me->percentBPSForMaxRegen = 0;
-        break;
-
-    // TODO:  User customizable regen settings - Issue #97
-    case REGENMODE_CUSTOM:
-        me->torqueLimitDNm = 0;
-        me->torqueAtZeroPedalDNm = 0;
-        me->percentBPSForMaxRegen = 0; //zero to one.. 1 = 100%
-        me->percentAPPSForCoasting = 0;
+    case REGENMODE_HYBRID:      // regen on both brakes & throttle
+//      me->torqueLimit = 50;
+        me->maxRegenAPPS = me->torqueLimit * 0.3;    // 30% allocated to apps
+        me->percentAPPSForCoasting = .20;               // range is 0-1 (.50 = 50%; 1 = 100%, etc.)
+        me->percentBPSForMaxRegen = .30;                // range is 0-1 (.50 = 50%; 1 = 100%, etc.)
+        me->padMu = 0.45;
         break;
 
     case REGENMODE_OFF:
-        me->torqueLimitDNm = 0;
-        me->torqueAtZeroPedalDNm = 0;
-        me->percentBPSForMaxRegen = 0; //zero to one.. 1 = 100%
-        me->percentAPPSForCoasting = 0;
+        me->torqueLimit = 0;
+        me->maxRegenAPPS = 0;
         break;
     }
 }
 
 void Regen_calculateCommands(Regen *me, MotorController *mcm, TorqueEncoder *tps, BrakePressureSensor *bps)
 {
+    // EARLY RETURNS & SAFTEY CHECKS
+    // ------------------------------------------------
+
+    // Early return if regen is off
     if (me->regenToggle == FALSE) {
-        MCM_set_Regen_activeStatus(mcm, FALSE);
+            me->mode = REGENMODE_OFF;
+            MCM_set_Regen_activeStatus(mcm, FALSE);
         return;
     }
 
-    if (MCM_getGroundSpeedKPH(mcm) < MIN_REGEN_SPEED_KPH) {
-        MCM_set_Regen_activeStatus(mcm, FALSE);
-        return;
-    }
-
-    if (MCM_getDCCurrent(mcm) < -72) { // saftey check stopping at -72A over 1 consecutive second
+    // Saftey check: too much regen current (72A) for 1 consecutive second
+    if (MCM_getDCCurrent(mcm) < -72) {
         me->tick++;
     } else {
         me->tick = 0;
     }
     if (me->tick >= 10) {
+        me->mode = REGENMODE_OFF;
         MCM_set_Regen_activeStatus(mcm, FALSE);
         return;
     }
 
-    MCM_set_Regen_activeStatus(mcm, TRUE);
-
-/*
-    // Regen mode is now set based on battery voltage to preserve overvoltage fault
-    // if(BMS_getPackVoltage(bms) >= 38500 * 10){
-    //     MCM_setRegenMode(mcm0, REGENMODE_FORMULAE);
-    // } else {
-    //     MCM_setRegenMode(mcm0, REGENMODE_FIXED);
-    // }
+/*  Not sure why this is commented out. Seems pretty good? Need to double check w/ new voltages
+    // Saftey Check: Early return based on battery voltage to prevent overvoltage fault
+    if(BMS_getPackVoltage(bms) >= 38500 * 10){
+        me->mode = REGENMODE_OFF;
+        MCM_set_Regen_activeStatus(mcm, FALSE);
+    }
 */
 
+/*  We can get rid of this saftey check: Source Aidan @ Regen DDR
     if (MCM_getMotorRPM(mcm) > 2400){
-        me->torqueLimitDNm -= 0.022 * (MCM_getMotorRPM(mcm)-2400); //Torque limit is reduced by -0.022 DNm for each RPM over 2400
+        me->torqueLimit -= 0.22 * (MCM_getMotorRPM(mcm)-2400); //Torque limit is reduced by -0.022 DNm for each RPM over 2400
     }
+*/
+MCM_set_Regen_activeStatus(mcm, TRUE);  // end of early returns
 
     float4 appsOutputPercent;
     TorqueEncoder_getOutputPercent(tps, &appsOutputPercent);
     
-    me->appsTorque = (MCM_getMaxTorqueDNm(mcm) / 10) * appsOutputPercent; // Nm // no regen, linear mapping of tps
+    me->appsTorque = (MCM_getMaxTorqueDNm(mcm) / 10) * appsOutputPercent; // Nm | no regen, linear mapping of tps
 
+
+    
     if (me->mode == REGENMODE_TESLA || me->mode == REGENMODE_HYBRID) {  // overwrite w/ regen on tps
         // Shinika's APPS implementation:
         me->appsTorque = MCM_getMaxTorqueDNm(mcm) * getPercent(appsOutputPercent, me->percentAPPSForCoasting, 1, TRUE)
-                       - me->torqueAtZeroPedalDNm * getPercent(appsOutputPercent, me->percentAPPSForCoasting, 0, TRUE);
+                       - me->maxRegenAPPS * getPercent(appsOutputPercent, me->percentAPPSForCoasting, 0, TRUE);
     } 
 
     // Shinika's BPS implementation:
-    // me->bpsTorqueDnm = 0 - (me->torqueLimitDNm - me->torqueAtZeroPedalDNm) * getPercent(bps->percent, 0, me->percentBPSForMaxRegen, TRUE);
+    // me->bpsTorqueDnm = 0 - (me->torqueLimit - me->maxRegenAPPS) * getPercent(bps->percent, 0, me->percentBPSForMaxRegen, TRUE);
 
     // Prop Valve Regen Implementation:
     if (me->mode == REGENMODE_FORMULAE) {
         BrakePressureSensor_setPressure(bps);
-        me->bpsTorqueNm = (((bps->bps1_Pressure-bps->bps0_Pressure) * kPa_TO_MPa) * me->padMu * REAR_PISTON_AREA * (ROTOR_RADIUS * mm_TO_m)) / GEAR_RATIO;
+        me->bpsTorque = (((bps->bps1_Pressure-bps->bps0_Pressure) * kPa_TO_MPa) * me->padMu * REAR_PISTON_AREA * (ROTOR_RADIUS * mm_TO_m)) / GEAR_RATIO;
 
         if (bps->bps0_percent > 0) {
-            me->appsTorque = 0; // bps overpowers tps 
+            me->appsTorque = 0; // bps overpowers tps
         }
     }
     
-    me->regenTorqueCommand = (sbyte2)(me->appsTorque - me->bpsTorqueNm);
 
-    // clamps regen -50 Nm to 231 Nm
+    me->regenTorqueCommand = (sbyte2)(me->appsTorque - me->bpsTorque);
+
+    // Disables regen under 5km/hr, per rules
+    if (MCM_getGroundSpeedKPH(mcm) < MIN_REGEN_SPEED_KPH && me->regenTorqueCommand < 0) {
+        me->regenTorqueCommand = 0;
+    }
+
+    // clamps regen from regen-tq-limit to 231 Nm
     if (me->regenTorqueCommand > 231) {
         MCM_set_Regen_torqueCommand(mcm, 231);
     }
-    else if (me->regenTorqueCommand < (-1 * me->torqueLimitDNm / 10)) {
-        MCM_set_Regen_torqueCommand(mcm, -1 * me->torqueLimitDNm / 10);
+    else if (me->regenTorqueCommand < (-1 * me->torqueLimit)) { // multiply by -1 because regen is negative
+        MCM_set_Regen_torqueCommand(mcm, -1 * me->torqueLimit);
     }
     else {
         MCM_set_Regen_torqueCommand(mcm, me->regenTorqueCommand);
