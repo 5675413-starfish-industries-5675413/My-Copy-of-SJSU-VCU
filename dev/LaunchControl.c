@@ -26,7 +26,7 @@ LaunchControl *LaunchControl_new(bool lcToggle) {
     me->Kp = 10;
     me->Ki = 75;
     me->Kd = 0;
-    me->pid = PID_new(me->Kp, me->Ki, me->Kd, 0.5, 1);
+    me->pid = PID_new(me->Kp, me->Ki, me->Kd, 0, 1);
     me->slipRatioTarget = 0.2;
     me->lcToggle = lcToggle;
     me->currentSlipRatio = 0;
@@ -149,85 +149,129 @@ void LaunchControl_applySpeedCurve(LaunchControl *me, MotorController *mcm) {
     me->prevRPM = (float4)me->lcSpeedCommand;
 }
 
-void LaunchControl_calculateCommands(LaunchControl *me, TorqueEncoder *tps, BrakePressureSensor *bps, MotorController *mcm, WheelSpeeds *wss)
+void LaunchControl_calculateCommands(LaunchControl *lc, TorqueEncoder *tps, BrakePressureSensor *bps, MotorController *mcm, WheelSpeeds *wss)
 {
     //Always monnitor slip ratio and velocity difference
-    LaunchControl_updateSlipRatio(me, wss);
-    LaunchControl_updateVelocityDifference(me, wss);
+    LaunchControl_updateSlipRatio(lc, wss);
+    LaunchControl_updateVelocityDifference(lc, wss);
 
     //Exit if Launch Control is not enabled
-    if (!me->lcToggle) { 
+    if (!lc->lcToggle) 
+	{ 
         return; 
     }
 
-    LaunchControl_updateState(me, tps, bps, mcm);
+    LaunchControl_updateState(lc, tps, bps, mcm);
 
-    switch(me->state) {
-        case LC_STATE_IDLE:
-            //Do nothing
-            break;
+	if (lc->commandMode == LC_COMMAND_TORQUE) 
+	{
+		MCM_updateSpeedModeStatus(mcm, FALSE);
+		LaunchControl_calculateTorqueCommand(lc, wss, mcm);
+	}
+	else if (lc->commandMode == LC_COMMAND_SPEED)
+	{
 
-        case LC_STATE_READY:
-            //During ready state, driver is able to press throttle without requesting any torque.
-            //Reset both command values  
-            me->lcTorqueCommand = 0;
-            me->lcSpeedCommand = 0;
-            MCM_update_LC_torqueCommand(mcm, me->lcTorqueCommand);
-            MCM_update_LC_speedCommand(mcm, me->lcSpeedCommand);
-            MCM_updateSpeedModeStatus(mcm, FALSE);
-            break;
+		MCM_updateSpeedModeStatus(mcm, TRUE);
+		LaunchControl_calculateSpeedCommand(lc, wss, mcm);
+	}
+
+}
+
+void LaunchControl_calculateSpeedCommand(LaunchControl *lc, WheelSpeeds *wss, MotorController *mcm) 
+{
+    switch(lc->state) 
+	{
+    case LC_STATE_IDLE:
+        //Do nothing
+        break;
+
+    case LC_STATE_READY:
+		//During ready state, driver is able to press throttle without requesting any torque.
+		//Reset both command values  
+		lc->lcSpeedCommand = 0;
+		MCM_update_LC_speedCommand(mcm, lc->lcSpeedCommand);
+		break;
     
+	case LC_STATE_ACTIVE:
+		LaunchControl_updatePhase(lc, wss);
 
-        case LC_STATE_ACTIVE:
-            // Tell the MCM which command channel to use for this launch
-            MCM_updateSpeedModeStatus(mcm, (me->commandMode == LC_COMMAND_SPEED));
-            LaunchControl_updatePhase(me, wss);
+		if (lc->phase == LC_PHASE_RAMP) 
+		{
+			LaunchControl_applySpeedCurve(lc, mcm);
+		}
+		else 
+		{
+			LaunchControl_calculatePIDOutput(lc);
+			lc->lcSpeedCommand = (sbyte2)MCM_getMotorRPM(mcm) + (sbyte2)lc->pid->output;
+		}
 
-            //if one WSS < 0, use speed curve 
-            if (me->phase == LC_PHASE_RAMP) {
-                //chooses curve based on mode
-                if (me->commandMode == LC_COMMAND_SPEED) {
-                    LaunchControl_applySpeedCurve(me, mcm);
-                }
-                else {
-                    LaunchControl_applyTorqueCurve(me, mcm);
-                }
-            }
-            //if all WSS > 0, use PID
-            else { 
-                LaunchControl_calculatePIDOutput(me);
-                if (me->commandMode == LC_COMMAND_SPEED) {
-                    me->lcSpeedCommand = (sbyte2)MCM_getMotorRPM(mcm) + (sbyte2)me->pid->output;
-                }
-                else if (me->commandMode == LC_COMMAND_TORQUE) {
-                    me->lcTorqueCommand = (sbyte2)MCM_getCommandedTorque(mcm) + (sbyte2)me->pid->output;
-                }
-            }
-            if (me->commandMode == LC_COMMAND_SPEED) {
-				// TODO: change maxRPM
-                if (me->lcSpeedCommand > (sbyte2)me->maxRPM) {
-                    MCM_update_LC_speedCommand(mcm, (sbyte2)me->maxRPM);
-                }
-                else if (me->lcSpeedCommand < 0) {
-                    MCM_update_LC_speedCommand(mcm, 0);
-                }
-                else {
-                    MCM_update_LC_speedCommand(mcm, me->lcSpeedCommand);
-                }
-            }
-            else if (me->commandMode == LC_COMMAND_TORQUE) {
-                if (me->lcTorqueCommand > 220) {
-                    MCM_update_LC_torqueCommand(mcm, 220);
-                }
-                else if (me->lcTorqueCommand < 0) {
-                    MCM_update_LC_torqueCommand(mcm, 0);
-                }
-                else {
-                    MCM_update_LC_torqueCommand(mcm, me->lcTorqueCommand);
-                }
-            }
-            break;
+		LaunchControl_updateMCMSpeedCommand(lc, mcm);
+        break;
     }
+}
+
+void LaunchControl_updateMCMSpeedCommand(LaunchControl *lc, MotorController *mcm) 
+{
+	if (lc->lcSpeedCommand > 5000) 
+	{
+		MCM_update_LC_speedCommand(mcm, 5000);
+	}
+	else if (lc->lcSpeedCommand < 0) 
+	{
+		MCM_update_LC_speedCommand(mcm, 0);
+	}
+	else 
+	{
+		MCM_update_LC_speedCommand(mcm, lc->lcSpeedCommand);
+	}
+}
+
+void LaunchControl_calculateTorqueCommand(LaunchControl *lc, WheelSpeeds *wss, MotorController *mcm) {
+
+    switch(lc->state) 
+	{
+    case LC_STATE_IDLE:
+		//Do nothing
+		break;
+
+	case LC_STATE_READY:
+		//During ready state, driver is able to press throttle without requesting any speed
+		lc->lcTorqueCommand = 0;
+		MCM_update_LC_torqueCommand(mcm, lc->lcTorqueCommand);
+		break;
+    
+	case LC_STATE_ACTIVE:
+		LaunchControl_updatePhase(lc, wss);
+		
+		if (lc->phase == LC_PHASE_RAMP) 
+		{
+			LaunchControl_applyTorqueCurve(lc, mcm);
+		}
+		else 
+		{ 
+            LaunchControl_calculatePIDOutput(lc);
+            lc->lcTorqueCommand = (sbyte2)MCM_getCommandedTorque(mcm) + (sbyte2)lc->pid->output;
+        }
+
+		LaunchControl_updateMCMTorqueCommand(lc, mcm);
+        break;
+    }
+}
+
+void LaunchControl_updateMCMTorqueCommand(LaunchControl *lc, MotorController *mcm) 
+{
+	if (lc->lcTorqueCommand > 220) 
+	{
+		MCM_update_LC_torqueCommand(mcm, 220);
+	}
+	else if (lc->lcTorqueCommand < 0) 
+	{
+		MCM_update_LC_torqueCommand(mcm, 0);
+	}
+	else 
+	{
+		MCM_update_LC_torqueCommand(mcm, lc->lcTorqueCommand);
+	}
 }
 
 void LaunchControl_updateFilterStatus(LaunchControl *me, MotorController *mcm) {

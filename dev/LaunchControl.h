@@ -85,5 +85,9 @@ void LaunchControl_applySpeedCurve(LaunchControl *me, MotorController *mcm);
 sbyte2 LaunchControl_getSpeedCommand(LaunchControl *me);
 bool LaunchControl_getActiveStatus(LaunchControl *me);
 void LaunchControl_updateVelocityDifference(LaunchControl *me, WheelSpeeds *wss);
+void LaunchControl_updateMCMTorqueCommand(LaunchControl *lc, MotorController *mcm);
+void LaunchControl_calculateTorqueCommand(LaunchControl *lc, WheelSpeeds *wss, MotorController *mcm);
+void LaunchControl_updateMCMSpeedCommand(LaunchControl *lc, MotorController *mcm);
+void LaunchControl_calculateSpeedCommand(LaunchControl *lc, WheelSpeeds *wss, MotorController *mcm) ;
 
 #endif
