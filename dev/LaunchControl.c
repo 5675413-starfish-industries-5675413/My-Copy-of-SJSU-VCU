@@ -171,18 +171,18 @@ void LaunchControl_updateVelocityDifference(LaunchControl *lc, WheelSpeeds *wss)
 }
 
 
-void LaunchControl_applyTorqueCurve(LaunchControl *lc, MotorController *mcm) 
+sbyte2 LaunchControl_calculateTorqueCurve(LaunchControl *lc) 
 {
     float4 torque = lc->curveK * lc->curveMaxTorque + (1 - lc->curveK) * lc->curvePrevTorque;
-	lc->lcTorqueCommand = (sbyte2) torque;
-    lc->curvePrevTorque = lc->lcTorqueCommand;
+    lc->curvePrevTorque = (sbyte2)torque;
+	return (sbyte2)torque;
 }
 
-void LaunchControl_applySpeedCurve(LaunchControl *lc, MotorController *mcm) 
+sbyte2 LaunchControl_calculateSpeedCurve(LaunchControl *lc)
 {
     float4 rpm = lc->curveK * lc->curveMaxRPM + (1 - lc->curveK) * lc->curvePrevRPM;
-    lc->lcSpeedCommand = (sbyte2) rpm;
-    lc->curvePrevRPM = (float4)lc->lcSpeedCommand;
+    lc->curvePrevRPM = (sbyte2)rpm;
+	return (sbyte2)rpm;
 }
 
 void LaunchControl_calculateCommands(LaunchControl *lc, TorqueEncoder *tps, BrakePressureSensor *bps, MotorController *mcm, WheelSpeeds *wss)
@@ -259,7 +259,7 @@ void LaunchControl_calculateSpeedCommand(LaunchControl *lc, WheelSpeeds *wss, Mo
 
 		if (lc->phase == LC_PHASE_RAMP) 
 		{
-			LaunchControl_applySpeedCurve(lc, mcm);
+			lc->lcSpeedCommand = LaunchControl_calculateSpeedCurve(lc);
 		}
 		else 
 		{
@@ -307,7 +307,7 @@ void LaunchControl_calculateTorqueCommand(LaunchControl *lc, WheelSpeeds *wss, M
 		
 		if (lc->phase == LC_PHASE_RAMP) 
 		{
-			LaunchControl_applyTorqueCurve(lc, mcm);
+			lc->lcTorqueCommand = LaunchControl_calculateTorqueCurve(lc);
 		}
 		else 
 		{ 
