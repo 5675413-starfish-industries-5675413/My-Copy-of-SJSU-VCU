@@ -38,15 +38,15 @@ LaunchControl *LaunchControl_new(bool lcToggle)
     lc->targetVelocityDifference = 0;
 
     lc->lcTorqueCommand = 0;
-    lc->initialTorque = 75;
-    lc->k = 0.2;
-    lc->maxTorque = 231;
-    lc->prevTorque = lc->initialTorque;
+    lc->curveInitialTorque = 75;
+    lc->curveK = 0.2;
+    lc->curveMaxTorque = 231;
+    lc->curvePrevTorque = lc->curveInitialTorque;
 
     lc->lcSpeedCommand = 0;
-    lc->maxRPM = 7200;  // TODO: Determine max RPM for initial speed curve
-	lc->initialRPM = 0;
-    lc->prevRPM = lc->initialRPM;
+    lc->curveMaxRPM = 7200;  // TODO: Determine max RPM for initial speed curve
+	lc->curveInitialRPM = 0;
+    lc->curvePrevRPM = lc->curveInitialRPM;
 
     lc->commandMode = LC_COMMAND_TORQUE;
     lc->mode = LC_MODE_SLIP_RATIO;
@@ -64,11 +64,11 @@ void LaunchControl_reset(LaunchControl *lc, MotorController *mcm)
     lc->phase = LC_PHASE_RAMP;
 
     lc->lcTorqueCommand = 0;
-    lc->prevTorque = lc->initialTorque;
+    lc->curvePrevTorque = lc->curveInitialTorque;
     MCM_update_LC_torqueCommand(mcm, lc->lcTorqueCommand);
 
     lc->lcSpeedCommand = 0;
-    lc->prevRPM = lc->initialRPM;
+    lc->curvePrevRPM = lc->curveInitialRPM;
     MCM_update_LC_speedCommand(mcm, lc->lcSpeedCommand);
 
     //Always leave the MCM in torque mode when LC is not active
@@ -173,16 +173,16 @@ void LaunchControl_updateVelocityDifference(LaunchControl *lc, WheelSpeeds *wss)
 
 void LaunchControl_applyTorqueCurve(LaunchControl *lc, MotorController *mcm) 
 {
-    float4 torque = lc->k * lc->maxTorque + (1 - lc->k) * lc->prevTorque;
+    float4 torque = lc->curveK * lc->curveMaxTorque + (1 - lc->curveK) * lc->curvePrevTorque;
 	lc->lcTorqueCommand = (sbyte2) torque;
-    lc->prevTorque = lc->lcTorqueCommand;
+    lc->curvePrevTorque = lc->lcTorqueCommand;
 }
 
 void LaunchControl_applySpeedCurve(LaunchControl *lc, MotorController *mcm) 
 {
-    float4 rpm = lc->k * lc->maxRPM + (1 - lc->k) * lc->prevRPM;
+    float4 rpm = lc->curveK * lc->curveMaxRPM + (1 - lc->curveK) * lc->curvePrevRPM;
     lc->lcSpeedCommand = (sbyte2) rpm;
-    lc->prevRPM = (float4)lc->lcSpeedCommand;
+    lc->curvePrevRPM = (float4)lc->lcSpeedCommand;
 }
 
 void LaunchControl_calculateCommands(LaunchControl *lc, TorqueEncoder *tps, BrakePressureSensor *bps, MotorController *mcm, WheelSpeeds *wss)

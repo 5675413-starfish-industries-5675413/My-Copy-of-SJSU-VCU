@@ -54,15 +54,16 @@ typedef struct _LaunchControl
     float4 currentVelocityDifference;
     float4 targetVelocityDifference;
 
-    float4 initialTorque;
-    float4 maxTorque;
-    float4 prevTorque;
-    float4 k;
-    sbyte2 lcTorqueCommand;
+    float4 curveInitialTorque;
+    float4 curveMaxTorque;
+    float4 curvePrevTorque;
+    float4 curveK;
 
-    float4 maxRPM; 
-    float4 prevRPM;
-	float4 initialRPM;
+    float4 curveMaxRPM; 
+    float4 curvePrevRPM;
+	float4 curveInitialRPM;
+	    
+	sbyte2 lcTorqueCommand;
     sbyte2 lcSpeedCommand; 
 
     LC_CommandMode commandMode; 
