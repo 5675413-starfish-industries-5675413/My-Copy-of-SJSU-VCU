@@ -857,7 +857,7 @@ sbyte4 MCM_getPower(MotorController *me)
     }
 }
 
-ubyte2 MCM_getCommandedTorque(MotorController *me)
+sbyte2 MCM_getCommandedTorque(MotorController *me)
 {
     return me->commandedTorque;
 }

@@ -107,7 +107,7 @@ sbyte2 MCM_get_PL_torqueCommand(MotorController *me);
 sbyte4 MCM_getMotorRPM(MotorController *me);
 
 sbyte4 MCM_getPower(MotorController* me);
-ubyte2 MCM_getCommandedTorque(MotorController* me);
+sbyte2 MCM_getCommandedTorque(MotorController* me);
 ubyte2 MCM_getFeedbackTorque(MotorController *me);
 
 bool MCM_getHvilOverrideStatus(MotorController* me);
