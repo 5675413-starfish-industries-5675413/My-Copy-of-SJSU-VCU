@@ -574,34 +574,49 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     canMessages[canMessageCount - 1].data[byteNum++] = bps->bps0_calibMax >> 8;
     canMessages[canMessageCount - 1].length = byteNum;
 
-    //503: WSS mm/s unfiltered output
+    //503: WSS mm/s unfiltered output 
+    // canMessageCount++;
+    // byteNum = 0;
+    // canMessages[canMessageCount - 1].id_format = IO_CAN_STD_FRAME;
+    // canMessages[canMessageCount - 1].id = canMessageID + canMessageCount - 1;
+    // canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)(WheelSpeeds_getWheelSpeedMPS(wss, FL, FALSE) + 0.5);
+    // canMessages[canMessageCount - 1].data[byteNum++] = ((ubyte2)(WheelSpeeds_getWheelSpeedMPS(wss, FL, FALSE) + 0.5)) >> 8;
+    // canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)(WheelSpeeds_getWheelSpeedMPS(wss, FR, FALSE) + 0.5);
+    // canMessages[canMessageCount - 1].data[byteNum++] = ((ubyte2)(WheelSpeeds_getWheelSpeedMPS(wss, FR, FALSE) + 0.5)) >> 8;
+    // canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)(WheelSpeeds_getWheelSpeedMPS(wss, RL, FALSE) + 0.5);
+    // canMessages[canMessageCount - 1].data[byteNum++] = ((ubyte2)(WheelSpeeds_getWheelSpeedMPS(wss, RL, FALSE) + 0.5)) >> 8;
+    // canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)(WheelSpeeds_getWheelSpeedMPS(wss, RR, FALSE) + 0.5);
+    // canMessages[canMessageCount - 1].data[byteNum++] = ((ubyte2)(WheelSpeeds_getWheelSpeedMPS(wss, RR, FALSE) + 0.5)) >> 8;
+    // canMessages[canMessageCount - 1].length = byteNum;
+
+    // 503 FREE MESSAGE
     canMessageCount++;
     byteNum = 0;
     canMessages[canMessageCount - 1].id_format = IO_CAN_STD_FRAME;
     canMessages[canMessageCount - 1].id = canMessageID + canMessageCount - 1;
-    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)(WheelSpeeds_getWheelSpeedMPS(wss, FL, FALSE) + 0.5);
-    canMessages[canMessageCount - 1].data[byteNum++] = ((ubyte2)(WheelSpeeds_getWheelSpeedMPS(wss, FL, FALSE) + 0.5)) >> 8;
-    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)(WheelSpeeds_getWheelSpeedMPS(wss, FR, FALSE) + 0.5);
-    canMessages[canMessageCount - 1].data[byteNum++] = ((ubyte2)(WheelSpeeds_getWheelSpeedMPS(wss, FR, FALSE) + 0.5)) >> 8;
-    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)(WheelSpeeds_getWheelSpeedMPS(wss, RL, FALSE) + 0.5);
-    canMessages[canMessageCount - 1].data[byteNum++] = ((ubyte2)(WheelSpeeds_getWheelSpeedMPS(wss, RL, FALSE) + 0.5)) >> 8;
-    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)(WheelSpeeds_getWheelSpeedMPS(wss, RR, FALSE) + 0.5);
-    canMessages[canMessageCount - 1].data[byteNum++] = ((ubyte2)(WheelSpeeds_getWheelSpeedMPS(wss, RR, FALSE) + 0.5)) >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] = 0;
+    canMessages[canMessageCount - 1].data[byteNum++] = 0;
+    canMessages[canMessageCount - 1].data[byteNum++] = 0;
+    canMessages[canMessageCount - 1].data[byteNum++] = 0;
+    canMessages[canMessageCount - 1].data[byteNum++] = 0;
+    canMessages[canMessageCount - 1].data[byteNum++] = 0;
+    canMessages[canMessageCount - 1].data[byteNum++] = 0;
+    canMessages[canMessageCount - 1].data[byteNum++] = 0;
     canMessages[canMessageCount - 1].length = byteNum;
 
-    //504: WSS RPM unfiltered output
+    //504: DAQ Wheel Speeds
     canMessageCount++;
     byteNum = 0;
     canMessages[canMessageCount - 1].id_format = IO_CAN_STD_FRAME;
     canMessages[canMessageCount - 1].id = canMessageID + canMessageCount - 1;
-    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)(WheelSpeeds_getWheelSpeedRPM(wss, FL, FALSE) + 0.5);
-    canMessages[canMessageCount - 1].data[byteNum++] = ((ubyte2)(WheelSpeeds_getWheelSpeedRPM(wss, FL, FALSE) + 0.5)) >> 8;
-    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)(WheelSpeeds_getWheelSpeedRPM(wss, FR, FALSE) + 0.5);
-    canMessages[canMessageCount - 1].data[byteNum++] = ((ubyte2)(WheelSpeeds_getWheelSpeedRPM(wss, FR, FALSE) + 0.5)) >> 8;
-    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)(WheelSpeeds_getWheelSpeedRPM(wss, RL, FALSE) + 0.5);
-    canMessages[canMessageCount - 1].data[byteNum++] = ((ubyte2)(WheelSpeeds_getWheelSpeedRPM(wss, RL, FALSE) + 0.5)) >> 8;
-    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)(WheelSpeeds_getWheelSpeedRPM(wss, RR, FALSE) + 0.5);
-    canMessages[canMessageCount - 1].data[byteNum++] = ((ubyte2)(WheelSpeeds_getWheelSpeedRPM(wss, RR, FALSE) + 0.5)) >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)(WheelSpeeds_getDAQWheelSpeedRPM(wss, FL));
+    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)((ubyte2)WheelSpeeds_getDAQWheelSpeedRPM(wss, FL) >> 8);
+    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)(WheelSpeeds_getDAQWheelSpeedRPM(wss, FR));
+    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)((ubyte2)WheelSpeeds_getDAQWheelSpeedRPM(wss, FR) >> 8); 
+    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)(WheelSpeeds_getDAQWheelSpeedRPM(wss, RR));
+    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)((ubyte2)WheelSpeeds_getDAQWheelSpeedRPM(wss, RR) >> 8); 
+    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)(WheelSpeeds_getDAQWheelSpeedRPM(wss, RL));
+    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)((ubyte2)WheelSpeeds_getDAQWheelSpeedRPM(wss, RL) >> 8); 
     canMessages[canMessageCount - 1].length = byteNum;
 
     /*
@@ -637,19 +652,34 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     canMessages[canMessageCount - 1].length = byteNum;
     */
 
-    //505: WSS RPM filtered output
+    //505: WSS RPM filtered output (DONT NEED TO LOGGED ON DAQ)
+    // canMessageCount++;
+    // byteNum = 0;
+    // canMessages[canMessageCount - 1].id_format = IO_CAN_STD_FRAME;
+    // canMessages[canMessageCount - 1].id = canMessageID + canMessageCount - 1;
+    // canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)(WheelSpeeds_getWheelSpeedRPM(wss, FL, TRUE) + 0.5);
+    // canMessages[canMessageCount - 1].data[byteNum++] = ((ubyte2)(WheelSpeeds_getWheelSpeedRPM(wss, FL, TRUE) + 0.5)) >> 8;
+    // canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)(WheelSpeeds_getWheelSpeedRPM(wss, FR, TRUE) + 0.5);
+    // canMessages[canMessageCount - 1].data[byteNum++] = ((ubyte2)(WheelSpeeds_getWheelSpeedRPM(wss, FR, TRUE) + 0.5)) >> 8;
+    // canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)(WheelSpeeds_getWheelSpeedRPM(wss, RL, TRUE) + 0.5);
+    // canMessages[canMessageCount - 1].data[byteNum++] = ((ubyte2)(WheelSpeeds_getWheelSpeedRPM(wss, RL, TRUE) + 0.5)) >> 8;
+    // canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)(WheelSpeeds_getWheelSpeedRPM(wss, RR, TRUE) + 0.5);
+    // canMessages[canMessageCount - 1].data[byteNum++] = ((ubyte2)(WheelSpeeds_getWheelSpeedRPM(wss, RR, TRUE) + 0.5)) >> 8;
+    // canMessages[canMessageCount - 1].length = byteNum;
+
+    //505 FREE MESSAGE
     canMessageCount++;
     byteNum = 0;
     canMessages[canMessageCount - 1].id_format = IO_CAN_STD_FRAME;
     canMessages[canMessageCount - 1].id = canMessageID + canMessageCount - 1;
-    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)(WheelSpeeds_getWheelSpeedRPM(wss, FL, TRUE) + 0.5);
-    canMessages[canMessageCount - 1].data[byteNum++] = ((ubyte2)(WheelSpeeds_getWheelSpeedRPM(wss, FL, TRUE) + 0.5)) >> 8;
-    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)(WheelSpeeds_getWheelSpeedRPM(wss, FR, TRUE) + 0.5);
-    canMessages[canMessageCount - 1].data[byteNum++] = ((ubyte2)(WheelSpeeds_getWheelSpeedRPM(wss, FR, TRUE) + 0.5)) >> 8;
-    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)(WheelSpeeds_getWheelSpeedRPM(wss, RL, TRUE) + 0.5);
-    canMessages[canMessageCount - 1].data[byteNum++] = ((ubyte2)(WheelSpeeds_getWheelSpeedRPM(wss, RL, TRUE) + 0.5)) >> 8;
-    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)(WheelSpeeds_getWheelSpeedRPM(wss, RR, TRUE) + 0.5);
-    canMessages[canMessageCount - 1].data[byteNum++] = ((ubyte2)(WheelSpeeds_getWheelSpeedRPM(wss, RR, TRUE) + 0.5)) >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] = 0;
+    canMessages[canMessageCount - 1].data[byteNum++] = 0;
+    canMessages[canMessageCount - 1].data[byteNum++] = 0;
+    canMessages[canMessageCount - 1].data[byteNum++] = 0;
+    canMessages[canMessageCount - 1].data[byteNum++] = 0;
+    canMessages[canMessageCount - 1].data[byteNum++] = 0;
+    canMessages[canMessageCount - 1].data[byteNum++] = 0;
+    canMessages[canMessageCount - 1].data[byteNum++] = 0;
     canMessages[canMessageCount - 1].length = byteNum;
 
     //506: Safety Checker
@@ -728,10 +758,10 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     canMessages[canMessageCount - 1].data[byteNum++] = Sensor_HVILTerminationSense.sensorValue;
     canMessages[canMessageCount - 1].data[byteNum++] = Sensor_HVILTerminationSense.sensorValue >> 8;
     canMessages[canMessageCount - 1].data[byteNum++] = MCM_getHvilOverrideStatus(mcm);
-    canMessages[canMessageCount - 1].data[byteNum++] = 0;
-    canMessages[canMessageCount - 1].data[byteNum++] = 0;
-    canMessages[canMessageCount - 1].data[byteNum++] = 0;
-    canMessages[canMessageCount - 1].data[byteNum++] = 0;
+    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)MCM_getCommandedTorque(mcm); //+
+    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(MCM_getCommandedTorque(mcm) >> 8);
+    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)(MCM_getGroundSpeedKPH(mcm) * 100); //+
+    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)(MCM_getGroundSpeedKPH(mcm) * 100) >> 8; 
     canMessages[canMessageCount - 1].data[byteNum++] = 0;
     canMessages[canMessageCount - 1].length = byteNum;
 
@@ -759,24 +789,24 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(LaunchControl_getTorqueCommand(lc))) >> 8;
     canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(LaunchControl_getSlipRatioScaled(lc));
     canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(LaunchControl_getSlipRatioScaled(lc))) >> 8;
-    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(LaunchControl_getVelocityDifferenceTarget(lc));
-    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(LaunchControl_getVelocityDifferenceTarget(lc))) >> 8;
-    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(LaunchControl_getCurrentVelocityDifference(lc));
-    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(LaunchControl_getCurrentVelocityDifference(lc))) >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(LaunchControl_getState(lc));
+    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(LaunchControl_getPhase(lc));
+    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(LaunchControl_getSpeedCommand(lc));
+    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(LaunchControl_getSpeedCommand(lc) >> 8);
     canMessages[canMessageCount - 1].length = byteNum;
 
-    //50C: LC Status C + SAS 
+    //50C: SAS 
     canMessageCount++;
     byteNum = 0;
     canMessages[canMessageCount - 1].id = canMessageID + canMessageCount - 1;
     canMessages[canMessageCount - 1].id_format = IO_CAN_STD_FRAME;
-    canMessages[canMessageCount - 1].data[byteNum++] = steering_degrees();
+    canMessages[canMessageCount - 1].data[byteNum++] = steering_degrees(); //MOVE LATER
     canMessages[canMessageCount - 1].data[byteNum++] = steering_degrees() >> 8; 
-    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(LaunchControl_getState(lc));
-    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(LaunchControl_getPhase(lc));
-    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(LaunchControl_getFilterStatus(lc));
-    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)(MCM_getGroundSpeedKPH(mcm) * 100);
-    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)(MCM_getGroundSpeedKPH(mcm) * 100) >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] = 0;
+    canMessages[canMessageCount - 1].data[byteNum++] = 0;
+    canMessages[canMessageCount - 1].data[byteNum++] = 0;
+    canMessages[canMessageCount - 1].data[byteNum++] = 0;
+    canMessages[canMessageCount - 1].data[byteNum++] = 0;
     canMessages[canMessageCount - 1].data[byteNum++] = 0;
     canMessages[canMessageCount - 1].length = byteNum;
 
@@ -796,16 +826,16 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     canMessages[canMessageCount - 1].length = byteNum;
 
     
-    //50E: BMS Loopback Test
+    //50E: FREE MESSAGE
     canMessageCount++;
     byteNum = 0;
     canMessages[canMessageCount - 1].id = canMessageID + canMessageCount - 1;
     canMessages[canMessageCount - 1].id_format = IO_CAN_STD_FRAME;
-    canMessages[canMessageCount - 1].data[byteNum++] = BMS_getFaultFlags0(bms);
-    canMessages[canMessageCount - 1].data[byteNum++] = BMS_getFaultFlags1(bms);
-    canMessages[canMessageCount - 1].data[byteNum++] = BMS_getRelayState(bms);
-    canMessages[canMessageCount - 1].data[byteNum++] = BMS_getHighestCellTemp_d_degC(bms);
-    canMessages[canMessageCount - 1].data[byteNum++] = (BMS_getHighestCellTemp_d_degC(bms) >> 8);
+    canMessages[canMessageCount - 1].data[byteNum++] = 0;
+    canMessages[canMessageCount - 1].data[byteNum++] = 0;
+    canMessages[canMessageCount - 1].data[byteNum++] = 0;
+    canMessages[canMessageCount - 1].data[byteNum++] = 0;
+    canMessages[canMessageCount - 1].data[byteNum++] = 0;
     canMessages[canMessageCount - 1].data[byteNum++] = 0;
     canMessages[canMessageCount - 1].data[byteNum++] = 0;
     canMessages[canMessageCount - 1].data[byteNum++] = 0;
@@ -835,7 +865,7 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     canMessages[canMessageCount - 1].data[byteNum++] = MCM_commands_getTorque(mcm) >> 8;
     canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)MCM_commands_getSpeed(mcm);
     canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(MCM_commands_getSpeed(mcm) >> 8);
-    canMessages[canMessageCount - 1].data[byteNum++] = 0;  //Motor direction (0 = Reverse, 1 = Forward)
+    canMessages[canMessageCount - 1].data[byteNum++] = 0;  //Motor direction (0 = Forward, 1 = Reverse). Opposite of what is written in CM200 documentation
     canMessages[canMessageCount - 1].data[byteNum++] = (MCM_getSpeedModeEnabled(mcm) << 2) | (0 << 1) | ((MCM_commands_getInverter(mcm) == ENABLED) << 0); //unused/unused/unused/unused/unused/Speed Mode Enable/Discharge/Inverter Enable
     canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)MCM_commands_getTorqueLimit(mcm);
     canMessages[canMessageCount - 1].data[byteNum++] = MCM_commands_getTorqueLimit(mcm) >> 8;
