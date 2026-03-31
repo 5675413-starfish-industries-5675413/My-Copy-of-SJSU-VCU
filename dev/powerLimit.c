@@ -1,7 +1,7 @@
 /*****************************************************************************
  * powerLimit.c - Power Limiting using a PID controller to simplify calculations
  * Previous Author(s): Harleen Sandhu & Shaun Gilmore 
- * Current Author(s): Akash Karthik
+ * Current Author(s): Akash Karthik & Aitrieus Wright
  ******************************************************************************
  * Power Limiting code with a flexible Power Target & Initialization Limit
  * Goal: Find a way to limit power under a certain KWH limit (80kwh) while maximizing torque

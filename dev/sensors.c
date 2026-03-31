@@ -40,7 +40,7 @@ extern Sensor Sensor_BenchTPS0;
 extern Sensor Sensor_BenchTPS1;
 
 extern Sensor Sensor_RTDButton;
-extern Sensor Sensor_MarkLap;
+extern Sensor Sensor_TestButton;
 extern Sensor Sensor_EcoButton;
 extern Sensor Sensor_DRSButton;
 extern Sensor Sensor_DRSKnob;
@@ -142,7 +142,7 @@ void sensors_updateSensors(void)
     Sensor_LCButton.ioErr_signalGet = IO_DI_Get(IO_DI_03, &Sensor_LCButton.sensorValue);
     Sensor_HVILTerminationSense.ioErr_signalGet = IO_DI_Get(IO_DI_07, &Sensor_HVILTerminationSense.sensorValue);
     Sensor_DRSButton.ioErr_signalGet = IO_DI_Get(IO_DI_04, &Sensor_DRSButton.sensorValue);
-    Sensor_MarkLap.ioErr_signalGet= IO_DI_Get(IO_DI_02, &Sensor_MarkLap.sensorValue); // marking the lap with lat and long
+    Sensor_TestButton.ioErr_signalGet= IO_DI_Get(IO_DI_02, &Sensor_TestButton.sensorValue); // ! unoccupied
 
     //Other stuff ---------------------------------------------------
     //Battery voltage (at VCU internal electronics supply input)
@@ -224,14 +224,6 @@ void Light_set(Light light, float4 percent)
 * Revision history:
 * 2015-11-16 - Rusty Pedrosa -
 *****************************************************************************/
-
-bool gpsButtonPressed() {
-    static bool lastState = FALSE;
-    bool currentState = (Sensor_MarkLap.sensorValue == 1);
-    bool risingEdge = (currentState && !lastState);
-    lastState = currentState;
-    return risingEdge;
-}
 
 PLMode getPLMode() {
     float voltage = (float)(Sensor_PLKnob.sensorValue);

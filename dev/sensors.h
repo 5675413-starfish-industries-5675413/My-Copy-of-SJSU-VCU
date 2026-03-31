@@ -186,7 +186,7 @@ extern Sensor Sensor_SAS;  // = { 4 };
 //Switches
 //precharge failure
 extern Sensor Sensor_RTDButton;
-extern Sensor Sensor_MarkLap;
+extern Sensor Sensor_TestButton;
 extern Sensor Sensor_EcoButton;
 extern Sensor Sensor_TCSSwitchUp;
 extern Sensor Sensor_LCButton;
@@ -194,7 +194,6 @@ extern Sensor Sensor_TCSKnob;
 extern Sensor Sensor_DRSButton;
 extern Sensor Sensor_DRSKnob;
 extern Sensor Sensor_PLKnob;
-
 //TEMP BENCH SWITCHES
 extern Sensor Sensor_TEMP_BrakingSwitch;
 
@@ -209,7 +208,6 @@ extern Sensor Sensor_LVBattery; // = { 0xA };  //Note: There will be no init for
 // Sensor Functions
 //----------------------------------------------------------------------------
 void sensors_updateSensors(void);
-bool gpsButtonPressed(void);
 PLMode getPLMode(void);
 
 void setMCMRelay(bool turnOn);

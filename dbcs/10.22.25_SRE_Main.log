@@ -108,6 +108,15 @@ MSG_ID: 1215 	MSG_TYPE: S 	MSG_NAME: DAQ_RR_Tire_Temp_Ch13_16
 	SIG_NAME: RR_Temperature_14, STATUS: Invalid Max or Min value., ACTION: Value Set to default
 	SIG_NAME: RR_Temperature_13, STATUS: Invalid Max or Min value., ACTION: Value Set to default
 
+MSG_ID: 1291 	MSG_TYPE: S 	MSG_NAME: VCU_LC_Status_A
+	SIG_NAME: VCU_LaunchControl_VelocityDifferenceTarget_MPS, STATUS: Invalid Max or Min value., ACTION: Value Set to default
+	SIG_NAME: VCU_LaunchControl_CurrentVelocityDifference_MPS, STATUS: Invalid Max or Min value., ACTION: Value Set to default
+
+MSG_ID: 1292 	MSG_TYPE: S 	MSG_NAME: VCU_LC_Status_C_SAS_KPH
+	SIG_NAME: VCU_LaunchControl_State, STATUS: Invalid Max or Min value., ACTION: Value Set to default
+	SIG_NAME: VCU_LaunchControl_Phase, STATUS: Invalid Max or Min value., ACTION: Value Set to default
+	SIG_NAME: VCU_LaunchControl_Filter_Status, STATUS: Invalid Max or Min value., ACTION: Value Set to default
+
 MSG_ID: 1294 	MSG_TYPE: S 	MSG_NAME: VCU_BMS_Debug_1
 	SIG_NAME: VCU_BMS_GetPower, STATUS: Invalid Max or Min value., ACTION: Value Set to default
 	SIG_NAME: VCU_BMS_GetCurrent, STATUS: Invalid Max or Min value., ACTION: Value Set to default
