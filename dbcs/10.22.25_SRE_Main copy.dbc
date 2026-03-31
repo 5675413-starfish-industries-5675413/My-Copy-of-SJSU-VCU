@@ -25,7 +25,7 @@ NS_ :
 
 BS_:
 
-BU_: DBG VCU BMS MCM DCU DAQ S2C SHUNT
+BU_: DBG VCU BMS MCM DCU DAQ S2C
 
 
 BO_ 256 EMeter_Measurement: 8 Vector__XXX
@@ -190,41 +190,6 @@ BO_ 469 MCM_U2C_Message_Rxd: 8 MCM
 BO_ 471 MCM_U2C_Command_Txd: 8 MCM
  SG_ MCM_ID_Byte : 0|8@1+ (1,0) [0|255] "" VCU
  SG_ MCM_Setpoint_Calc : 8|8@1+ (1,0) [0|255] "" VCU
-
-BO_ 1009 SHUNT_Current: 4 SHUNT
- SG_ SHUNT_Current_mA : 0|32@1- (1,0) [-2147483648|2147483647] "mA" VCU
-
-BO_ 1010 SHUNT_Temperature: 4 SHUNT
- SG_ SHUNT_Temperature_C : 0|32@1- (0.1,0) [-40|125] "C" VCU
-
-BO_ 1011 SHUNT_Vbus: 4 SHUNT
- SG_ SHUNT_Vbus_mV : 0|32@1- (1,0) [-1200000|1200000] "mV" VCU
-
-BO_ 1012 SHUNT_Coulomb: 8 SHUNT
- SG_ SHUNT_Coulomb_C : 0|64@1- (1,0) [-9223372036854775808|9223372036854775807] "C" VCU
-
-BO_ 1013 SHUNT_Power: 4 SHUNT
- SG_ SHUNT_Power_W : 0|32@1+ (0.1,0) [0|429496729.5] "W" VCU
-
-BO_ 1014 SHUNT_Energy: 8 SHUNT
- SG_ SHUNT_Energy_Wh : 0|64@1+ (1,0) [0|18446744073709551615] "Wh" VCU
-
-BO_ 1015 SHUNT_Errors: 2 SHUNT
- SG_ Vbus_Range_Over           : 7|1@0+ (1,0) [0|1] "" VCU
- SG_ Current_Range_Over        : 6|1@0+ (1,0) [0|1] "" VCU
- SG_ Current_Under_Limit       : 5|1@0+ (1,0) [0|1] "" VCU
- SG_ Current_Over_Limit        : 4|1@0+ (1,0) [0|1] "" VCU
- SG_ Temp_Over_Limit           : 3|1@0+ (1,0) [0|1] "" VCU
- SG_ Vbus_Under_Limit          : 2|1@0+ (1,0) [0|1] "" VCU
- SG_ Vbus_Over_Limit           : 1|1@0+ (1,0) [0|1] "" VCU
- SG_ Power_Over_Limit          : 0|1@0+ (1,0) [0|1] "" VCU
- SG_ Coulomb_Overflow          : 15|1@0+ (1,0) [0|1] "" VCU
- SG_ Energy_Overflow           : 14|1@0+ (1,0) [0|1] "" VCU
- SG_ ADC_CRC_Read              : 13|1@0+ (1,0) [0|1] "" VCU
- SG_ ADC_Initialization        : 12|1@0+ (1,0) [0|1] "" VCU
- SG_ EEPROM_RW_Error           : 11|1@0+ (1,0) [0|1] "" VCU
- SG_ EEPROM_Corrupt            : 10|1@0+ (1,0) [0|1] "" VCU
- SG_ ECC_Single_Bit_Error      : 9|1@0+ (1,0) [0|1] "" VCU
 
 BO_ 1200 DAQ_LF_Tire_Temp_Ch1_4: 8 DAQ
  SG_ LF_Temperature_4 : 48|16@0+ (0.001,-100) [0|100] "C" DAQ
@@ -398,12 +363,9 @@ BO_ 1289 MCM_RTD_HVIL: 8 VCU
  SG_ HVIL_Active : 0|16@1+ (1,0) [0|20] "" VCU
  SG_ MCM_Override_Enabled : 16|8@1+ (1,0) [0|1] "" VCU
 
-BO_ 1290 VCU_Efficiency_Settings: 8 VCU
- SG_ VCU_Efficiency_LapCounter : 0|8@1+ (1,0) [0|255] "laps" VCU
- SG_ VCU_Efficiency_CornerEnergy : 8|16@1- (1,0) [-32768|32767] "Wh" VCU
- SG_ VCU_Efficiency_LapEnergy : 24|16@1- (1,0) [-32768|32767] "Wh" VCU
- SG_ VCU_Efficiency_FinishedLap : 40|8@1+ (1,0) [0|1] "" VCU
- SG_ VCU_Efficiency_LapDistance : 48|16@1- (0.01,0) [-327.68|327.67] "km" VCU
+BO_ 1290 VCU_GPS_Debug: 8 VCU 
+ SG_ VCU_GPS_Latitude : 0|32@1- (0.0001,0) [-90|90] "deg" VCU
+ SG_ VCU_GPS_Longitude : 32|32@1- (0.0001,0) [-180|180] "deg" VCU
 
 BO_ 1616 DAQ_GPS_Position: 8 DAQ
  SG_ DAQ_GPS_Latitude : 0|32@1- (0.0000001,0) [-90|90] "deg" DAQ
@@ -458,41 +420,6 @@ BO_ 1299 VCU_LC_Status_B: 8 VCU
  SG_ VCU_LaunchControl_PID_Integral : 16|16@1- (1,0) [-32768|32767] "" VCU
  SG_ VCU_LaunchControl_PID_TotalError : 32|16@1- (1,0) [-32768|32767] "" VCU
  SG_ VCU_LaunchControl_PID_Output : 48|16@1- (1,0) [-32768|32767] "" VCU
-
-BO_ 1300 VCU_BMS_SHUNT_CURRENT: 4 VCU
- SG_ Shunt_Current_mA        : 31|32@0- (1,0) [-2147483648|2147483647] "mA" BMS
-
-BO_ 1301 VCU_BMS_SHUNT_TEMPERATURE: 4 VCU
- SG_ Shunt_Temperature_dC    : 31|32@0- (0.1,0) [-40|125] "C" BMS
-
-BO_ 1302 VCU_BMS_SHUNT_VBUS: 4 VCU
- SG_ Shunt_VBus_mV           : 31|32@0- (1,0) [-1200000|1200000] "mV" BMS
-
-BO_ 1303 VCU_BMS_SHUNT_COULOMB: 8 VCU
- SG_ Shunt_Coulomb_Count     : 63|64@0- (1,0) [-9223372036854775808|9223372036854775807] "" BMS
-
-BO_ 1304 VCU_BMS_SHUNT_POWER: 4 VCU
- SG_ Shunt_Power_dW          : 31|32@0+ (0.1,0) [0|429496729.5] "W" BMS
-
-BO_ 1305 VCU_BMS_SHUNT_ENERGY: 8 VCU
- SG_ Shunt_Energy_Wh         : 63|64@0+ (1,0) [0|18446744073709551615] "Wh" BMS
-
-BO_ 1306 VCU_SHUNT_ERRORS: 2 VCU
- SG_ Vbus_Range_Over         : 15|1@0+ (1,0) [0|1] "" BMS
- SG_ Current_Range_Over      : 14|1@0+ (1,0) [0|1] "" BMS
- SG_ Current_Under_Limit     : 13|1@0+ (1,0) [0|1] "" BMS
- SG_ Current_Over_Limit      : 12|1@0+ (1,0) [0|1] "" BMS
- SG_ Temp_Over_Limit         : 11|1@0+ (1,0) [0|1] "" BMS
- SG_ Vbus_Under_Limit        : 10|1@0+ (1,0) [0|1] "" BMS
- SG_ Vbus_Over_Limit         : 9|1@0+ (1,0) [0|1] "" BMS
- SG_ Power_Over_Limit        : 8|1@0+ (1,0) [0|1] "" BMS
- SG_ Coulomb_Overflow        : 7|1@0+ (1,0) [0|1] "" BMS
- SG_ Energy_Overflow         : 6|1@0+ (1,0) [0|1] "" BMS
- SG_ ADC_CRC_Read            : 5|1@0+ (1,0) [0|1] "" BMS
- SG_ ADC_Initialization      : 4|1@0+ (1,0) [0|1] "" BMS
- SG_ EEPROM_RW_Error         : 3|1@0+ (1,0) [0|1] "" BMS
- SG_ EEPROM_Corrupt          : 2|1@0+ (1,0) [0|1] "" BMS
- SG_ ECC_Single_Bit_Error    : 1|1@0+ (1,0) [0|1] "" BMS
 
 BO_ 1536 BMS_State_Command: 2 VCU
  SG_ BMS_State_Request : 0|8@1+ (1,0) [0|4] "" Vector__XXX
@@ -803,67 +730,11 @@ CM_ BO_ 165 "Motor Position Information";
 CM_ BO_ 166 "Motor Current Information";
 CM_ BO_ 167 "Motor Voltage Information";
 CM_ BO_ 192 "Motor Controller Command Messages";
-CM_ BO_ 1009 "Shunt measured current";
-CM_ SG_ 1009 SHUNT_Current_mA "Instantaneous current measured by shunt (mA)";
-CM_ BO_ 1010 "Shunt measured temperature";
-CM_ SG_ 1010 SHUNT_Temperature_C "Shunt temperature (Celcius)";
-CM_ BO_ 1011 "Shunt measured bus voltage";
-CM_ SG_ 1011 SHUNT_Vbus_mV "Measured bus voltage (mV)";
-CM_ BO_ 1012 "Shunt coulomb count";
-CM_ SG_ 1012 SHUNT_CoulombCount_C "Accumulated coulomb count (Coulombs)";
-CM_ BO_ 1013 "Shunt measured power";
-CM_ SG_ 1013 SHUNT_Power_W "Instantaneous electrical power (W)";
-CM_ BO_ 1014 "Shunt accumulated energy";
-CM_ SG_ 1014 SHUNT_Energy_Wh "Accumulated energy consumption (Wh)";
-CM_ BO_ 1015 "Shunt error and alert bits";
-CM_ SG_ 1015 SHUNT_Vbus_Range_Over "Bus Voltage exceeds the maximum voltage for the selected range";
-CM_ SG_ 1015 SHUNT_Current_Range_Over "Peak current exceeded the selected range";
-CM_ SG_ 1015 SHUNT_Current_Under_Limit "Current is below the configured limit";
-CM_ SG_ 1015 SHUNT_Current_Over_Limit "Current is above the configured limit";
-CM_ SG_ 1015 SHUNT_Temp_Over_Limit "Temperature is above 125 degC or the configured limit";
-CM_ SG_ 1015 SHUNT_Vbus_Under_Limit "Bus Voltage is below the configured limit";
-CM_ SG_ 1015 SHUNT_Vbus_Over_Limit "Bus Voltage is above the configured limit";
-CM_ SG_ 1015 SHUNT_Power_Over_Limit "Power is above the configured limit";
-CM_ SG_ 1015 SHUNT_Coulomb_Overflow "Coulomb counter overflow";
-CM_ SG_ 1015 SHUNT_Energy_Overflow "Energy counter overflow";
-CM_ SG_ 1015 SHUNT_ADC_CRC_Read "ADC CRC does not match calculated CRC";
-CM_ SG_ 1015 SHUNT_ADC_Initialization "ADC initialized registers do not match written values";
-CM_ SG_ 1015 SHUNT_EEPROM_RW "Error reading or writing internal EEPROM";
-CM_ SG_ 1015 SHUNT_EEPROM_Corrupt "EEPROM CRC does not match saved value";
-CM_ SG_ 1015 SHUNT_ECC_Single_Bit_Error "Flash memory auto-correctable ECC error";
 CM_ BO_ 1280 "Throttle Position Sensor 0 Value";
 CM_ BO_ 1281 "Throttle Position Sensor 1 Value";
 CM_ BO_ 1282 "Brake Pressure Sensor Value";
 CM_ BO_ 1283 "Wheel Speed Sensor Value";
 CM_ BO_ 1286 "VCU Safety Messages";
-CM_ BO_ 1300 "Shunt current measurement sent from VCU to BMS.";
-CM_ SG_ 1300 Shunt_Current_mA "Shunt current (mA).";
-CM_ BO_ 1301 "Shunt temperature measurement (scaled to C) sent from VCU to BMS.";
-CM_ SG_ 1301 Shunt_Temperature_dC "Shunt temperature (C).";
-CM_ BO_ 1302 "Shunt bus voltage measurement sent from VCU to BMS.";
-CM_ SG_ 1302 Shunt_VBus_mV "Shunt bus voltage (mV).";
-CM_ BO_ 1303 "Shunt accumulated coulomb count sent from VCU to BMS.";
-CM_ SG_ 1303 Shunt_Coulomb_Count "Accumulated coulomb count from shunt.";
-CM_ BO_ 1304 "Shunt power measurement (scaled to watts) sent from VCU to BMS.";
-CM_ SG_ 1304 Shunt_Power_dW "Shunt power (W).";
-CM_ BO_ 1305 "Shunt accumulated energy sent from VCU to BMS.";
-CM_ SG_ 1305 Shunt_Energy_Wh "Accumulated energy from shunt (Wh).";
-CM_ BO_ 1306 "Shunt error and fault status bitfield sent from VCU to BMS.";
-CM_ SG_ 1306 Vbus_Range_Over "Bit0: Bus voltage exceeds configured maximum range.";
-CM_ SG_ 1306 Current_Range_Over "Bit1: Peak current exceeded configured measurement range.";
-CM_ SG_ 1306 Current_Under_Limit "Bit2: Current below configured lower limit.";
-CM_ SG_ 1306 Current_Over_Limit "Bit3: Current above configured upper limit.";
-CM_ SG_ 1306 Temp_Over_Limit "Bit4: Temperature above +125 C or configured limit.";
-CM_ SG_ 1306 Vbus_Under_Limit "Bit5: Bus voltage below configured limit.";
-CM_ SG_ 1306 Vbus_Over_Limit "Bit6: Bus voltage above configured limit.";
-CM_ SG_ 1306 Power_Over_Limit "Bit7: Power above configured limit.";
-CM_ SG_ 1306 Coulomb_Overflow "Bit8: Coulomb counter overflow.";
-CM_ SG_ 1306 Energy_Overflow "Bit9: Energy counter overflow.";
-CM_ SG_ 1306 ADC_CRC_Read "Bit10: ADC CRC mismatch detected.";
-CM_ SG_ 1306 ADC_Initialization "Bit11: ADC initialization register mismatch.";
-CM_ SG_ 1306 EEPROM_RW_Error "Bit12: EEPROM read/write error.";
-CM_ SG_ 1306 EEPROM_Corrupt "Bit13: EEPROM CRC mismatch.";
-CM_ SG_ 1306 ECC_Single_Bit_Error "Bit14: Flash memory auto-corrected single-bit ECC error.";
 CM_ BO_ 1568 "BMS Status and Fault Message";
 CM_ BO_ 1571 "Accumulator Pack Voltage and Current"; 
 CM_ BO_ 1572 "Accumulator Load Voltage and Current"; 

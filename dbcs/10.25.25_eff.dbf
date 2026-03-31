@@ -1,0 +1,162 @@
+//******************************BUSMASTER Messages and signals Database ******************************//
+
+[DATABASE_VERSION] 1.3
+
+[PROTOCOL] CAN
+
+[BUSMASTER_VERSION] [3.2.2]
+[NUMBER_OF_MESSAGES] 2
+
+[START_MSG] Low_Voltage,1287,8,3,1,S,DAQ
+[START_SIGNALS] Voltage,16,1,0,U,20000,0,1,0,0.001,V,,VCU
+[START_SIGNALS] VCU_RegenTq,16,3,0,I,32767,-32768,1,0,1,nM,,VCU
+[START_SIGNALS] VCU_Effiency_TimeinStriahgts,16,5,0,I,32767,-32768,1,0,1,t,,VCU
+[END_MSG]
+
+[START_MSG] VCU_Efficiency_Settings,1290,8,4,1,S,VCU
+[START_SIGNALS] VCU_Efficiency_LapCounter,8,1,0,U,255,0,1,0,1,laps,,VCU
+[START_SIGNALS] VCU_Efficiency_EnergySpentInCorners,16,3,0,I,32767,-32768,1,0,1,Wh,,VCU
+[START_SIGNALS] VCU_Efficiency_LapEnergySpent,16,5,0,U,65535,0,1,0,1,Wh,,VCU
+[START_SIGNALS] VCU_Efficiency_TotalLapDistance,16,7,0,U,65535,0,1,0,1,,,VCU
+[END_MSG]
+
+[START_VALUE_TABLE]
+[END_VALUE_TABLE]
+
+[NODE] DBG,VCU,BMS,MCM,DCU,DAQ,S2C
+
+[START_DESC]
+[START_DESC_NET]
+[END_DESC_NET]
+
+[START_DESC_NODE]
+VCU "The vehicle control unit";
+MCM "The motor controller of the car";
+BMS "The battery management system";
+DCU "The dash control unit";
+BMS1000M "BMS Master Controller";
+VCU "Vehicle Control Unit or Master System Controller";
+[END_DESC_NODE]
+
+[START_DESC_MSG]
+160 S "Motor Controller Temperatures Set 1";
+161 S "Motor Controller Temperatures Set 2";
+162 S "Motor Controller Temperatures Set 3";
+165 S "Motor Position Information";
+166 S "Motor Current Information";
+167 S "Motor Voltage Information";
+192 S "Motor Controller Command Messages";
+1280 S "Throttle Position Sensor 0 Value";
+1281 S "Throttle Position Sensor 1 Value";
+1282 S "Brake Pressure Sensor Value";
+1283 S "Wheel Speed Sensor Value";
+1286 S "VCU Safety Messages";
+1568 S "BMS Status and Fault Message";
+1571 S "Accumulator Pack Voltage and Current"; 
+1572 S "Accumulator Load Voltage and Current"; 
+1573 S "Cell Voltage High and Low"; 
+1574 S "Cell Voltage Average and Mismatch"; 
+1575 S "SOC Percentage and Battery Capacity"; 
+1576 S "Cell and BMS Board Temperature Average"; 
+1577 S "Cell Temperature High and Low"; 
+1584 S "BMS Board Temperature High and Low"; 
+1585 S "Accumulator Load Power"; 
+1793 S "Dash Control Unit Timestamp"; 
+2023 S "This CAN id is used for communication between the energy meter and the download tool.";
+2031 S "This CAN id is used for communication between the energy meter and the download tool.";
+1536 S "Sent when BMS state transition is needed";
+1538 S "Sent every 100ms";
+1552 S "Sent every 100ms";
+1553 S "Sent every 100ms";
+1554 S "Sent every 100ms";
+1568 S "Sent every 100ms";
+1569 S "Sent every 100ms";
+1570 S "Sent every 100ms";
+1571 S "Sent every 100ms";
+1788 S "Sent every 1 second";
+1788 S "Sent every 1 second";
+1572 S "Sent every 100ms";
+[END_DESC_MSG]
+
+[START_DESC_SIG]
+1024 S OverPower "";
+1538 S BMS_Cell_Over_Temperature_Fault "";
+1552 S BMS_Number_Monitors_Detected "";
+1552 S BMS_Incorrect_Number_Monitor_Boards "";
+1554 S BMS_Master_Board_Temperature "";
+1554 S BMS_Internal_5V_Rail_Sense "";
+1568 S BMS_Pack_Current "Charging is positive";
+1569 S BMS_State_Of_Charge "";
+1569 S BMS_State_Of_Health "";
+1571 S BMS_Highest_Cell_Temperature "";
+1571 S BMS_Lowest_Cell_Temperature "";
+1572 S BMS_Sum_Of_Cells_Voltage "";
+1572 S BMS_Precharge_Voltage "";
+[END_DESC_SIG]
+[END_DESC]
+
+[START_PARAM]
+[START_PARAM_NET]
+[END_PARAM_NET]
+
+[START_PARAM_NODE]
+[END_PARAM_NODE]
+
+[START_PARAM_MSG]
+"GenMsgCycleTime",INT,0,0,0
+[END_PARAM_MSG]
+
+[START_PARAM_SIG]
+"FieldType",STRING,
+[END_PARAM_SIG]
+
+[START_PARAM_NODE_RX_SIG]
+[END_PARAM_NODE_RX_SIG]
+
+[START_PARAM_NODE_TX_MSG]
+[END_PARAM_NODE_TX_MSG]
+[END_PARAM]
+
+[START_PARAM_VAL]
+[START_PARAM_NET_VAL]
+[END_PARAM_NET_VAL]
+
+[START_PARAM_NODE_VAL]
+[END_PARAM_NODE_VAL]
+
+[START_PARAM_MSG_VAL]
+[END_PARAM_MSG_VAL]
+
+[START_PARAM_SIG_VAL]
+100,S,DRIVER_HEARTBEAT_cmd,"FieldType","DRIVER_HEARTBEAT_cmd"
+[END_PARAM_SIG_VAL]
+
+[END_PARAM_VAL]
+
+
+[START_NOT_SUPPORTED]
+[END_NOT_SUPPORTED]
+
+[START_NOT_PROCESSED]
+	PZ_
+	ON_QRS_
+	ON_
+	INY_
+	PNG_QRS_
+	PNG_
+	SVYGRE
+	ON_QRS_QRS_
+	RI_QNGN_
+	RAIINE_QNGN_
+	FTGLCR_
+	FTGLCR_INY_
+	ON_QRS_FTGLCR_
+	ON_FTGLCR_
+	FVT_GLCR_ERS_
+	INY_GNOYR_
+	FVT_TEBHC_
+	FVT_INYGLCR_
+	FVTGLCR_INYGLCR_
+OF_:
+
+[END_NOT_PROCESSED]

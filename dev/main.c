@@ -54,6 +54,7 @@
 #include "powerLimit.h"
 #include "PID.h"
 #include "efficiency.h"
+#include "gps.h"
 #include "shunt.h"
 
 //Application Database, needed for TTC-Downloader
@@ -126,7 +127,7 @@ extern Sensor Sensor_SAS;
 extern Sensor Sensor_TCSKnob;
 
 extern Sensor Sensor_RTDButton;
-extern Sensor Sensor_TestButton;
+extern Sensor Sensor_MarkLap;
 extern Sensor Sensor_TEMP_BrakingSwitch;
 extern Sensor Sensor_EcoButton;
 extern Sensor Sensor_DRSButton;
@@ -222,12 +223,13 @@ void main(void)
     WheelSpeeds *wss = WheelSpeeds_new(WHEEL_DIAMETER, WHEEL_DIAMETER, NUM_BUMPS, NUM_BUMPS);
     SafetyChecker *sc = SafetyChecker_new(serialMan, 320, 32); //Must match amp limits
     CoolingSystem *cs = CoolingSystem_new(serialMan);
-    Regen *regen = Regen_new(TRUE);
+    Regen *regen = Regen_new(FALSE);
+    GPS *gps = GPS_new();
+    Shunt *shunt = Shunt_new();
     LaunchControl *lc = LaunchControl_new(FALSE);
     DRS *drs = DRS_new();
-    PowerLimit *pl = POWERLIMIT_new(FALSE);
-    Efficiency *eff = EFFICIENCY_new(FALSE);
-    Shunt *shunt = Shunt_new();
+    PowerLimit *pl = POWERLIMIT_new(TRUE);
+    Efficiency *eff = EFFICIENCY_new(TRUE);
 //---------------------------------------------------------------------------------------------------------
     //----------------------------------------------------------------------------
     // TODO: Additional Initial Power-up functions
@@ -277,7 +279,7 @@ void main(void)
 
         //Pull messages from CAN FIFO and update our object representations.
         //Also echoes can0 messages to can1 for DAQ.
-        CanManager_read(canMan, CAN0_HIPRI, mcm0, ic0, bms, sc, wss, shunt);
+        CanManager_read(canMan, CAN0_HIPRI, mcm0, ic0, bms, sc, wss);
         // if (Sensor_TestButton.sensorValue == TRUE ) {
         //     // TODO rewire Sensor_TestButton 
         //     lc->buttonDebug |= 0x02;
@@ -456,7 +458,7 @@ void main(void)
         LaunchControl_calculateCommands(lc, tps, bps, mcm0, wss);
         Regen_calculateCommands(regen, mcm0,tps, bps);
         // PowerLimit_updatePLPower(pl);
-        Efficiency_calculateCommands(eff, mcm0, pl);
+        Efficiency_calculateCommands(eff, mcm0, pl, gps, shunt);
         PowerLimit_calculateCommands(pl, mcm0, tps);
         MCM_calculateCommands(mcm0, tps, bps);
 
@@ -488,7 +490,7 @@ void main(void)
 
         //Send debug data
         canOutput_sendDebugMessage(canMan, tps, bps, mcm0, ic0, bms, wss, sc, lc, pl, drs, regen, eff);
-        canOutput_sendDebugMessage1(canMan, mcm0, tps, shunt);
+        canOutput_sendDebugMessage1(canMan, mcm0, tps);
         //canOutput_sendSensorMessages();
         //canOutput_sendStatusMessages(mcm0);
 

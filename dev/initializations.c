@@ -147,7 +147,7 @@ void vcu_initializeADC(bool benchMode)
     Sensor_LCButton.ioErr_signalInit = IO_DI_Init(IO_DI_03, IO_DI_PD_10K); // Launch Control Enable Button
     Sensor_DRSButton.ioErr_signalInit = IO_DI_Init(IO_DI_04, IO_DI_PD_10K); //DRS Button
     // TODO unoccupied I/O on VCU
-    Sensor_TestButton.ioErr_signalInit = IO_DI_Init(IO_DI_02, IO_DI_PD_10K); //Test Button
+    Sensor_MarkLap.ioErr_signalInit = IO_DI_Init(IO_DI_02, IO_DI_PD_10K); //Mark Lap Button
 
     // Sensor_IO_DI_06.ioErr_signalInit = IO_DI_Init(IO_DI_06, IO_DI_PD_10K); //Unused
     Sensor_HVILTerminationSense.ioErr_signalInit = IO_DI_Init(IO_DI_07, IO_DI_PD_10K); //HVIL Term sense, high = HV present
@@ -159,6 +159,7 @@ void vcu_initializeADC(bool benchMode)
 void vcu_ADCWasteLoop(void)
 {
     bool tempFresh = FALSE;
+    bool tempBool = FALSE;
     ubyte2 tempData;
     ubyte4 timestamp_sensorpoll = 0;
     IO_RTC_StartTime(&timestamp_sensorpoll);
@@ -172,8 +173,8 @@ void vcu_ADCWasteLoop(void)
         IO_DO_Set(IO_DO_01, FALSE); //HVIL shutdown relay
 
         //IO_DI (digital inputs) supposed to take 2 cycles before they return valid data
-        IO_DI_Get(IO_DI_04, &tempData);
-        IO_DI_Get(IO_DI_05, &tempData);
+        IO_DI_Get(IO_DI_04, &tempBool);
+        IO_DI_Get(IO_DI_05, &tempBool);
         IO_ADC_Get(IO_ADC_5V_00, &tempData, &tempFresh);
         IO_ADC_Get(IO_ADC_5V_01, &tempData, &tempFresh);
 
@@ -204,7 +205,7 @@ Sensor Sensor_LVBattery;
 
 Sensor Sensor_TCSKnob;
 Sensor Sensor_RTDButton;
-Sensor Sensor_TestButton;
+Sensor Sensor_MarkLap;
 Sensor Sensor_EcoButton;
 Sensor Sensor_TCSSwitchUp;
 Sensor Sensor_LCButton;
