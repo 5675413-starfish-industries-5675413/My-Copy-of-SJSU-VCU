@@ -208,6 +208,7 @@ Sensor Sensor_TestButton;
 Sensor Sensor_EcoButton;
 Sensor Sensor_TCSSwitchUp;
 Sensor Sensor_LCButton;
+Sensor Sensor_MarkLap;
 Sensor Sensor_HVILTerminationSense;
 
 Sensor Sensor_DRSButton;

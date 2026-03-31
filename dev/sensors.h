@@ -197,6 +197,7 @@ extern Sensor Sensor_PLKnob;
 //TEMP BENCH SWITCHES
 extern Sensor Sensor_TEMP_BrakingSwitch;
 
+extern Sensor Sensor_MarkLap;
 extern Sensor Sensor_HVILTerminationSense;
 
 
@@ -208,6 +209,7 @@ extern Sensor Sensor_LVBattery; // = { 0xA };  //Note: There will be no init for
 // Sensor Functions
 //----------------------------------------------------------------------------
 void sensors_updateSensors(void);
+bool gpsButtonPressed(void);
 PLMode getPLMode(void);
 
 void setMCMRelay(bool turnOn);

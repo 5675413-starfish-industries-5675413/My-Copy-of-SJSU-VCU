@@ -54,6 +54,7 @@
 #include "powerLimit.h"
 #include "PID.h"
 #include "efficiency.h"
+#include "gps.h"
 #include "shunt.h"
 
 //Application Database, needed for TTC-Downloader
@@ -226,8 +227,9 @@ void main(void)
     LaunchControl *lc = LaunchControl_new(FALSE);
     DRS *drs = DRS_new();
     PowerLimit *pl = POWERLIMIT_new(FALSE);
-    Efficiency *eff = EFFICIENCY_new(FALSE);
+    GPS *gps = GPS_new();
     Shunt *shunt = Shunt_new();
+    Efficiency *eff = Efficiency_new(FALSE);
 //---------------------------------------------------------------------------------------------------------
     //----------------------------------------------------------------------------
     // TODO: Additional Initial Power-up functions
@@ -456,7 +458,7 @@ void main(void)
         LaunchControl_calculateCommands(lc, tps, bps, mcm0, wss);
         Regen_calculateCommands(regen, mcm0,tps, bps);
         // PowerLimit_updatePLPower(pl);
-        Efficiency_calculateCommands(eff, mcm0, pl);
+        Efficiency_calculateCommands(eff, mcm0, pl, gps, shunt);
         PowerLimit_calculateCommands(pl, mcm0, tps);
         MCM_calculateCommands(mcm0, tps, bps);
 
