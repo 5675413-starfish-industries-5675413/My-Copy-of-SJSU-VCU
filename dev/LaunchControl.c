@@ -21,132 +21,168 @@ extern Sensor Sensor_LCButton;
 
 #define LC_MIN_FILTER_THRESHOLD_RPM 1000.0f //PLACEHOLDER
 
-LaunchControl *LaunchControl_new(bool lcToggle) {
-    LaunchControl* me = (LaunchControl*)malloc(sizeof(struct _LaunchControl));
-    me->Kp = 10;
-    me->Ki = 75;
-    me->Kd = 0;
-    me->pid = PID_new(me->Kp, me->Ki, me->Kd, 0, 1);
-    me->slipRatioTarget = 0.2;
-    me->lcToggle = lcToggle;
-    me->currentSlipRatio = 0;
-    me->currentVelocityDifference = 0;
-    me->targetVelocityDifference = 0;
-    me->lcTorqueCommand = 0;
-    me->initialTorque = 75;
-    me->k = 0.2;
-    me->maxTorque = 231;
-    me->prevTorque = me->initialTorque;
-    me->lcSpeedCommand = 0;
-    me->maxRPM = 7200;  // TODO: Determine max RPM for initial speed curve
-    me->prevRPM = 0;
-    me->commandMode = LC_COMMAND_TORQUE;
-    me->useFilter = FALSE;
-    me->mode = LC_MODE_SLIP_RATIO;
-    me->state = LC_STATE_IDLE;
-    me->phase = LC_PHASE_RAMP;
-    return me;
+LaunchControl *LaunchControl_new(bool lcToggle) 
+{
+    LaunchControl* lc = (LaunchControl*)malloc(sizeof(struct _LaunchControl));
+
+    lc->lcToggle = lcToggle;
+
+    lc->Kp = 10;
+    lc->Ki = 75;
+    lc->Kd = 0;
+    lc->pid = PID_new(lc->Kp, lc->Ki, lc->Kd, 0, 1);
+	
+    lc->slipRatioTarget = 0.2;
+    lc->currentSlipRatio = 0;
+    lc->currentVelocityDifference = 0;
+    lc->targetVelocityDifference = 0;
+
+    lc->lcTorqueCommand = 0;
+    lc->initialTorque = 75;
+    lc->k = 0.2;
+    lc->maxTorque = 231;
+    lc->prevTorque = lc->initialTorque;
+
+    lc->lcSpeedCommand = 0;
+    lc->maxRPM = 7200;  // TODO: Determine max RPM for initial speed curve
+	lc->initialRPM = 0;
+    lc->prevRPM = lc->initialRPM;
+
+    lc->commandMode = LC_COMMAND_TORQUE;
+    lc->mode = LC_MODE_SLIP_RATIO;
+    lc->state = LC_STATE_IDLE;
+    lc->phase = LC_PHASE_RAMP;
+
+	lc->useFilter = FALSE;
+
+    return lc;
 }
 
-void LaunchControl_reset(LaunchControl *me, MotorController *mcm) {
-    me->state = LC_STATE_IDLE;
-    me->phase = LC_PHASE_RAMP;
-    me->lcTorqueCommand = 0;
-    me->prevTorque = me->initialTorque;
-    me->lcSpeedCommand = 0;
-    me->prevRPM = 0;
-    MCM_update_LC_torqueCommand(mcm, me->lcTorqueCommand);
-    MCM_update_LC_speedCommand(mcm, me->lcSpeedCommand);
+void LaunchControl_reset(LaunchControl *lc, MotorController *mcm) 
+{
+    lc->state = LC_STATE_IDLE;
+    lc->phase = LC_PHASE_RAMP;
+
+    lc->lcTorqueCommand = 0;
+    lc->prevTorque = lc->initialTorque;
+    MCM_update_LC_torqueCommand(mcm, lc->lcTorqueCommand);
+
+    lc->lcSpeedCommand = 0;
+    lc->prevRPM = lc->initialRPM;
+    MCM_update_LC_speedCommand(mcm, lc->lcSpeedCommand);
+
     //Always leave the MCM in torque mode when LC is not active
     MCM_updateSpeedModeStatus(mcm, FALSE);
 
-    me->pid->totalError = 0;
-    me->pid->previousError = 0;
+    lc->pid->totalError = 0;
+	lc->pid->previousError = 0;
 }
 
-void LaunchControl_updateState(LaunchControl *me, TorqueEncoder *tps, BrakePressureSensor *bps, MotorController *mcm) {
+void LaunchControl_updateState(LaunchControl *lc, TorqueEncoder *tps, BrakePressureSensor *bps, MotorController *mcm) 
+{
     //Enters ready state if LC button is held, and the vehicle is near standstill and driver is not braking
-    if (me->state == LC_STATE_IDLE && Sensor_LCButton.sensorValue == TRUE && 
-        MCM_getGroundSpeedKPH(mcm) < LC_MAX_INITIAL_SPEED_THRESHOLD_KPH && bps->percent <= LC_MAX_BRAKE_THRESHOLD_PERCENT) {
-        me->state = LC_STATE_READY;
+    if (lc->state == LC_STATE_IDLE && Sensor_LCButton.sensorValue == TRUE && 
+        MCM_getGroundSpeedKPH(mcm) < LC_MAX_INITIAL_SPEED_THRESHOLD_KPH && bps->percent <= LC_MAX_BRAKE_THRESHOLD_PERCENT) 
+	{
+        lc->state = LC_STATE_READY;
     }
+
     //While in ready state, the driver should press throttle fully. Then, releasing the LC button will activate Launch Control
-    if (me->state == LC_STATE_READY && Sensor_LCButton.sensorValue == FALSE) {
-        if (tps->tps0_percent > LC_MIN_THROTTLE_THRESHOLD_PERCENT && bps->percent < LC_MAX_BRAKE_THRESHOLD_PERCENT) {
-            me->state = LC_STATE_ACTIVE;
+    if (lc->state == LC_STATE_READY && Sensor_LCButton.sensorValue == FALSE) 
+	{
+        if (tps->tps0_percent > LC_MIN_THROTTLE_THRESHOLD_PERCENT && bps->percent < LC_MAX_BRAKE_THRESHOLD_PERCENT) 
+		{
+            lc->state = LC_STATE_ACTIVE;
         }
-        else {
+        else 
+		{
             //When the LC button is released, if the driver is not pressing throttle fully or is braking, Launch Control is aborted
-            me->state = LC_STATE_IDLE;
-            LaunchControl_reset(me, mcm);
+            lc->state = LC_STATE_IDLE;
+            LaunchControl_reset(lc, mcm);
         }
     }
+
     //During active Launch Control, exit if driver lifts off throttle or brakes
-    if (me->state == LC_STATE_ACTIVE && (tps->tps0_percent < LC_MIN_THROTTLE_THRESHOLD_PERCENT || bps->percent > LC_MAX_BRAKE_THRESHOLD_PERCENT)) {
-        me->state = LC_STATE_IDLE;
-        LaunchControl_reset(me, mcm);
+    if (lc->state == LC_STATE_ACTIVE && (tps->tps0_percent < LC_MIN_THROTTLE_THRESHOLD_PERCENT || bps->percent > LC_MAX_BRAKE_THRESHOLD_PERCENT)) 
+	{
+        lc->state = LC_STATE_IDLE;
+        LaunchControl_reset(lc, mcm);
     }
-    MCM_update_LC_engagedStatus(mcm, (me->state != LC_STATE_IDLE));
+
+    MCM_update_LC_engagedStatus(mcm, (lc->state != LC_STATE_IDLE));
 }
 
-void LaunchControl_updatePhase(LaunchControl *me, WheelSpeeds *wss) {
-    //Use preset torque curve during intial part of launch when wheel speeds are not reading
-    if (!WheelSpeeds_isDAQWheelSpeedsNonZero(wss)) {
-        me->phase = LC_PHASE_RAMP;
+void LaunchControl_updatePhase(LaunchControl *lc, WheelSpeeds *wss) 
+{
+    //Use preset curve during intial part of launch when wheel speeds are not reading
+    if (!WheelSpeeds_isDAQWheelSpeedsNonZero(wss)) 
+	{
+        lc->phase = LC_PHASE_RAMP;
         return;
     }
 
-    if (me->phase == LC_PHASE_RAMP) {
-        if (me->currentSlipRatio > 0.2) {
-            me->phase = LC_PHASE_NONLINEAR;
+    if (lc->phase == LC_PHASE_RAMP)
+	{
+        if (lc->currentSlipRatio > 0.2) 
+		{
+            lc->phase = LC_PHASE_NONLINEAR;
         }
-        else {
-            me->phase = LC_PHASE_LINEAR;
-        }
-        return;
-    }
-    if (me->phase == LC_PHASE_NONLINEAR) {
-        if (me->currentSlipRatio < 0.2) {
-            me->phase = LC_PHASE_LINEAR;
-            me->pid->totalError = 0;
+        else 
+		{
+            lc->phase = LC_PHASE_LINEAR;
         }
         return;
     }
-    if (me->phase == LC_PHASE_LINEAR) {
-        if (me->currentSlipRatio > 0.25) {
-            me->phase = LC_PHASE_NONLINEAR;
+    if (lc->phase == LC_PHASE_NONLINEAR) 
+	{
+        if (lc->currentSlipRatio < 0.2) 
+		{
+            lc->phase = LC_PHASE_LINEAR;
+            lc->pid->totalError = 0;
+        }
+        return;
+    }
+    if (lc->phase == LC_PHASE_LINEAR) 
+	{
+        if (lc->currentSlipRatio > 0.25) 
+		{
+            lc->phase = LC_PHASE_NONLINEAR;
         }
         return;
     }
 }
 
-void LaunchControl_updateSlipRatio(LaunchControl *me, WheelSpeeds *wss) {
+void LaunchControl_updateSlipRatio(LaunchControl *lc, WheelSpeeds *wss) 
+{
 	float4 avgRearWheelsRPM = (WheelSpeeds_getDAQWheelSpeedRPM(wss, RL) + WheelSpeeds_getDAQWheelSpeedRPM(wss, RR)) / 2;
 	float4 avgFrontWheelsRPM = (WheelSpeeds_getDAQWheelSpeedRPM(wss, FL) + WheelSpeeds_getDAQWheelSpeedRPM(wss, FR)) / 2;
-    if ((avgFrontWheelsRPM) != 0) {
-        me->currentSlipRatio = (avgRearWheelsRPM / avgFrontWheelsRPM) - 1.0f;
+    if ((avgFrontWheelsRPM) != 0) 
+	{
+        lc->currentSlipRatio = (avgRearWheelsRPM / avgFrontWheelsRPM) - 1.0f;
     }
 }
 
-void LaunchControl_updateVelocityDifference(LaunchControl *me, WheelSpeeds *wss) 
+void LaunchControl_updateVelocityDifference(LaunchControl *lc, WheelSpeeds *wss) 
 {
 	// TODO: Change to DAQ wheel speeds
-    float4 estimatedVehicleVelocity = WheelSpeeds_getGroundSpeedMPS(wss, 0, me->useFilter);
-    me->currentVelocityDifference = WheelSpeeds_getFastestRearMPS(wss, me->useFilter) - estimatedVehicleVelocity;
-    me->targetVelocityDifference = me->slipRatioTarget * estimatedVehicleVelocity;
+    float4 estimatedVehicleVelocity = WheelSpeeds_getGroundSpeedMPS(wss, 0, lc->useFilter);
+    lc->currentVelocityDifference = WheelSpeeds_getFastestRearMPS(wss, lc->useFilter) - estimatedVehicleVelocity;
+    lc->targetVelocityDifference = lc->slipRatioTarget * estimatedVehicleVelocity;
 }
 
 
-void LaunchControl_applyTorqueCurve(LaunchControl *me, MotorController *mcm) {
-    float4 torque = me->k * me->maxTorque + (1 - me->k) * me->prevTorque;
-    me->lcTorqueCommand = (sbyte2) torque;
-    me->prevTorque = me->lcTorqueCommand;
+void LaunchControl_applyTorqueCurve(LaunchControl *lc, MotorController *mcm) 
+{
+    float4 torque = lc->k * lc->maxTorque + (1 - lc->k) * lc->prevTorque;
+	lc->lcTorqueCommand = (sbyte2) torque;
+    lc->prevTorque = lc->lcTorqueCommand;
 }
 
-void LaunchControl_applySpeedCurve(LaunchControl *me, MotorController *mcm) {
-    float4 rpm = me->k * me->maxRPM + (1 - me->k) * me->prevRPM;
-    me->lcSpeedCommand = (sbyte2) rpm;
-    me->prevRPM = (float4)me->lcSpeedCommand;
+void LaunchControl_applySpeedCurve(LaunchControl *lc, MotorController *mcm) 
+{
+    float4 rpm = lc->k * lc->maxRPM + (1 - lc->k) * lc->prevRPM;
+    lc->lcSpeedCommand = (sbyte2) rpm;
+    lc->prevRPM = (float4)lc->lcSpeedCommand;
 }
 
 void LaunchControl_calculateCommands(LaunchControl *lc, TorqueEncoder *tps, BrakePressureSensor *bps, MotorController *mcm, WheelSpeeds *wss)
@@ -187,7 +223,6 @@ void LaunchControl_calculateSpeedCommand(LaunchControl *lc, WheelSpeeds *wss, Mo
 
     case LC_STATE_READY:
 		//During ready state, driver is able to press throttle without requesting any torque.
-		//Reset both command values  
 		lc->lcSpeedCommand = 0;
 		MCM_update_LC_speedCommand(mcm, lc->lcSpeedCommand);
 		break;
@@ -226,8 +261,8 @@ void LaunchControl_updateMCMSpeedCommand(LaunchControl *lc, MotorController *mcm
 	}
 }
 
-void LaunchControl_calculateTorqueCommand(LaunchControl *lc, WheelSpeeds *wss, MotorController *mcm) {
-
+void LaunchControl_calculateTorqueCommand(LaunchControl *lc, WheelSpeeds *wss, MotorController *mcm) 
+{
     switch(lc->state) 
 	{
     case LC_STATE_IDLE:
@@ -274,38 +309,39 @@ void LaunchControl_updateMCMTorqueCommand(LaunchControl *lc, MotorController *mc
 	}
 }
 
-void LaunchControl_updateFilterStatus(LaunchControl *me, MotorController *mcm) {
-    if (MCM_getMotorRPM(mcm) > LC_MIN_FILTER_THRESHOLD_RPM) {
-        me->useFilter = TRUE;
+void LaunchControl_updateFilterStatus(LaunchControl *lc, MotorController *mcm) 
+{
+    if (MCM_getMotorRPM(mcm) > LC_MIN_FILTER_THRESHOLD_RPM) 
+	{
+        lc->useFilter = TRUE;
     }
-    else {
-        me->useFilter = FALSE;
+    else 
+	{
+        lc->useFilter = FALSE;
     }
 }
 
-void LaunchControl_calculatePIDOutput(LaunchControl *me) 
+void LaunchControl_calculatePIDOutput(LaunchControl *lc) 
 {
-    if (me->phase == LC_PHASE_NONLINEAR) {
-        PID_updateGainValues(me->pid, me->Kp, 0, me->Kd); //Disable integral in non-linear phase
+    if (lc->phase == LC_PHASE_NONLINEAR) 
+	{
+		//Disable integral in non-linear phase
+        PID_updateGainValues(lc->pid, lc->Kp, 0, lc->Kd); 
     }
-    else {
-        PID_updateGainValues(me->pid, me->Kp, me->Ki, me->Kd);
-    }
-
-    if (me->mode == LC_MODE_SLIP_RATIO) {
-        PID_updateSetpoint(me->pid, me->slipRatioTarget);
-        PID_computeOutput(me->pid, me->currentSlipRatio);
-    }
-    else if (me->mode == LC_MODE_VELOCITY_DIFFERENCE) {
-        PID_updateSetpoint(me->pid, me->targetVelocityDifference);
-        PID_computeOutput(me->pid, me->currentVelocityDifference);
+    else 
+	{
+        PID_updateGainValues(lc->pid, lc->Kp, lc->Ki, lc->Kd);
     }
 
-    if (me->pid->output > 20) {
-        me->pid->output = 20;
-    } 
-    else if (me->pid->output < -20) {
-        me->pid->output = -20;
+    if (lc->mode == LC_MODE_SLIP_RATIO) 
+	{
+        PID_updateSetpoint(lc->pid, lc->slipRatioTarget);
+        PID_computeOutput(lc->pid, lc->currentSlipRatio);
+    }
+    else if (lc->mode == LC_MODE_VELOCITY_DIFFERENCE) 
+	{
+        PID_updateSetpoint(lc->pid, lc->targetVelocityDifference);
+        PID_computeOutput(lc->pid, lc->currentVelocityDifference);
     }
 }
 
