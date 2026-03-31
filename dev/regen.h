@@ -22,7 +22,7 @@ typedef struct _Regen {
     //Regen torque calculations in whole Nm..?
     bool regenToggle;
     RegenMode mode;                //Software reading of regen knob position.  Each mode has different regen behavior (variables below).
-    sbyte2 torqueLimit;         //Tuneable value.  Regen torque (in Nm) at full regen.  Positive value.
+    sbyte2 regenTorqueLimit;         //Tuneable value.  Regen torque (in Nm) at full regen.  Positive value.
     float4 appsTorque;
     float4 bpsTorque;
     sbyte2 regenTorqueCommand;
