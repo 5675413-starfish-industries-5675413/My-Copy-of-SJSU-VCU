@@ -10,6 +10,18 @@
 #include <string.h>
 
 /**********************************************************************/
+/*************************** HIL STATE ********************************/
+/**********************************************************************/
+
+static HIL_State currentState = HIL_STATE_DISCONNECTED;
+static IO_CAN_DATA_FRAME hilResponseFrame;
+
+IO_CAN_DATA_FRAME* HIL_getResponseBuffer(void)
+{
+    return &hilResponseFrame;
+}
+
+/**********************************************************************/
 /************************* PARAMETER TABLE ****************************/
 /**********************************************************************/
 
@@ -170,25 +182,70 @@ static void HIL_writeParam(void *addr, ParamType type, sbyte4 value)
     }
 }
 
-// Parse injected parameter from CAN
+// Parse incoming HIL command from CAN
 void HIL_parseCanMessage(IO_CAN_DATA_FRAME* canMessage)
 {
-    // HIL Parameter Command Message Format:
-    ubyte1 identifier   = canMessage->data[0];      // Byte 0: struct identifier
-    ubyte1 param_number = canMessage->data[1];      // Byte 1: param number
-                                                    // Bytes 2-3: reserved
-    sbyte4 value = (sbyte4)(
-                   ((ubyte4)canMessage->data[4])        |
-                   ((ubyte4)canMessage->data[5] << 8)   |   // Bytes 4-7: value (32-bit, little-endian)
-                   ((ubyte4)canMessage->data[6] << 16)  |
-                   ((ubyte4)canMessage->data[7] << 24));
+    ubyte1 mux = canMessage->data[0];   // mux byte (command type)
 
-    ParamRow *row = HIL_findParam(identifier, param_number);
-    if (row == NULL) {
-        return;
+    switch (mux) {
+        case 0x01:  // HIL_CMD_INIT
+            currentState = HIL_STATE_DIAGNOSTIC;
+            HIL_buildDiagnostics();
+            break;
+        case 0x02:  // HIL_CMD_INJECT
+            if (currentState != HIL_STATE_READY) {break;}
+            {
+                ubyte1 identifier   = canMessage->data[1];      // Byte 1: struct identifier
+                ubyte1 param_number = canMessage->data[2];      // Byte 2: param number
+                                                                // Byte 3: reserved
+                sbyte4 value = (sbyte4)(
+                               ((ubyte4)canMessage->data[4])        |
+                               ((ubyte4)canMessage->data[5] << 8)   |   // Bytes 4-7: value (32-bit, little-endian)
+                               ((ubyte4)canMessage->data[6] << 16)  |
+                               ((ubyte4)canMessage->data[7] << 24));
+
+                ParamRow *row = HIL_findParam(identifier, param_number);
+                if (row == NULL) {
+                    HIL_buildAck(identifier, param_number, 0x01); // not found
+                    break;
+                }
+
+                HIL_writeParam(row->mem_address, row->type, value);
+                HIL_buildAck(identifier, param_number, 0x00);    // success
+            }
+            break;
+
+        case 0x03:  // HIL_CMD_REQUEST
+            if (currentState != HIL_STATE_READY) {break;}
+            {
+                ubyte1 identifier   = canMessage->data[1];      // Byte 1: struct identifier
+                ubyte1 param_number = canMessage->data[2];      // Byte 2: param number
+                HIL_buildValueResponse(identifier, param_number);
+            }
+            break;
+
+        default:
+            break;
     }
 
-    HIL_writeParam(row->mem_address, row->type, value);
+    // Param injection parsing (single purpose, old)
+
+    // // HIL Parameter Command Message Format:
+    // ubyte1 identifier   = canMessage->data[0];      // Byte 0: struct identifier
+    // ubyte1 param_number = canMessage->data[1];      // Byte 1: param number
+    //                                                 // Bytes 2-3: reserved
+    // sbyte4 value = (sbyte4)(
+    //                ((ubyte4)canMessage->data[4])        |
+    //                ((ubyte4)canMessage->data[5] << 8)   |   // Bytes 4-7: value (32-bit, little-endian)
+    //                ((ubyte4)canMessage->data[6] << 16)  |
+    //                ((ubyte4)canMessage->data[7] << 24));
+
+    // ParamRow *row = HIL_findParam(identifier, param_number);
+    // if (row == NULL) {
+    //     return;
+    // }
+
+    // HIL_writeParam(row->mem_address, row->type, value);
 
     // For debugging purposes: (if we want to have it)
     // HIL_sendResponse(identifier, param_number, value);
