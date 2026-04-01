@@ -56,8 +56,8 @@ void Regen_updateSettings(Regen* me)
     // for parameters starting with percent...      range is 0-1 (.50 = 50%; 1 = 100%, etc.)
     
     case REGENMODE_TESLA:       // regen-on-throttle ONLY
-        me-> regenOnThrottle = TRUE;
-        me-> regenOnBrakes = REGEN_BPS_OFF;             // regen-on-brakes is disabled
+        me->regenOnThrottle = TRUE;
+        me->regenOnBrakes = REGEN_BPS_OFF;              // regen-on-brakes is disabled
 
         // Tunable parameters:
         // me->regenTorqueLimit = -50;
@@ -66,8 +66,8 @@ void Regen_updateSettings(Regen* me)
         break;
 
     case REGENMODE_FORMULAE:    // regen-on-brakes ONLY. doesn't account for Brake Bias (legacy)
-        me-> regenOnThrottle = FALSE;
-        me-> regenOnBrakes = REGEN_BPS_LINEAR;          // linear mapping of brakes using BPS (legacy)
+        me->regenOnThrottle = FALSE;
+        me->regenOnBrakes = REGEN_BPS_LINEAR;           // linear mapping of brakes using BPS (legacy)
         me->maxRegenAPPS = 0;                           // no regenTQ allocated to regen-on-throttle
         me->percentAPPSForCoasting = 0;                 // driver should coast when off throttle
 
@@ -77,8 +77,8 @@ void Regen_updateSettings(Regen* me)
         break;
 
     case REGENMODE_HYBRID_LEGACY:   // TESLA + FormulaE: regen on throttle AND brakes (via linear mapping)
-        me-> regenOnThrottle = TRUE;
-        me-> regenOnBrakes = REGEN_BPS_LINEAR;          // linear mapping of brakes using BPS (legacy)
+        me->regenOnThrottle = TRUE;
+        me->regenOnBrakes = REGEN_BPS_LINEAR;           // linear mapping of brakes using BPS (legacy)
 
         // Tunable parameters:
         // me->regenTorqueLimit = -50;
@@ -88,8 +88,8 @@ void Regen_updateSettings(Regen* me)
         break;
 
     case REGENMODE_INVIS:           // prop valve regen ONLY. accounts for Brake Bias
-        me-> regenOnThrottle = FALSE;
-        me-> regenOnBrakes = REGEN_BPS_INVIS;           // prop valve pressure removed --> regen torque
+        me->regenOnThrottle = FALSE;
+        me->regenOnBrakes = REGEN_BPS_INVIS;            // prop valve pressure removed --> regen torque
 
         // Tunable parameters:
         // me->regenTorqueLimit = -50;
@@ -97,8 +97,8 @@ void Regen_updateSettings(Regen* me)
         me->padMu = 0.45;                               // used in pressure --> torque conversion. treated as a constant
 
     case REGENMODE_HYBRID_MODERN:   // TESLA + INVIS: regen on throttle AND brakes (via prop valve)
-        me-> regenOnThrottle = TRUE;
-        me-> regenOnBrakes = REGEN_BPS_INVIS;           // prop valve pressure removed --> regen torque
+        me->regenOnThrottle = TRUE;
+        me->regenOnBrakes = REGEN_BPS_INVIS;            // prop valve pressure removed --> regen torque
 
         // Tunable parameters:
         // me->regenTorqueLimit = -50;
@@ -108,8 +108,8 @@ void Regen_updateSettings(Regen* me)
         break;
 
     case REGENMODE_OFF:
-        me-> regenOnThrottle = FALSE;
-        me-> regenOnBrakes = REGEN_BPS_OFF;
+        me->regenOnThrottle = FALSE;
+        me->regenOnBrakes = REGEN_BPS_OFF;
         me->regenTorqueLimit = 0;
         me->maxRegenAPPS = 0;
         break;
@@ -142,7 +142,7 @@ void Regen_calculateCommands(Regen *me, MotorController *mcm, TorqueEncoder *tps
             me->appsTorque = 0; // bps overpowers tps
         }
 
-        me->regenTorqueCommand = (sbyte2)(me->appsTorque - me->bpsTorque);
+        me->regenTorqueCommand = (sbyte2)(me->appsTorque + me->bpsTorque);
 
         Regen_updateMCMTorqueCommand(me, mcm);
     
@@ -229,8 +229,16 @@ void Regen_updateMCMTorqueCommand(Regen *me, MotorController *mcm)
     }
 }
 
-sbyte2 Regen_get_torqueCommand(Regen *me) {
-    return me->regenTorqueCommand;
-}
+sbyte2 Regen_get_regenAppsTorque(Regen *me) { return me->appsTorque; }
 
-//TODO: add ALL param as getters
+sbyte2 Regen_get_regenBpsTorque(Regen *me) { return me->bpsTorque; }
+
+sbyte2 Regen_get_torqueCommand(Regen *me) { return me->regenTorqueCommand; }
+
+ubyte1 Regen_get_regenMode(Regen *me) { return me->mode; }
+
+bool Regen_get_regenOnThrottle(Regen *me) { return me->regenOnThrottle; }
+
+ubyte1 Regen_get_regenOnBrakes(Regen *me) { return me->regenOnBrakes; }
+
+ubyte1 Regen_get_regenTick(Regen *me) { return me->tick; }

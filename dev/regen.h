@@ -48,6 +48,12 @@ void Regen_updateMCMTorqueCommand(Regen *me, MotorController *mcm);
 void Regen_updateSettings(Regen* me);
 
 /** GETTER FUNCTIONS **/
+sbyte2 Regen_get_regenAppsTorque(Regen *me);
+sbyte2 Regen_get_regenBpsTorque(Regen *me);
 sbyte2 Regen_get_torqueCommand(Regen *me);
+ubyte1 Regen_get_regenMode(Regen *me);
+bool Regen_get_regenOnThrottle(Regen *me);
+ubyte1 Regen_get_regenOnBrakes(Regen *me);
+ubyte1 Regen_get_regenTick(Regen *me);
 
 #endif //_REGEN_H
