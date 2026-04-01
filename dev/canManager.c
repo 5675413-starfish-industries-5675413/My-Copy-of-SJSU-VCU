@@ -740,10 +740,10 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     byteNum = 0;
     canMessages[canMessageCount - 1].id = canMessageID + canMessageCount - 1;
     canMessages[canMessageCount - 1].id_format = IO_CAN_STD_FRAME;
-    canMessages[canMessageCount - 1].data[byteNum++] =  (ubyte2)(BrakePressureSensor_getBPS0_Voltage(bps));
-    canMessages[canMessageCount - 1].data[byteNum++] = ((ubyte2)(BrakePressureSensor_getBPS0_Voltage(bps))) >> 8;
-    canMessages[canMessageCount - 1].data[byteNum++] =  (ubyte2)(BrakePressureSensor_getBPS1_Voltage(bps));
-    canMessages[canMessageCount - 1].data[byteNum++] = ((ubyte2)(BrakePressureSensor_getBPS1_Voltage(bps))) >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] = 0;
+    canMessages[canMessageCount - 1].data[byteNum++] = 0;
+    canMessages[canMessageCount - 1].data[byteNum++] = 0;
+    canMessages[canMessageCount - 1].data[byteNum++] = 0;
     canMessages[canMessageCount - 1].data[byteNum++] =  (ubyte2)(BrakePressureSensor_getBPS0_Pressure(bps));
     canMessages[canMessageCount - 1].data[byteNum++] = ((ubyte2)(BrakePressureSensor_getBPS0_Pressure(bps))) >> 8;
     canMessages[canMessageCount - 1].data[byteNum++] =  (ubyte2)(BrakePressureSensor_getBPS1_Pressure(bps));
@@ -817,8 +817,8 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     canMessages[canMessageCount - 1].id = canMessageID + canMessageCount - 1;
     canMessages[canMessageCount - 1].data[byteNum++] = brakePercent; //This should be bps0Percent, but for now bps0Percent = brakePercent
     canMessages[canMessageCount - 1].data[byteNum++] = 0;
-    canMessages[canMessageCount - 1].data[byteNum++] = bps->bps0_voltage;
-    canMessages[canMessageCount - 1].data[byteNum++] = bps->bps0_voltage >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] = bps->bps1_voltage;
+    canMessages[canMessageCount - 1].data[byteNum++] = bps->bps1_voltage >> 8;
     canMessages[canMessageCount - 1].data[byteNum++] = bps->bps1_calibMin;
     canMessages[canMessageCount - 1].data[byteNum++] = bps->bps1_calibMin >> 8;
     canMessages[canMessageCount - 1].data[byteNum++] = bps->bps1_calibMax;

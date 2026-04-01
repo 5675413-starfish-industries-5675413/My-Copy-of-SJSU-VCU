@@ -232,3 +232,5 @@ void Regen_updateMCMTorqueCommand(Regen *me, MotorController *mcm)
 sbyte2 Regen_get_torqueCommand(Regen *me) {
     return me->regenTorqueCommand;
 }
+
+//TODO: add ALL param as getters
