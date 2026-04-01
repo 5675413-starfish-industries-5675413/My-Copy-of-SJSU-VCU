@@ -14,14 +14,17 @@
 
 // maybe also include sensors for prop valve
 
-// Regen mode
-typedef enum { REGENMODE_FORMULAE, REGENMODE_TESLA, REGENMODE_HYBRID, REGENMODE_FIXED, REGENMODE_CUSTOM, REGENMODE_OFF } RegenMode;
+// Regen mode & its derivative (regen on brakes)
+typedef enum { REGENMODE_TESLA, REGENMODE_FORMULAE, REGENMODE_INVIS, REGENMODE_HYBRID_LEGACY, REGENMODE_HYBRID_MODERN, REGENMODE_OFF} RegenMode;
+typedef enum { REGEN_BPS_OFF, REGEN_BPS_LINEAR, REGEN_BPS_INVIS } RegenOnBrakes;
 
 // Define a structure for Regen
 typedef struct _Regen {
     //Regen torque calculations in whole Nm..?
     bool regenToggle;
     RegenMode mode;                //Software reading of regen knob position.  Each mode has different regen behavior (variables below).
+    bool regenOnThrottle;
+    RegenOnBrakes regenOnBrakes;
     sbyte2 regenTorqueLimit;         //Tuneable value.  Regen torque (in Nm) at full regen.  Positive value.
     float4 appsTorque;
     float4 bpsTorque;
