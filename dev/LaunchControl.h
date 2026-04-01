@@ -23,7 +23,8 @@ typedef enum
 typedef enum 
 {
     LC_COMMAND_TORQUE,
-    LC_COMMAND_SPEED
+    LC_COMMAND_SPEED,
+	LC_COMMAND_TEST_SPEED
 } LC_CommandMode;
 
 typedef enum 
@@ -89,12 +90,11 @@ void LaunchControl_calculateCommands(LaunchControl *lc, TorqueEncoder *tps, Brak
 void LaunchControl_updateMCMTorqueCommand(LaunchControl *lc, MotorController *mcm);
 void LaunchControl_calculateTorqueCommand(LaunchControl *lc, WheelSpeeds *wss, MotorController *mcm);
 void LaunchControl_updateMCMSpeedCommand(LaunchControl *lc, MotorController *mcm);
-void LaunchControl_calculateSpeedCommand(LaunchControl *lc, WheelSpeeds *wss, MotorController *mcm) ;
+void LaunchControl_calculateSpeedCommand(LaunchControl *lc, WheelSpeeds *wss, MotorController *mcm);
+void LaunchControl_calculateTestSpeedCommand(LaunchControl *lc, WheelSpeeds *wss, MotorController *mcm);
 
-void LaunchControl_applyTorqueCurve(LaunchControl *lc, MotorController *mcm);
-void LaunchControl_applySpeedCurve(LaunchControl *lc, MotorController *mcm);
-
-void LaunchControl_calculatePIDOutput(LaunchControl *lc);
+sbyte2 LaunchControl_calculateTorqueCurve(LaunchControl *lc);
+sbyte2 LaunchControl_calculateSpeedCurve(LaunchControl *lc);
 
 void LaunchControl_updateFilterStatus(LaunchControl *lc, MotorController *mcm);
 
@@ -114,6 +114,7 @@ sbyte2 LaunchControl_getSlipRatioScaled(LaunchControl *lc);
 sbyte2 LaunchControl_getVelocityDifferenceTarget(LaunchControl *lc);
 sbyte2 LaunchControl_getCurrentVelocityDifference(LaunchControl *lc);
 
+void LaunchControl_calculatePIDOutput(LaunchControl *lc);
 float4 LaunchControl_getPidOutput(LaunchControl *me);
 
 #endif
