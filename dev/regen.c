@@ -33,7 +33,7 @@ Regen* Regen_new(bool regenToggle)
     me->regenOnBrakes = REGEN_BPS_LINEAR;
     me->regenTorqueLimit = -50;             // Nm | MCM regens when torque is negative
 
-    // regen-on-APPS
+    // regen-on-throttle
     me->maxRegenAPPS = 0;                   // torque sent at zero throttle
     me->percentAPPSForCoasting = 0;         // APPS% required to coast w/ regen-on-APPS enabled
 
@@ -132,18 +132,23 @@ void Regen_calculateCommands(Regen *me, MotorController *mcm, TorqueEncoder *tps
     // Early returns
     Regen_updateState(me, mcm, tps, bps);
 
+    if (me->mode != REGENMODE_OFF) {
 
-    Regen_calculateAPPSTorque(me, mcm, tps);
-    Regen_calculateBPSTorque(me, mcm, bps);
+        Regen_calculateAPPSTorque(me, mcm, tps);
+        Regen_calculateBPSTorque(me, mcm, bps);
 
-    // Can't brake and accelerate at the same time, per rules (TODO: find this rule & cite on DDR)
-    if (bps->bps0_percent > 0) { // TODO: probably should move this
-        me->appsTorque = 0; // bps overpowers tps
+        // Can't brake and accelerate at the same time, per rules (TODO: find this rule & cite on DDR)
+        if (bps->bps0_percent > 0) { // TODO: probably should move this
+            me->appsTorque = 0; // bps overpowers tps
+        }
+
+        me->regenTorqueCommand = (sbyte2)(me->appsTorque - me->bpsTorque);
+
+        Regen_updateMCMTorqueCommand(me, mcm);
+    
+    } else {
+        me->regenTorqueCommand = 0;
     }
-
-    me->regenTorqueCommand = (sbyte2)(me->appsTorque - me->bpsTorque);
-
-    Regen_clamp(me, mcm);
 }
 
 void Regen_updateState(Regen *me, MotorController *mcm, TorqueEncoder *tps, BrakePressureSensor *bps)
@@ -199,7 +204,7 @@ void Regen_calculateAPPSTorque(Regen *me, MotorController *mcm, TorqueEncoder *t
     }
 }
 
-void Regen_calculateBPSTorque(Regen *me, MotorController *mcm, TorqueEncoder *tps)
+void Regen_calculateBPSTorque(Regen *me, MotorController *mcm, BrakePressureSensor *bps)
 {
     switch (me->regenOnBrakes) {
         case REGEN_BPS_LINEAR: // Linear mapping: doesn't account for Brake Bias
@@ -211,9 +216,8 @@ void Regen_calculateBPSTorque(Regen *me, MotorController *mcm, TorqueEncoder *tp
     }
 }
 
-void Regen_clamp(Regen *me, MotorController *mcm)
+void Regen_updateMCMTorqueCommand(Regen *me, MotorController *mcm)
 {
-    // Clamps:
     if (me->regenTorqueCommand > 231) {
         MCM_set_Regen_torqueCommand(mcm, 231);  // clamps postive torque to 231 Nm
     }

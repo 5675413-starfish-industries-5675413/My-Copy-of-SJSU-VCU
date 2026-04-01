@@ -40,7 +40,11 @@ typedef struct _Regen {
 Regen* Regen_new(bool regenToggle); 
 
 /** SETTER FUNCTIONS **/
+void Regen_updateState(Regen *me, MotorController *mcm, TorqueEncoder *tps, BrakePressureSensor *bps);
 void Regen_calculateCommands(Regen* me, MotorController * mcm, TorqueEncoder *tps, BrakePressureSensor *bps);
+void Regen_calculateAPPSTorque(Regen *me, MotorController *mcm, TorqueEncoder *tps);
+void Regen_calculateBPSTorque(Regen *me, MotorController *mcm, BrakePressureSensor *bps);
+void Regen_updateMCMTorqueCommand(Regen *me, MotorController *mcm);
 void Regen_updateSettings(Regen* me);
 
 /** GETTER FUNCTIONS **/
