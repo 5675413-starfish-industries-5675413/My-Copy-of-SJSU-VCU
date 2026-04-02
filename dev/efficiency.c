@@ -57,14 +57,15 @@ Efficiency *Efficiency_new(bool efficiencyToggle)
 
 void Efficiency_calculateCommands(Efficiency *me, MotorController *mcm, PowerLimit *pl, GPS *gps, Shunt *shunt)
 {
+    if (gpsButtonPressed()) {
+        Efficiency_markLapStart(me, gps);
+    }
+
     if (!me->efficiencyToggle)
     {
         return;
     }
 
-    if (gpsButtonPressed()) {
-        Efficiency_markLapStart(me, gps);
-    }
 
     me->currLatitude = GPS_getLatitude(gps);
     me->currLongitude = GPS_getLongitude(gps);
