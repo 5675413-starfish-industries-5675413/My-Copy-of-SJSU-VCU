@@ -48,19 +48,19 @@ void Efficiency_resetLap(Efficiency *me);
 bool Efficiency_completedLap(Efficiency *me, MotorController *mcm, GPS *gps);
 
 // Getter functions
-float Efficiency_getScoreError(Efficiency *me);
+sbyte2 Efficiency_getScoreError(Efficiency *me);       // error x10000 (e.g. 0.06 → 600)
 bool Efficiency_getFinishedLap(Efficiency *me);
 ubyte1 Efficiency_getLapCounter(Efficiency *me);
-float Efficiency_getEnergyBudget_kWh(Efficiency *me);
-float Efficiency_getCarryOverEnergy_kWh(Efficiency *me);
-float Efficiency_getCornerEnergy_kWh(Efficiency *me);
-float Efficiency_getStraightEnergy_kWh(Efficiency *me);
-float Efficiency_getLapEnergy_kWh(Efficiency *me);
-float Efficiency_getLapLatitude(Efficiency *me);
-float Efficiency_getLapLongitude(Efficiency *me);
-float Efficiency_getStraightTime_s(Efficiency *me);
-float Efficiency_getLapDistance_km(Efficiency *me);
-float Efficiency_getCurrentLatitude(Efficiency *me);
-float Efficiency_getCurrentLongitude(Efficiency *me);
+sbyte2 Efficiency_getEnergyBudget_Wh(Efficiency *me);  // kWh → Wh
+sbyte2 Efficiency_getCarryOverEnergy_Wh(Efficiency *me);
+sbyte2 Efficiency_getCornerEnergy_Wh(Efficiency *me);
+sbyte2 Efficiency_getStraightEnergy_Wh(Efficiency *me);
+sbyte2 Efficiency_getLapEnergy_Wh(Efficiency *me);
+sbyte2 Efficiency_getStraightTime_s(Efficiency *me);   // truncated to whole seconds
+sbyte2 Efficiency_getLapDistance_m(Efficiency *me);    // km → m
+sbyte4 Efficiency_getLapLatitude(Efficiency *me);      // deg x1000000
+sbyte4 Efficiency_getLapLongitude(Efficiency *me);
+sbyte4 Efficiency_getCurrentLatitude(Efficiency *me);
+sbyte4 Efficiency_getCurrentLongitude(Efficiency *me);
 
 #endif // _EFFICIENCY_H
