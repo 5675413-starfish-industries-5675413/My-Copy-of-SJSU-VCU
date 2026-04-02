@@ -19,8 +19,8 @@
 
 struct _GPS
 {
-    float latitude;       // Degrees (e.g., 37.4129557)
-    float longitude;      // Degrees (e.g., -121.1081600)
+    float latitude;
+    float longitude;
     bool  valid;          // TRUE if we've received at least one message recently
     ubyte4 lastUpdateTime; // Timestamp of last CAN message received
 };

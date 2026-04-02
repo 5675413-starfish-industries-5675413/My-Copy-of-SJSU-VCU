@@ -13,6 +13,7 @@
 #include "gps.h"
 #include "sensors.h"
 #include "shunt.h"
+#include <stdlib.h>
 
 // constants
 #define TOTAL_ENERGY_BUDGET_KWH 6.6f // total energy budget for the entire race
@@ -33,10 +34,16 @@ Efficiency *Efficiency_new(bool efficiencyToggle)
     me->energyBudget_kWh = TOTAL_ENERGY_BUDGET_KWH / 22; // set actual energy budget fpr each lap
     me->lapCounter = 1;
     me->carryOverEnergy_kWh = 0.0f; // start with no carry-over
-
-    // lap variables (reset at the end of each lap)
+    
+    //lap start
     me->latitude = 0.0f;
     me->longitude = 0.0f;
+
+    // current position
+    me->currLatitude = 0.0f;
+    me->currLongitude = 0.0f;
+
+    // lap variables (reset at the end of each lap)
     me->straightTime_s = 0.0f;
     me->cornerTime_s = 0.0f;
     me->cornerEnergy_kWh = 0.0f;
@@ -59,8 +66,11 @@ void Efficiency_calculateCommands(Efficiency *me, MotorController *mcm, PowerLim
         Efficiency_markLapStart(me, gps);
     }
 
+    me->currLatitude = GPS_getLatitude(gps);
+    me->currLongitude = GPS_getLongitude(gps);
+
     // calculate current power consumption in kWh
-    float currentPower_kW = ((float)shunt->current_mA * (float)shunt->vBus_mV) / 1e9f;
+    float currentPower_kW = ((float)shunt->current_mA * (float)shunt->vBus_mV) / 1e9f; // convert mA*mV to kW
     float cycleEnergy_kWh = (currentPower_kW * CYCLE_TIME_S) / SECONDS_PER_HOUR;
 
     // track time and accumulate energy based on power limit status
@@ -153,8 +163,10 @@ float Efficiency_getEnergyBudget_kWh(Efficiency *me) { return me->energyBudget_k
 float Efficiency_getCarryOverEnergy_kWh(Efficiency *me) { return me->carryOverEnergy_kWh; }
 float Efficiency_getCornerEnergy_kWh(Efficiency *me) { return me->cornerEnergy_kWh; }
 float Efficiency_getStraightEnergy_kWh(Efficiency *me) { return me->straightEnergy_kWh; }
-float Efficiency_getLat(Efficiency *me) { return me->latitude; }
-float Efficiency_getLon(Efficiency *me) { return me->longitude; }
+float Efficiency_getLapLatitude(Efficiency *me) { return me->latitude; }
+float Efficiency_getLapLongitude(Efficiency *me) { return me->longitude; }
 float Efficiency_getLapEnergy_kWh(Efficiency *me) { return me->lapEnergy_kWh; }
 float Efficiency_getStraightTime_s(Efficiency *me) { return me->straightTime_s; }
 float Efficiency_getLapDistance_km(Efficiency *me) { return me->lapDistance_km; }
+float Efficiency_getCurrentLatitude(Efficiency *me) { return me->currLatitude; }
+float Efficiency_getCurrentLongitude(Efficiency *me) { return me->currLongitude; }

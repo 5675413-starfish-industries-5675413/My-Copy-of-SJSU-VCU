@@ -11,6 +11,7 @@
 #include "powerLimit.h"
 #include "gps.h"
 #include "shunt.h"
+#include <stdlib.h>
 
 typedef struct _Efficiency
 {
@@ -32,6 +33,9 @@ typedef struct _Efficiency
 
     float latitude;           // Latitude at start of lap
     float longitude;          // Longitude at start of lap
+
+    float currLatitude;       // Current Latitude
+    float currLongitude;      // Current Longitude
 } Efficiency;
 
 // Constructor
@@ -52,9 +56,11 @@ float Efficiency_getCarryOverEnergy_kWh(Efficiency *me);
 float Efficiency_getCornerEnergy_kWh(Efficiency *me);
 float Efficiency_getStraightEnergy_kWh(Efficiency *me);
 float Efficiency_getLapEnergy_kWh(Efficiency *me);
-float Efficiency_getLat(Efficiency *me);
-float Efficiency_getLon(Efficiency *me);
+float Efficiency_getLapLatitude(Efficiency *me);
+float Efficiency_getLapLongitude(Efficiency *me);
 float Efficiency_getStraightTime_s(Efficiency *me);
 float Efficiency_getLapDistance_km(Efficiency *me);
+float Efficiency_getCurrentLatitude(Efficiency *me);
+float Efficiency_getCurrentLongitude(Efficiency *me);
 
 #endif // _EFFICIENCY_H
