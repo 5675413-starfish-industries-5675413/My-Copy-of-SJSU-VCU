@@ -163,8 +163,12 @@ float Efficiency_getEnergyBudget_kWh(Efficiency *me) { return me->energyBudget_k
 float Efficiency_getCarryOverEnergy_kWh(Efficiency *me) { return me->carryOverEnergy_kWh; }
 float Efficiency_getCornerEnergy_kWh(Efficiency *me) { return me->cornerEnergy_kWh; }
 float Efficiency_getStraightEnergy_kWh(Efficiency *me) { return me->straightEnergy_kWh; }
-float Efficiency_getLapLatitude(Efficiency *me) { return me->latitude; }
-float Efficiency_getLapLongitude(Efficiency *me) { return me->longitude; }
+
+sbyte4 Efficiency_getLapLatitude(Efficiency *me) { 
+    return (sbyte4)(me->latitude*1000000); }
+sbyte4 Efficiency_getLapLongitude(Efficiency *me) { 
+    return (sbyte4)(me->longitude*1000000); }
+
 float Efficiency_getLapEnergy_kWh(Efficiency *me) { return me->lapEnergy_kWh; }
 float Efficiency_getStraightTime_s(Efficiency *me) { return me->straightTime_s; }
 float Efficiency_getLapDistance_km(Efficiency *me) { return me->lapDistance_km; }

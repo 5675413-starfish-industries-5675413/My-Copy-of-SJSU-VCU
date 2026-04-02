@@ -729,8 +729,8 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     canMessages[canMessageCount - 1].data[byteNum++] = Sensor_LVBattery.sensorValue >> 8;
     canMessages[canMessageCount - 1].data[byteNum++] =  (sbyte2)(Regen_get_torqueCommand(regen));
     canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(Regen_get_torqueCommand(regen))) >> 8;
-    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(Efficiency_getStraightTime_s(eff) * 10); // Convert to 0.1s units
-    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(Efficiency_getStraightTime_s(eff) * 10)) >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] = 
+    canMessages[canMessageCount - 1].data[byteNum++] = 
     canMessages[canMessageCount - 1].data[byteNum++] = 0;
     canMessages[canMessageCount - 1].data[byteNum++] = 0;
     canMessages[canMessageCount - 1].length = byteNum;
@@ -826,19 +826,19 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     canMessages[canMessageCount - 1].length = byteNum;
 
     
-    //50E: FREE MESSAGE
+    //50E: Efficiency Status B
     canMessageCount++;
     byteNum = 0;
     canMessages[canMessageCount - 1].id = canMessageID + canMessageCount - 1;
     canMessages[canMessageCount - 1].id_format = IO_CAN_STD_FRAME;
-    canMessages[canMessageCount - 1].data[byteNum++] = 0;
-    canMessages[canMessageCount - 1].data[byteNum++] = 0;
-    canMessages[canMessageCount - 1].data[byteNum++] = 0;
-    canMessages[canMessageCount - 1].data[byteNum++] = 0;
-    canMessages[canMessageCount - 1].data[byteNum++] = 0;
-    canMessages[canMessageCount - 1].data[byteNum++] = 0;
-    canMessages[canMessageCount - 1].data[byteNum++] = 0;
-    canMessages[canMessageCount - 1].data[byteNum++] = 0;
+    canMessages[canMessageCount - 1].data[byteNum++] = (Efficiency_getLapLongitude(eff));
+    canMessages[canMessageCount - 1].data[byteNum++] = (Efficiency_getLapLongitude(eff)) >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] = (Efficiency_getLapLongitude(eff)) >> 16;
+    canMessages[canMessageCount - 1].data[byteNum++] = (Efficiency_getLapLongitude(eff)) >> 24;
+    canMessages[canMessageCount - 1].data[byteNum++] = (Efficiency_getLapLatitude(eff));
+    canMessages[canMessageCount - 1].data[byteNum++] = (Efficiency_getLapLatitude(eff)) >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] = (Efficiency_getLapLatitude(eff)) >> 16;
+    canMessages[canMessageCount - 1].data[byteNum++] = (Efficiency_getLapLatitude(eff)) >> 24;
     canMessages[canMessageCount - 1].length = byteNum;
 
     //50F: MCM Power Debug
