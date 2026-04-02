@@ -130,17 +130,14 @@ bool Efficiency_completedLap(Efficiency *me, MotorController *mcm, GPS *gps)
     return me->finishedLap;
 }
 
-float Efficiency_getScoreError(Efficiency* me) {
-    if (me->energyBudget_kWh < 0.001f) return 0.0f;
+// Score error scaled x10000 (e.g. 0.06 error → 600). Conversion done here.
+sbyte2 Efficiency_getScoreError(Efficiency* me) {
+    if (me->energyBudget_kWh < 0.001f) return 0;
 
-    // What fraction of the lap is done based on distance
     float lapFraction = me->lapDistance_km; // 0.0 → 1.0 km
-
-    // How much energy should we have spent by now (linear budget)
     float expectedEnergy = lapFraction * me->energyBudget_kWh;
-
-    // Error normalized to lap budget → gives a fraction like +0.06 or -0.04
-    return (me->lapEnergy_kWh - expectedEnergy) / me->energyBudget_kWh;
+    float error = (me->lapEnergy_kWh - expectedEnergy) / me->energyBudget_kWh;
+    return (sbyte2)(error * 10000.0f);
 }
 
 
@@ -159,18 +156,22 @@ void Efficiency_resetLap(Efficiency *me)
 // getters
 bool Efficiency_getFinishedLap(Efficiency *me) { return me->finishedLap; }
 ubyte1 Efficiency_getLapCounter(Efficiency *me) { return me->lapCounter; }
-float Efficiency_getEnergyBudget_kWh(Efficiency *me) { return me->energyBudget_kWh; }
-float Efficiency_getCarryOverEnergy_kWh(Efficiency *me) { return me->carryOverEnergy_kWh; }
-float Efficiency_getCornerEnergy_kWh(Efficiency *me) { return me->cornerEnergy_kWh; }
-float Efficiency_getStraightEnergy_kWh(Efficiency *me) { return me->straightEnergy_kWh; }
 
-sbyte4 Efficiency_getLapLatitude(Efficiency *me) { 
-    return (sbyte4)(me->latitude*1000000); }
-sbyte4 Efficiency_getLapLongitude(Efficiency *me) { 
-    return (sbyte4)(me->longitude*1000000); }
+// Energy getters: internal storage is kWh, getter converts to Wh for CAN
+sbyte2 Efficiency_getEnergyBudget_Wh(Efficiency *me) { return (sbyte2)(me->energyBudget_kWh * 1000.0f); }
+sbyte2 Efficiency_getCarryOverEnergy_Wh(Efficiency *me) { return (sbyte2)(me->carryOverEnergy_kWh * 1000.0f); }
+sbyte2 Efficiency_getCornerEnergy_Wh(Efficiency *me) { return (sbyte2)(me->cornerEnergy_kWh * 1000.0f); }
+sbyte2 Efficiency_getStraightEnergy_Wh(Efficiency *me) { return (sbyte2)(me->straightEnergy_kWh * 1000.0f); }
+sbyte2 Efficiency_getLapEnergy_Wh(Efficiency *me) { return (sbyte2)(me->lapEnergy_kWh * 1000.0f); }
 
-float Efficiency_getLapEnergy_kWh(Efficiency *me) { return me->lapEnergy_kWh; }
-float Efficiency_getStraightTime_s(Efficiency *me) { return me->straightTime_s; }
-float Efficiency_getLapDistance_km(Efficiency *me) { return me->lapDistance_km; }
-float Efficiency_getCurrentLatitude(Efficiency *me) { return me->currLatitude; }
-float Efficiency_getCurrentLongitude(Efficiency *me) { return me->currLongitude; }
+// Time getter: truncates to whole seconds
+sbyte2 Efficiency_getStraightTime_s(Efficiency *me) { return (sbyte2)(me->straightTime_s); }
+
+// Distance getter: converts km → m
+sbyte2 Efficiency_getLapDistance_m(Efficiency *me) { return (sbyte2)(me->lapDistance_km * 1000.0f); }
+
+// Lat/lon getters: scaled x1000000 for integer transmission
+sbyte4 Efficiency_getLapLatitude(Efficiency *me) { return (sbyte4)(me->latitude * 1000000.0f); }
+sbyte4 Efficiency_getLapLongitude(Efficiency *me) { return (sbyte4)(me->longitude * 1000000.0f); }
+sbyte4 Efficiency_getCurrentLatitude(Efficiency *me) { return (sbyte4)(me->currLatitude * 1000000.0f); }
+sbyte4 Efficiency_getCurrentLongitude(Efficiency *me) { return (sbyte4)(me->currLongitude * 1000000.0f); }
