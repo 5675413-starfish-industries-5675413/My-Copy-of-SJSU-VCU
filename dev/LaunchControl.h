@@ -14,76 +14,107 @@
 #include "IO_Driver.h" //Includes datatypes, constants, etc - should be included in every c file
 
 
-typedef enum {
+typedef enum 
+{
     LC_MODE_SLIP_RATIO,
     LC_MODE_VELOCITY_DIFFERENCE
 } LC_Mode;
 
-typedef enum {
+typedef enum 
+{
     LC_COMMAND_TORQUE,
-    LC_COMMAND_SPEED
+    LC_COMMAND_SPEED,
+	LC_COMMAND_TEST_SPEED
 } LC_CommandMode;
 
-typedef enum {
+typedef enum 
+{
     LC_PHASE_RAMP,
     LC_PHASE_NONLINEAR,
     LC_PHASE_LINEAR,
 } LC_Phase;
 
-typedef enum {
+typedef enum 
+{
     LC_STATE_IDLE,
     LC_STATE_READY,
     LC_STATE_ACTIVE
 } LC_State;
 
-typedef struct _LaunchControl {
+typedef struct _LaunchControl 
+{
     bool lcToggle;
+
     PID *pid;
     sbyte1 Kp;
     sbyte1 Ki;
     sbyte1 Kd;
+
     float4 currentSlipRatio;
     float4 slipRatioTarget;
     float4 currentVelocityDifference;
     float4 targetVelocityDifference;
-    sbyte2 lcTorqueCommand;
-    sbyte2 lcSpeedCommand; // rpm value
-    float4 maxRPM; 
-    float4 prevRPM;
+
+    float4 curveInitialTorque;
+    float4 curveMaxTorque;
+    float4 curvePrevTorque;
+    float4 curveK;
+
+    float4 curveMaxRPM; 
+    float4 curvePrevRPM;
+	float4 curveInitialRPM;
+	    
+	sbyte2 lcTorqueCommand;
+    sbyte2 lcSpeedCommand; 
+
     LC_CommandMode commandMode; 
-    float4 initialTorque;
-    float4 maxTorque;
-    float4 prevTorque;
-    float4 k;
-    bool useFilter;
     LC_State state;
     LC_Mode mode;
     LC_Phase phase;
+	    
+	bool useFilter;
+
 } LaunchControl;
 
 LaunchControl *LaunchControl_new(bool lcToggle);
-void LaunchControl_reset(LaunchControl *me, MotorController *mcm);
-void LaunchControl_updateState(LaunchControl *me, TorqueEncoder *tps, BrakePressureSensor *bps, MotorController *mcm);
-void LaunchControl_updateSlipRatio(LaunchControl *me, WheelSpeeds *wss);
-void LaunchControl_applyTorqueCurve(LaunchControl *me, MotorController *mcm);
-void LaunchControl_calculateCommands(LaunchControl *me, TorqueEncoder *tps, BrakePressureSensor *bps, MotorController *mcm, WheelSpeeds *wss);
-ubyte1 LaunchControl_getState(LaunchControl *me);
-sbyte2 LaunchControl_getTorqueCommand(LaunchControl *me);
-float4 LaunchControl_getSlipRatio(LaunchControl *me);
-sbyte2 LaunchControl_getSlipRatioScaled(LaunchControl *me);
-bool LaunchControl_getInitialCurveStatus(LaunchControl *me);
-float4 LaunchControl_getPidOutput(LaunchControl *me);
-void LaunchControl_calculatePIDOutput(LaunchControl *me);
-void LaunchControl_updatePhase(LaunchControl *me, WheelSpeeds *wss);
-ubyte1 LaunchControl_getPhase(LaunchControl *me);
-void LaunchControl_updateSlipDifference(LaunchControl *me, WheelSpeeds *wss);
-void LaunchControl_updateFilterStatus(LaunchControl *me, MotorController *mcm);
-bool LaunchControl_getFilterStatus(LaunchControl *me);
-sbyte2 LaunchControl_getVelocityDifferenceTarget(LaunchControl *me);
-sbyte2 LaunchControl_getCurrentVelocityDifference(LaunchControl *me);
-void LaunchControl_applySpeedCurve(LaunchControl *me, MotorController *mcm);
-sbyte2 LaunchControl_getSpeedCommand(LaunchControl *me);
-bool LaunchControl_getActiveStatus(LaunchControl *me);
+
+void LaunchControl_reset(LaunchControl *lc, MotorController *mcm);
+
+void LaunchControl_updateState(LaunchControl *lc, TorqueEncoder *tps, BrakePressureSensor *bps, MotorController *mcm);
+void LaunchControl_updatePhase(LaunchControl *lc, WheelSpeeds *wss);
+
+void LaunchControl_updateSlipRatio(LaunchControl *lc, WheelSpeeds *wss);
 void LaunchControl_updateVelocityDifference(LaunchControl *me, WheelSpeeds *wss);
+
+void LaunchControl_calculateCommands(LaunchControl *lc, TorqueEncoder *tps, BrakePressureSensor *bps, MotorController *mcm, WheelSpeeds *wss);
+void LaunchControl_updateMCMTorqueCommand(LaunchControl *lc, MotorController *mcm);
+void LaunchControl_calculateTorqueCommand(LaunchControl *lc, WheelSpeeds *wss, MotorController *mcm);
+void LaunchControl_updateMCMSpeedCommand(LaunchControl *lc, MotorController *mcm);
+void LaunchControl_calculateSpeedCommand(LaunchControl *lc, WheelSpeeds *wss, MotorController *mcm);
+void LaunchControl_calculateTestSpeedCommand(LaunchControl *lc, WheelSpeeds *wss, MotorController *mcm);
+
+sbyte2 LaunchControl_calculateTorqueCurve(LaunchControl *lc);
+sbyte2 LaunchControl_calculateSpeedCurve(LaunchControl *lc);
+
+void LaunchControl_updateFilterStatus(LaunchControl *lc, MotorController *mcm);
+
+bool LaunchControl_getActiveStatus(LaunchControl *lc);
+bool LaunchControl_getFilterStatus(LaunchControl *lc);
+bool LaunchControl_getInitialCurveStatus(LaunchControl *lc);
+
+ubyte1 LaunchControl_getState(LaunchControl *lc);
+ubyte1 LaunchControl_getPhase(LaunchControl *lc);
+
+sbyte2 LaunchControl_getTorqueCommand(LaunchControl *lc);
+sbyte2 LaunchControl_getSpeedCommand(LaunchControl *lc);
+
+float4 LaunchControl_getSlipRatio(LaunchControl *lc);
+sbyte2 LaunchControl_getSlipRatioScaled(LaunchControl *lc);
+
+sbyte2 LaunchControl_getVelocityDifferenceTarget(LaunchControl *lc);
+sbyte2 LaunchControl_getCurrentVelocityDifference(LaunchControl *lc);
+
+void LaunchControl_calculatePIDOutput(LaunchControl *lc);
+float4 LaunchControl_getPidOutput(LaunchControl *me);
 
 #endif
