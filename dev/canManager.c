@@ -770,14 +770,14 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     byteNum = 0;
     canMessages[canMessageCount - 1].id_format = IO_CAN_STD_FRAME;
     canMessages[canMessageCount - 1].id = canMessageID + canMessageCount - 1;
-    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(Efficiency_getLapCounter(eff));
-    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(Efficiency_getCornerEnergy_kWh(eff) * 1000); // Convert to Wh
-    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(Efficiency_getCornerEnergy_kWh(eff) * 1000)) >> 8;
-    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(Efficiency_getLapEnergy_kWh(eff) * 1000); // Convert to Wh
-    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(Efficiency_getLapEnergy_kWh(eff) * 1000)) >> 8;
-    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)(Efficiency_getFinishedLap(eff) ? 1 : 0);
-    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)(Efficiency_getLapDistance_km(eff) * 100); // Convert to 0.01km units
-    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(Efficiency_getLapDistance_km(eff) * 100)) >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)Efficiency_getLapEnergy_Wh(eff);
+    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)Efficiency_getLapEnergy_Wh(eff)) >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)Efficiency_getEnergyBudget_Wh(eff);
+    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)Efficiency_getEnergyBudget_Wh(eff)) >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)Efficiency_getCarryOverEnergy_Wh(eff);
+    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)Efficiency_getCarryOverEnergy_Wh(eff)) >> 8;
+    canMessages[canMessageCount - 1].data[byteNum++] = Efficiency_getLapCounter(eff);
+    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)Efficiency_getFinishedLap(eff);
     canMessages[canMessageCount - 1].length = byteNum;
 
     //50B: Launch Control Status A
