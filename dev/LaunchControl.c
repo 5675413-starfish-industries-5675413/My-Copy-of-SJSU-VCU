@@ -41,6 +41,7 @@ LaunchControl *LaunchControl_new(bool lcToggle) {
     me->mode = LC_MODE_SLIP_RATIO;
     me->state = LC_STATE_IDLE;
     me->phase = LC_PHASE_RAMP;
+    me->pidOutput = 0;
     return me;
 }
 
@@ -214,6 +215,8 @@ void LaunchControl_calculatePIDOutput(LaunchControl *me)
     else if (me->pid->output < -20) {
         me->pid->output = -20;
     }
+
+    me->pidOutput = me->pid->output;
 }
 
 
@@ -237,6 +240,7 @@ bool LaunchControl_getActiveStatus(LaunchControl *me) { return me->state == LC_S
 
 bool LaunchControl_getFilterStatus(LaunchControl *me) { return me->useFilter; }
 
+float LaunchControl_getPidOutput(LaunchControl *me) { return me->pid->output; }
 
 
 

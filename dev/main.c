@@ -53,8 +53,8 @@
 #include "regen.h"
 #include "drs.h"
 #include "powerLimit.h"
-#include "PID.h"
 #include "efficiency.h"
+#include "watchdog.h"
 
 // SIL (Software-In-the-Loop) includes
 #ifdef SIL_BUILD
@@ -245,6 +245,7 @@ void main(void)
     DRS *drs = DRS_new();
     PowerLimit *pl = POWERLIMIT_new(TRUE);
     Efficiency *eff = Efficiency_new(TRUE);
+    
 //---------------------------------------------------------------------------------------------------------
     //----------------------------------------------------------------------------
     // TODO: Additional Initial Power-up functions
@@ -264,29 +265,16 @@ void main(void)
     /*******************************************/
     /*           SIL CONFIGURATION             */
     /*******************************************/
-    
     #ifdef SIL_BUILD
-    // Static variables to store JSON-parsed TPS values (preserved across loop iterations)
-    static float4 saved_tps_travelPercent = 0.0f;
-    static float4 saved_tps0_percent = 0.0f;
-    static float4 saved_tps1_percent = 0.0f;
-    
     // Read initial JSON configuration
-    int parse_result = sil_read_initial_json(pl, mcm0, tps);
-    if (parse_result == 0) {
-        saved_tps_travelPercent = tps->travelPercent;
-        saved_tps0_percent = tps->tps0_percent;
-        saved_tps1_percent = tps->tps1_percent;
-    }
+    SIL_read_config(pl, mcm0, tps, bps, regen, lc, wss, eff, bms);
     #endif
-
-    #ifndef SIL_BUILD
 
     /*******************************************/
     /*           HIL CONFIGURATION             */
     /*******************************************/
+    #ifndef SIL_BUILD
     HIL_initParamTable(mcm0, pl, lc, wss, bms, regen, eff);
-
     #endif
 
     /*******************************************/
@@ -422,13 +410,18 @@ void main(void)
 
         // In SIL mode, restore the JSON-parsed TPS values that were overwritten by TorqueEncoder_update
         #ifdef SIL_BUILD
-        sil_restore_tps_values(tps, &saved_tps_travelPercent, &saved_tps0_percent, &saved_tps1_percent);
+        SIL_restore_tps(tps);
         #endif 
     
         //Every cycle: if the calibration was started and hasn't finished, check the values again
         TorqueEncoder_calibrationCycle(tps, &calibrationErrors); //Todo: deal with calibration errors
         BrakePressureSensor_update(bps, bench);
         BrakePressureSensor_calibrationCycle(bps, &calibrationErrors);
+        
+        // In SIL mode, preserve JSON-provided BPS voltages for simulation input.
+        #ifdef SIL_BUILD
+        SIL_restore_bps(bps);
+        #endif
 
         //TractionControl_update(tps, mcm0, wss, daq);
 
@@ -565,20 +558,14 @@ void main(void)
     /*******************************************/
     #ifdef SIL_BUILD
     // Non-blocking JSON reader for main loop
-    int json_result = sil_read_json_input(pl, mcm0, tps);
-    if (json_result == 0) {
-        // Successfully parsed JSON, update saved TPS values
-        saved_tps_travelPercent = tps->travelPercent;
-        saved_tps0_percent = tps->tps0_percent;
-        saved_tps1_percent = tps->tps1_percent;
-    }
+    SIL_read(pl, mcm0, tps, bps, regen, lc, wss, eff, bms);
     #endif
 
     /*******************************************/
     /*              SIL OUTPUTS                */
     /*******************************************/
     #ifdef SIL_BUILD
-    sil_write_json_output(mcm0, pl, eff);
+    SIL_write(mcm0, pl, eff, bms, lc, bps, regen, wss, tps);
     #endif
         
     } //end of main loop

@@ -1,3 +1,4 @@
+// @sre-ignore [LINE 1 REQUIRED] - ignore this file from the vcu_structs_map.json call
 #ifndef _CANMANAGER_H
 #define _CANMANAGER_H
 

@@ -9,7 +9,7 @@ Each entry maps:
   action:    MCM method name, or 6-char injector parameter name
 
 To add a new parameter:
-  1. Add the C struct member (sre sil extract to refresh struct_members_output.json)
+  1. Add the C struct member (sre sil extract to refresh vcu_structs_map.json)
   2. (HIL) Add HIL_ADD_PARAM() entry in dev/hilParameter.c
   3. Append one row here — no other code changes needed.
 """

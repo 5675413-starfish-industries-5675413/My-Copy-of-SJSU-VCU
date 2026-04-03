@@ -30,7 +30,7 @@ class SILEnvironment(TestEnvironment):
             self._sim = None
 
     def send_inputs(self, *configs: DynamicConfig) -> None:
-        # 1. Write config values into struct_members_output.json
+        # 1. Write config values into vcu_structs_map.json
         configs_to_json(*configs)
         # 2. Send the named structs to the binary via stdin
         struct_names = tuple(c.struct_name for c in configs)

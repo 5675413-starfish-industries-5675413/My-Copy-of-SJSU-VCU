@@ -24,7 +24,7 @@ def test_lap_counting(env):
     distance_accumulator = 0.0
     distance_increment = 0.02  # 20m per cycle
 
-    for i in range(250):
+    for i in range(250):        # Run for ~5 laps (250 steps * 0.02km/step = 5km)
         distance_accumulator += distance_increment
         eff.totalLapDistance_km = distance_accumulator
         env.send_inputs(eff)
@@ -44,19 +44,19 @@ def test_lap_counting(env):
                 distance_accumulator = eff_status.get("totalLapDistance_km")
                 last_lap_counter = eff_status.get("lap_counter")
                 ## ASSERTION
-                # assert eff_status.get("totalLapDistance_km") < 0.1, (
-                #     f"Expected lap distance to reset to 0 after lap {last_lap_counter}, "
-                #     f"got {eff_status.get("totalLapDistance_km"):.3f} km"
-                # )
+                assert eff_status.get("totalLapDistance_km") < 0.1, (
+                    f"Expected lap distance to reset to 0 after lap {last_lap_counter}, "
+                    f"got {eff_status.get("totalLapDistance_km"):.3f} km"
+                )
         # sleep removed from end — it's now at the top of the loop
 
     print("Efficiency parameters injected successfully.")
     
     ## ASSERTION
-    # assert eff_status is not None, "No efficiency status received from VCU"
-    # assert eff_status.get("lap_counter") == 5, (
-    #     f"Expected 5 laps completed, VCU counted {eff_status.get('lap_counter')}"
-    # )
+    assert eff_status is not None, "No efficiency status received from VCU"
+    assert eff_status.get("lap_counter") == 5, (
+        f"Expected 5 laps completed, VCU counted {eff_status.get('lap_counter')}"
+    )
 
 # import time
 
@@ -87,7 +87,7 @@ def test_lap_counting(env):
 #     distance_accumulator = 0.0
 #     distance_increment = 0.02  # 20m per cycle
 
-#     for i in range(250):
+#     for i in range(250):      # Run for ~5 laps (250 steps * 0.02km/step = 5km)
 #         distance_accumulator += distance_increment
 #         eff.set_total_lap_distance_km(distance_accumulator)
 #         eff.send_all()

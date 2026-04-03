@@ -6,6 +6,7 @@ Shared by both SIL and HIL backends.
 from typing import Dict, Any, Optional, Set, List
 from pathlib import Path
 import json
+import re
 from sre_test.core.path import STRUCT_MEMBERS
 
 
@@ -87,7 +88,7 @@ class DynamicConfig:
         self._load_struct_definition()
 
     def _load_struct_definition(self):
-        """Load struct definition from struct_members_output.json."""
+        """Load struct definition from vcu_structs_map.json."""
         if not STRUCT_MEMBERS.exists():
             return
 
@@ -171,7 +172,7 @@ def configs_to_json(*configs: DynamicConfig, output_file: Optional[Path] = None,
     if output_file is None:
         output_file = STRUCT_MEMBERS
 
-    # Read existing struct_members_output.json if it exists
+    # Read existing vcu_structs_map.json if it exists
     existing_structs = []
     if output_file.exists():
         try:
@@ -204,9 +205,13 @@ def configs_to_json(*configs: DynamicConfig, output_file: Optional[Path] = None,
         if struct_name in struct_map:
             # Update existing parameters with config values, but keep all original parameters
             original_params = struct_map[struct_name].get('parameters', {})
-            # Merge: keep all original parameters, but update with config values
+            # Merge: keep all original parameters, but update only the value inside each nested dict
             updated_params = original_params.copy()
-            updated_params.update(config_params)
+            for key, val in config_params.items():
+                if key in updated_params:
+                    updated_params[key]['value'] = val
+                else:
+                    updated_params[key] = {"id": len(updated_params), "value": val}
             struct_map[struct_name]['parameters'] = updated_params
         else:
             # Struct doesn't exist, create new entry and add to order
@@ -222,9 +227,15 @@ def configs_to_json(*configs: DynamicConfig, output_file: Optional[Path] = None,
         if struct_name in struct_map:
             result.append(struct_map[struct_name])
 
-    # Write to file
+    # Write to file using compact inline formatting for {"id": ..., "value": ...}
     output_file.parent.mkdir(parents=True, exist_ok=True)
+    json_str = json.dumps(result, indent=2, ensure_ascii=False)
+    json_str = re.sub(
+        r'\{\n\s*"id": (\d+),\n\s*"value": (null|true|false|-?\d+(?:\.\d+)?)\n\s*\}',
+        r'{"id": \1, "value": \2}',
+        json_str,
+    )
     with open(output_file, 'w', encoding='utf-8') as f:
-        json.dump(result, f, indent=2, ensure_ascii=False)
+        f.write(json_str + '\n')
 
     return result
