@@ -104,12 +104,12 @@ class SILSimulator:
                      struct_members_file: Optional[Path] = None, 
                      filter_none: bool = True) -> None:
         """
-        Extract and send specific structs from struct_members_output.json.
+        Extract and send specific structs from vcu_structs_map.json.
         
         Args:
             *struct_names: Full names of structs to send (e.g., "PowerLimit", "MotorController")
             row_id: Row ID to include in JSON (default: -1 for initialization)
-            struct_members_file: Optional path to struct_members_output.json. 
+            struct_members_file: Optional path to vcu_structs_map.json. 
                                If None, uses STRUCT_MEMBERS from helpers.path.
             filter_none: If True, filters out None values from parameters
         

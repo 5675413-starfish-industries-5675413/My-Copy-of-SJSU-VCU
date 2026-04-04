@@ -61,4 +61,4 @@ __pycache__/
 *.egg-info/
 
 # Generated output files
-struct_members_output.json
+vcu_structs_map.json

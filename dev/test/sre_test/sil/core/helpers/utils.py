@@ -9,7 +9,7 @@ from typing import Optional, Dict, Any, List, Union, Callable
 
 from sre_test.sil.cli.console import console
 from sre_test.sil.core.struct_parser import extract_struct_definitions
-from sre_test.sil.core.helpers.path import CONFIG, STRUCT_MEMBERS
+from sre_test.sil.core.helpers.path import STRUCT_MEMBERS
 
 def _is_valid_float(value: str) -> bool:
     """Check if a string can be converted to a float."""
@@ -114,7 +114,7 @@ def ensure_struct() -> None:
     """
     Ensure struct definitions file exists, extracting if needed.
     """
-    CONFIG.mkdir(exist_ok=True)
+    STRUCT_MEMBERS.parent.mkdir(parents=True, exist_ok=True)
     if not STRUCT_MEMBERS.exists():
         console.print("[cyan]Extracting struct definitions...[/cyan]")
         extract_struct_definitions()

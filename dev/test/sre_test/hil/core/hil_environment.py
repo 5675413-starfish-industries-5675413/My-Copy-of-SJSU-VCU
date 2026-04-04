@@ -44,7 +44,7 @@ class HILEnvironment(TestEnvironment):
             self._can = None
 
     def send_inputs(self, *configs: DynamicConfig) -> None:
-        configs_to_json(*configs)  # write active params to shared struct_members_output.json
+        configs_to_json(*configs)  # write active params to shared vcu_structs_map.json
 
         mcm_dirty = False
 
