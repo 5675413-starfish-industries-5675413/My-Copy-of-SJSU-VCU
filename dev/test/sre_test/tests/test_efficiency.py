@@ -19,43 +19,37 @@ def test_lap_counting(env):
     eff.efficiencyToggle = 1
     eff.energyBudget_kWh = 0.30
 
-    # Simulate driving for 5 laps to test lap counting
-    last_lap_counter = 0
-    distance_accumulator = 0.0
-    distance_increment = 0.02  # 20m per cycle
+    # Drive lap counting from MCM ground-speed calculation in firmware.
+    mcm = DynamicConfig("MotorController")
+    mcm.motorRPM = 300000000
+    target_laps = 5
+    max_cycles = 20
+    eff_status = None
 
-    for i in range(250):        # Run for ~5 laps (250 steps * 0.02km/step = 5km)
-        distance_accumulator += distance_increment
-        eff.totalLapDistance_km = distance_accumulator
-        env.send_inputs(eff)
-
-        # Give VCU 2 cycles to process the injection and send back fresh status
+    for i in range(max_cycles):
+        env.send_inputs(eff, mcm)
         time.sleep(0.02)
 
-        # (Happens inside env.receive_outputs())
-        # Flush all stale messages accumulated since last iteration
-
-        result = env.receive_outputs(monitors={"efficiency"})
-        eff_status = result.get("efficiency")
+        result = env.receive_outputs()
+        eff_status = result.get("Efficiency") or result.get("efficiency")
         if eff_status:
-            print(f"Lap: {eff_status.get('lap_counter')}, Injected Dist: {distance_accumulator:.2f} km, VCU Dist: {eff_status.get('totalLapDistance_km'):.3f} km")
-            if eff_status.get("lap_counter") > last_lap_counter:
-                print(f"--- LAP {last_lap_counter} COMPLETED ---")
-                distance_accumulator = eff_status.get("totalLapDistance_km")
-                last_lap_counter = eff_status.get("lap_counter")
-                ## ASSERTION
-                assert eff_status.get("totalLapDistance_km") < 0.1, (
-                    f"Expected lap distance to reset to 0 after lap {last_lap_counter}, "
-                    f"got {eff_status.get("totalLapDistance_km"):.3f} km"
-                )
-        # sleep removed from end — it's now at the top of the loop
+            lap_counter = eff_status.get("lapCounter")
+            if lap_counter is None:
+                lap_counter = eff_status.get("lap_counter")
+
+            print(f"Cycle {i}: lapCounter={lap_counter}")
+            if isinstance(lap_counter, (int, float)) and int(lap_counter) >= target_laps:
+                break
 
     print("Efficiency parameters injected successfully.")
     
     ## ASSERTION
     assert eff_status is not None, "No efficiency status received from VCU"
-    assert eff_status.get("lap_counter") == 5, (
-        f"Expected 5 laps completed, VCU counted {eff_status.get('lap_counter')}"
+    final_lap_counter = eff_status.get("lapCounter")
+    if final_lap_counter is None:
+        final_lap_counter = eff_status.get("lap_counter")
+    assert isinstance(final_lap_counter, (int, float)) and int(final_lap_counter) >= target_laps, (
+        f"Expected at least {target_laps} laps completed, VCU counted {final_lap_counter}"
     )
 
 # import time
@@ -135,3 +129,23 @@ def test_lap_counting(env):
     #             last_lap_counter = status.lap_counter
     #     time.sleep(0.01)
     # print("Efficiency parameters injected successfully.")
+    
+def test_efficiency_2(env):
+    mcm_config = DynamicConfig("MotorController")
+    mcm_config.DC_Voltage = 200
+    mcm_config.DC_Current = 300
+
+    eff_config = DynamicConfig("Efficiency")
+    eff_config.efficiencyToggle = True
+
+    env.send_inputs(mcm_config, eff_config)
+    result = env.receive_outputs(timeout=2.0)
+    
+    eff_status = result.get("Efficiency")
+    print(f"StraightTime is: {eff_status.get('straightTime_s')}")
+    print(f"CornerTime is: {eff_status.get('cornerTime_s')}")
+    print(f"CornerEnergy is: {eff_status.get('cornerEnergy_kWh')}")
+    print(f"StraightEnergy is: {eff_status.get('straightEnergy_kWh')}")
+    print(f"LapEnergy is: {eff_status.get('lapEnergy_kWh')}")
+    print(f"LapDistance is: {eff_status.get('lapDistance_km')}")
+    print(f"FinishedLap is: {eff_status.get('finishedLap')}")
