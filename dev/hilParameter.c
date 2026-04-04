@@ -16,8 +16,28 @@
 static HIL_State currentState = HIL_STATE_DISCONNECTED;
 static IO_CAN_DATA_FRAME hilResponseFrame;
 
-IO_CAN_DATA_FRAME* HIL_getResponseBuffer(void)
+IO_CAN_DATA_FRAME* HIL_getResponseFrame(void)
 {
+    static bool pendingZero = FALSE;
+
+    if (pendingZero)        // if previous cycle had one-shot response (ACK or VALUE), zero the buffer
+    {
+        memset(&hilResponseFrame, 0, sizeof(hilResponseFrame));
+        pendingZero = FALSE;
+    }
+
+    // if diagnostic state, keep sending diagnostics until all param counts are iterated through
+    if (currentState == HIL_STATE_DIAGNOSTIC)
+    {
+        HIL_buildDiagnostics();
+    }
+    
+    // if one-shot response was just written to buffer, flag it so next cycle zeroes out buffer
+    else if (hilResponseFrame.data[0] != 0x00)
+    {
+        pendingZero = TRUE;
+    }
+    
     return &hilResponseFrame;
 }
 
@@ -182,6 +202,84 @@ static void HIL_writeParam(void *addr, ParamType type, sbyte4 value)
     }
 }
 
+// Read parameter from struct and return as sbyte4 (for response building)
+static ubyte4 HIL_readParam(void *addr, ParamType type)
+{
+    ubyte4 value = 0;
+    switch (type) {
+        case TYPE_BOOL:     value = (ubyte4)*(bool*)(addr);                 break;
+        case TYPE_UBYTE1:   value = (ubyte4)*(ubyte1*)(addr);               break;
+        case TYPE_UBYTE2:   value = (ubyte4)*(ubyte2*)(addr);               break;
+        case TYPE_UBYTE4:   value = (ubyte4)*(ubyte4*)(addr);               break;
+        case TYPE_SBYTE1:   value = (ubyte4)*(sbyte1*)(addr);               break;
+        case TYPE_SBYTE2:   value = (ubyte4)*(sbyte2*)(addr);               break;
+        case TYPE_SBYTE4:   value = (ubyte4)*(sbyte4*)(addr);               break;
+        case TYPE_FLOAT4:   memcpy(&value, addr, sizeof(float4));           break;
+    }
+    return value;
+}
+
+// Build diagnostics response with HIL_RESP_DIAG frames to validate parameter table and JSON parsing
+void HIL_buildDiagnostics(void) 
+{
+    if (currentState != HIL_STATE_DIAGNOSTIC) {
+        return;
+    }
+    static int diagIndex = 0;
+    ubyte1 total = (ubyte1)hilParamTable.counts_length;     // total number of structs on VCU
+
+    int count = (diagIndex == 0) ? hilParamTable.sum[0] 
+                                 : hilParamTable.sum[diagIndex] - hilParamTable.sum[diagIndex - 1];
+
+    hilResponseFrame.data[0] = 0x01;                // HIL_RESP_DIAG
+    hilResponseFrame.data[1] = (ubyte1)diagIndex;   // struct identifier
+    hilResponseFrame.data[2] = (ubyte1)count;       // number of params in this struct
+    hilResponseFrame.data[3] = total;               // total number of structs
+    hilResponseFrame.data[4] = 0x00;
+    hilResponseFrame.data[5] = 0x00;
+    hilResponseFrame.data[6] = 0x00;
+    hilResponseFrame.data[7] = 0x00;
+
+    diagIndex++;
+    if (diagIndex >= hilParamTable.counts_length) {
+        diagIndex = 0;
+        currentState = HIL_STATE_READY;
+    }
+}
+
+// Build injection acknowledge response with HIL_RESP_ACK frame
+void HIL_buildAck(ubyte1 identifier, ubyte1 param_number, ubyte1 status)
+{
+    hilResponseFrame.data[0] = 0x02;                // HIL_RESP_ACK
+    hilResponseFrame.data[1] = identifier;          // struct identifier
+    hilResponseFrame.data[2] = param_number;        // param number
+    hilResponseFrame.data[3] = status;              // 0x00 = success, 0x01 = error/not found
+    hilResponseFrame.data[4] = 0x00;
+    hilResponseFrame.data[5] = 0x00;
+    hilResponseFrame.data[6] = 0x00;
+    hilResponseFrame.data[7] = 0x00;
+}
+
+// Build parameter/output response with HIL_RESP_VALUE frame
+void HIL_buildValueResponse(ubyte1 identifier, ubyte1 param_number)
+{
+    ParamRow *row = HIL_findParam(identifier, param_number);
+    if (row == NULL) {
+        return;
+    }
+
+    ubyte4 value = HIL_readParam(row->mem_address, row->type);
+
+    hilResponseFrame.data[0] = 0x03;                // HIL_RESP_VALUE
+    hilResponseFrame.data[1] = identifier;          // struct identifier
+    hilResponseFrame.data[2] = param_number;        // param number
+    hilResponseFrame.data[3] = 0x00;
+    hilResponseFrame.data[4] = (ubyte1)(value);
+    hilResponseFrame.data[5] = (ubyte1)(value >> 8);
+    hilResponseFrame.data[6] = (ubyte1)(value >> 16);
+    hilResponseFrame.data[7] = (ubyte1)(value >> 24);
+}
+
 // Parse incoming HIL command from CAN
 void HIL_parseCanMessage(IO_CAN_DATA_FRAME* canMessage)
 {
@@ -190,7 +288,6 @@ void HIL_parseCanMessage(IO_CAN_DATA_FRAME* canMessage)
     switch (mux) {
         case 0x01:  // HIL_CMD_INIT
             currentState = HIL_STATE_DIAGNOSTIC;
-            HIL_buildDiagnostics();
             break;
         case 0x02:  // HIL_CMD_INJECT
             if (currentState != HIL_STATE_READY) {break;}

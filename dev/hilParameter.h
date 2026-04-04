@@ -81,7 +81,7 @@ void HIL_parseCanMessage(IO_CAN_DATA_FRAME* canMessage);
 /*** Returns pointer to the response buffer. Called by              ***/
 /*** canOutput_sendDebugMessage() in canManager.c                   ***/
 /**********************************************************************/
-IO_CAN_DATA_FRAME* HIL_getResponseBuffer(void);
+IO_CAN_DATA_FRAME* HIL_getResponseFrame(void);
 
 /**********************************************************************/
 /*** Build diagnostics response with HIL_RESP_DIAG frames            ***/
@@ -97,7 +97,7 @@ void HIL_buildDiagnostics(void);
 void HIL_buildAck(ubyte1 identifier, ubyte1 param_number, ubyte1 status);
 
 /**********************************************************************/
-/*** Build diagnostics response with HIL_RESP_DIAG frame            ***/
+/*** Build parameter/output response with HIL_RESP_VALUE frame      ***/
 /*** To be sent from VCU to HIL on 0x514                            ***/
 /**********************************************************************/
 void HIL_buildValueResponse(ubyte1 identifier, ubyte1 param_number);
