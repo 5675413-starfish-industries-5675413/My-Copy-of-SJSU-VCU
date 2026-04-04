@@ -7,6 +7,7 @@ import pytest
 from sre_test.sil.core.compiler import SILCompiler
 from sre_test.sil.core.simulator import SILSimulator
 from sre_test.sil.core.helpers.config import DynamicConfig, configs_to_json
+from sre_test.sil.core.helpers.state import reset_struct_members_to_null
 from sre_test.sil.core.helpers.path import (
     DEV,
     INC,
@@ -17,10 +18,12 @@ from sre_test.sil.core.helpers.path import (
 
 sim = None
 
+
 @pytest.fixture(scope="module", autouse=True)
 def setup_simulator():
     """Automatically create simulator for all tests - no parameter needed."""
     global sim
+    reset_struct_members_to_null()
     sim = SILSimulator.create(auto_compile=True)
     yield
     sim.stop()
@@ -141,6 +144,9 @@ def test_launch():
     lc_config = DynamicConfig("LaunchControl")
     lc_config.lcToggle = True
     lc_config.state = 2
+    lc_config.phase = 1
+    lc_config.mode = 0
+    
     
     tps_config = DynamicConfig("TorqueEncoder")
     tps_config.tps0_percent = 0.95
@@ -181,14 +187,15 @@ def test_efficiency2():
 
 def test_encoder():
     tps_config = DynamicConfig("TorqueEncoder")
-    tps_config.tps0_percent = 0.5
-    tps_config.tps1_percent = 0.5
+    tps_config.tps0_percent = 0.3
+    tps_config.tps1_percent = 0.4
     
     configs_to_json(tps_config)
     
     sim.send_structs("TorqueEncoder")
     
     response = sim.receive()
+    
     tpsResponse = response.get("TorqueEncoder", {}) if response else {}
     print(f"TPS0 percent is: {tpsResponse.get('tps0_percent')}")
     print(f"TPS1 percent is: {tpsResponse.get('tps1_percent')}")
