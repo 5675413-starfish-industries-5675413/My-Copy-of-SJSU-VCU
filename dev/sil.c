@@ -929,6 +929,7 @@ void SIL_write(MotorController* mcm, PowerLimit* pl, Efficiency* eff, BatteryMan
                 SIL_add_number(eff_json, "lapEnergy_kWh", (double) Efficiency_getLapEnergy_kWh(eff));
                 SIL_add_number(eff_json, "energyBudget_kWh", (double) Efficiency_getEnergyBudget_kWh(eff));
                 SIL_add_number(eff_json, "carryOverEnergy_kWh", (double) Efficiency_getCarryOverEnergy_kWh(eff));
+                SIL_add_number(eff_json, "lapDistance_km", (double) Efficiency_getLapDistance_km(eff));
                 cJSON_AddItemToObject(root, "Efficiency", eff_json);
             }
         }
