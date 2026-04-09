@@ -1,0 +1,136 @@
+BO_ 1280 VCU_TPS_0Msg: 8 VCU
+ SG_ VCU_throttlePercent : 0|8@1+ (1,0) [0|255] "" VCU
+ SG_ VCU_tps0Percent : 8|8@1+ (1,0) [0|255] "" VCU
+ SG_ VCU_sensorValue : 16|16@1+ (1,0) [0|65535] "" VCU
+ SG_ VCU_tps0_calibMin : 32|16@1+ (1,0) [0|65535] "" VCU
+ SG_ VCU_tps0_calibMax : 48|16@1+ (1,0) [0|65535] "" VCU
+
+BO_ 1281 VCU_TPS_1Msg: 8 VCU
+ SG_ VCU_throttlePercent : 0|8@1+ (1,0) [0|255] "" VCU
+ SG_ VCU_tps1Percent : 8|8@1+ (1,0) [0|255] "" VCU
+ SG_ VCU_tps1_value : 16|16@1+ (1,0) [0|65535] "" VCU
+ SG_ VCU_tps1_calibMin : 32|16@1+ (1,0) [0|65535] "" VCU
+ SG_ VCU_tps1_calibMax : 48|16@1+ (1,0) [0|65535] "" VCU
+
+BO_ 1282 VCU_BPS0Msg: 8 VCU
+ SG_ VCU_brakePercent : 0|8@1+ (1,0) [0|255] "" VCU
+ SG_ VCU_bps0_voltage : 8|16@1+ (1,0) [0|65535] "" VCU
+ SG_ VCU_bps0_calibMin : 24|16@1+ (1,0) [0|65535] "" VCU
+ SG_ VCU_bps0_calibMax : 40|16@1+ (1,0) [0|65535] "" VCU
+
+BO_ 9000 VCU_503_FREE_MESSAGEMsg: 8 VCU
+
+BO_ 1284 VCU_DAQ_Wheel_SpeedsMsg: 8 VCU
+ SG_ VCU_WheelSpeeds_getDAQWheelSpeedRPM_FL_kph : 0|16@1+ (1,0) [0|65535] "kph" VCU
+ SG_ VCU_WheelSpeeds_getDAQWheelSpeedRPM_FR_kph : 16|16@1+ (1,0) [0|65535] "kph" VCU
+ SG_ VCU_WheelSpeeds_getDAQWheelSpeedRPM_RR_kph : 32|16@1+ (1,0) [0|65535] "kph" VCU
+ SG_ VCU_WheelSpeeds_getDAQWheelSpeedRPM_RL_kph : 48|16@1+ (1,0) [0|65535] "kph" VCU
+
+BO_ 9001 VCU_505_FREE_MESSAGEMsg: 8 VCU
+
+BO_ 1286 VCU_Safety_CheckerMsg: 8 VCU
+ SG_ VCU_SafetyChecker_getFaults : 0|32@1+ (1,0) [0|4294967295] "" VCU
+ SG_ VCU_SafetyChecker_getWarnings : 32|16@1+ (1,0) [0|65535] "" VCU
+ SG_ VCU_SafetyChecker_getNotices : 48|16@1+ (1,0) [0|65535] "" VCU
+
+BO_ 1287 VCU_RegenTQ+LV_batteryMsg: 8 VCU
+ SG_ VCU_sensorValue : 0|16@1+ (1,0) [0|65535] "" VCU
+ SG_ VCU_Regen_get_torqueCommand_Nm : 16|16@1- (1,0) [-32768|32767] "Nm" VCU
+ SG_ VCU_Efficiency_getTimeInStraights_s : 32|8@1- (1,0) [-128|127] "" VCU
+
+BO_ 9002 VCU_Convert_to_0.1s_unitsMsg: 8 VCU
+ SG_ VCU_Efficiency_getTimeInStraights_s : 0|8@1- (1,0) [-128|127] "" VCU
+
+BO_ 1288 VCU_Regen_settingsMsg: 8 VCU
+ SG_ VCU_BrakePressureSensor_getBPS0_Voltage : 0|16@1+ (1,0) [0|65535] "" VCU
+ SG_ VCU_BrakePressureSensor_getBPS1_Voltage : 16|16@1+ (1,0) [0|65535] "" VCU
+ SG_ VCU_BrakePressureSensor_getBPS0_Pressure : 32|16@1+ (1,0) [0|65535] "" VCU
+ SG_ VCU_BrakePressureSensor_getBPS1_Pressure : 48|16@1+ (1,0) [0|65535] "" VCU
+
+BO_ 1289 VCU_MCM_RTD_StatusMsg: 8 VCU
+ SG_ VCU_sensorValue : 0|16@1+ (1,0) [0|65535] "" VCU
+ SG_ VCU_MCM_getHvilOverrideStatus : 16|8@1+ (1,0) [0|255] "" VCU
+ SG_ VCU_MCM_getCommandedTorque : 24|8@1- (1,0) [-128|127] "" VCU
+
+BO_ 9003 VCU_+Msg: 8 VCU
+ SG_ VCU_MCM_getCommandedTorque : 0|8@1- (1,0) [-128|127] "" VCU
+ SG_ VCU_MCM_getGroundSpeedKPH_kph : 8|8@1+ (1,0) [0|255] "kph" VCU
+
+BO_ 9004 VCU_+Msg: 8 VCU
+ SG_ VCU_MCM_getGroundSpeedKPH_kph : 0|8@1+ (1,0) [0|255] "kph" VCU
+
+BO_ 1290 VCU_Efficiency_Status_AMsg: 8 VCU
+ SG_ VCU_Efficiency_getLapCounter : 0|8@1+ (1,0) [0|255] "" VCU
+ SG_ VCU_Efficiency_getEnergySpentInCorners_kWh : 8|8@1- (1,0) [-128|127] "" VCU
+
+BO_ 9005 VCU_Convert_to_WhMsg: 8 VCU
+ SG_ VCU_Efficiency_getEnergySpentInCorners_kWh : 0|8@1- (1,0) [-128|127] "" VCU
+ SG_ VCU_Efficiency_getLapEnergySpent_kWh : 8|8@1- (1,0) [-128|127] "" VCU
+
+BO_ 9006 VCU_Convert_to_WhMsg: 8 VCU
+ SG_ VCU_Efficiency_getLapEnergySpent_kWh : 0|8@1- (1,0) [-128|127] "" VCU
+ SG_ VCU_Efficiency_getFinishedLap : 8|8@1+ (1,0) [0|255] "" VCU
+ SG_ VCU_Efficiency_getTotalLapDistance_km : 16|8@1- (1,0) [-128|127] "" VCU
+
+BO_ 9007 VCU_Convert_to_0.01km_unitsMsg: 8 VCU
+ SG_ VCU_Efficiency_getTotalLapDistance_km : 0|8@1- (1,0) [-128|127] "" VCU
+
+BO_ 1291 VCU_Launch_Control_Status_AMsg: 8 VCU
+ SG_ VCU_LaunchControl_getTorqueCommand_Nm : 0|16@1- (1,0) [-32768|32767] "Nm" VCU
+ SG_ VCU_LaunchControl_getSlipRatioScaled_% : 16|16@1- (1,0) [-32768|32767] "%" VCU
+ SG_ VCU_LaunchControl_getState : 32|8@1+ (1,0) [0|255] "" VCU
+ SG_ VCU_LaunchControl_getPhase : 40|8@1+ (1,0) [0|255] "" VCU
+ SG_ VCU_LaunchControl_getSpeedCommand_kph : 48|16@1- (1,0) [-32768|32767] "kph" VCU
+
+BO_ 1292 VCU_SASMsg: 8 VCU
+ SG_ VCU_steering_degrees : 0|8@1+ (1,0) [0|255] "" VCU
+
+BO_ 9008 VCU_MOVE_LATERMsg: 8 VCU
+ SG_ VCU_steering_degrees : 0|8@1+ (1,0) [0|255] "" VCU
+
+BO_ 1293 VCU_BPS1_(TEMPORARY_ADDRESS)Msg: 8 VCU
+ SG_ VCU_brakePercent : 0|8@1+ (1,0) [0|255] "" VCU
+
+BO_ 9009 VCU_This_should_be_bps0Percent,_but_for_now_bps0Percent_=_brakePercentMsg: 8 VCU
+ SG_ VCU_bps0_voltage : 0|16@1+ (1,0) [0|65535] "" VCU
+ SG_ VCU_bps1_calibMin : 16|16@1+ (1,0) [0|65535] "" VCU
+ SG_ VCU_bps1_calibMax : 32|16@1+ (1,0) [0|65535] "" VCU
+
+BO_ 1294 VCU_FREE_MESSAGEMsg: 8 VCU
+
+BO_ 1295 VCU_MCM_Power_DebugMsg: 8 VCU
+ SG_ VCU_MCM_getPower_W : 0|32@1+ (1,0) [0|4294967295] "W" VCU
+ SG_ VCU_SafetyChecker_getWarnings : 32|32@1+ (1,0) [0|4294967295] "" VCU
+
+BO_ 1296 VCU_Motor_controller_command_messageMsg: 8 VCU
+ SG_ VCU_MCM_commands_getTorque : 0|8@1+ (1,0) [0|255] "" VCU
+
+BO_ 9010 VCU_When_speed_mode_is_enabled,_torque_command_is_added_to_speed_mode_torque_outputMsg: 8 VCU
+ SG_ VCU_MCM_commands_getTorque : 0|8@1+ (1,0) [0|255] "" VCU
+ SG_ VCU_MCM_commands_getSpeed_kph : 8|16@1+ (1,0) [0|65535] "kph" VCU
+
+BO_ 9011 VCU_Motor_direction_(0_=_Forward,_1_=_Reverse)._Opposite_of_what_is_written_in_CM200_documentationMsg: 8 VCU
+ SG_ VCU_MCM_getSpeedModeEnabled_kph : 0|8@1+ (1,0) [0|255] "kph" VCU
+
+BO_ 9012 VCU_unused/unused/unused/unused/unused/Speed_Mode_Enable/Discharge/Inverter_EnableMsg: 8 VCU
+ SG_ VCU_MCM_commands_getTorqueLimit : 0|16@1+ (1,0) [0|65535] "" VCU
+
+BO_ 1297 VCU_Power_Limit_Status_AMsg: 8 VCU
+ SG_ VCU_POWERLIMIT_getInitialisationThreshold_W : 0|8@1+ (1,0) [0|255] "W" VCU
+ SG_ VCU_POWERLIMIT_getMode_W : 8|8@1+ (1,0) [0|255] "W" VCU
+ SG_ VCU_POWERLIMIT_getStatus_W : 16|8@1+ (1,0) [0|255] "W" VCU
+ SG_ VCU_PID_getTotalError : 24|16@1- (1,0) [-32768|32767] "" VCU
+ SG_ VCU_PID_getProportional : 40|16@1- (1,0) [-32768|32767] "" VCU
+
+BO_ 1298 VCU_Power_Limit_Status_BMsg: 8 VCU
+ SG_ VCU_PID_getIntegral : 0|16@1- (1,0) [-32768|32767] "" VCU
+ SG_ VCU_POWERLIMIT_getTorqueCommand_Nm : 16|16@1- (1,0) [-32768|32767] "Nm" VCU
+ SG_ VCU_POWERLIMIT_getTargetPower_W : 32|8@1+ (1,0) [0|255] "W" VCU
+ SG_ VCU_PID_getOutput : 40|16@1- (1,0) [-32768|32767] "" VCU
+ SG_ VCU_POWERLIMIT_getClampingMethod_W : 56|8@1+ (1,0) [0|255] "W" VCU
+
+BO_ 1299 VCU_Launch_Control_Status_BMsg: 8 VCU
+ SG_ VCU_PID_getProportional : 0|16@1- (1,0) [-32768|32767] "" VCU
+ SG_ VCU_PID_getIntegral : 16|16@1- (1,0) [-32768|32767] "" VCU
+ SG_ VCU_PID_getTotalError : 32|16@1- (1,0) [-32768|32767] "" VCU
+ SG_ VCU_PID_getOutput : 48|16@1- (1,0) [-32768|32767] "" VCU
