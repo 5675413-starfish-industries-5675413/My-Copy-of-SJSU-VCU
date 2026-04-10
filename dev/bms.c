@@ -25,12 +25,13 @@ struct _BatteryManagementSystem
     ubyte1 faultFlags;
     ubyte1 warningFlags;
 
-    ubyte4 hvsensePackVoltage_cV;
+    ubyte2 packImbalance_mV;
+    ubyte2 hvsensePackVoltage_cV;
     ubyte2 stateOfCharge_mAh;
     
     sbyte2 highestCellVoltage_V;
     sbyte2 lowestCellVoltage_V;
-    sbyte4 totalPackVoltage_V;
+    sbyte2 totalPackVoltage_V;
 
     sbyte1 highestCellTemperature_C;
     sbyte1 lowestCellTemperature_C;
@@ -89,6 +90,7 @@ void BMS_parseCanMessage(BatteryManagementSystem *bms, IO_CAN_DATA_FRAME *bmsCan
         case BMS_PACK_SUMMARY_2:
             bms->faultFlags = parseUbyte1(&data[0]);
             bms->warningFlags = parseUbyte1(&data[1]);
+            bms->packImbalance_mV = parseSbyte2LE(&data[2]);
             bms->hvsensePackVoltage_cV = parseUbyte2LE(&data[4]);
             bms->stateOfCharge_mAh = parseUbyte2LE(&data[6]);
             break;
