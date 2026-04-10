@@ -34,6 +34,8 @@ Efficiency *Efficiency_new(bool efficiencyToggle)
     me->energyBudget_kWh = TOTAL_ENERGY_BUDGET_KWH / 22; // set actual energy budget fpr each lap
     me->lapCounter = 1;
     me->carryOverEnergy_kWh = 0.0f; // start with no carry-over
+    me->eventEnergy_kWh = 0.0f;     // total energy used in the event so far (for dash)
+    me->energyPercentage = 1; // for dash lcd
     
     //lap start
     me->latitude = 0.0f;
@@ -86,7 +88,11 @@ void Efficiency_calculateCommands(Efficiency *me, MotorController *mcm, PowerLim
         me->cornerEnergy_kWh += cycleEnergy_kWh;
     }
     me->lapEnergy_kWh = me->straightEnergy_kWh + me->cornerEnergy_kWh;
-
+    
+    me->eventEnergy_kWh += cycleEnergy_kWh; // accumulate total energy used in the event for dash lcd
+    me->energyPercentage = (TOTAL_ENERGY_BUDGET_KWH - me->eventEnergy_kWh) / TOTAL_ENERGY_BUDGET_KWH;// for dash lcd
+    if (me->energyPercentage < 0) me->energyPercentage = 0; // cap at 0% to avoid negative
+    if (me->energyPercentage > 1) me->energyPercentage = 1; // cap at 100% to avoid percentages over
     if (Efficiency_completedLap(me, mcm, gps))
     {
         // calculate the carryover for just one lap
@@ -164,6 +170,7 @@ sbyte2 Efficiency_getCarryOverEnergy_Wh(Efficiency *me) { return (sbyte2)(me->ca
 sbyte2 Efficiency_getCornerEnergy_Wh(Efficiency *me) { return (sbyte2)(me->cornerEnergy_kWh * 1000.0f); }
 sbyte2 Efficiency_getStraightEnergy_Wh(Efficiency *me) { return (sbyte2)(me->straightEnergy_kWh * 1000.0f); }
 sbyte2 Efficiency_getLapEnergy_Wh(Efficiency *me) { return (sbyte2)(me->lapEnergy_kWh * 1000.0f); }
+sbyte2 Efficiency_getEnergyPercentage(Efficiency *me) { return (sbyte2)(me->energyPercentage * 100.0f); } // convert to percentage for CAN
 
 // Time getter: truncates to whole seconds
 sbyte2 Efficiency_getStraightTime_s(Efficiency *me) { return (sbyte2)(me->straightTime_s); }

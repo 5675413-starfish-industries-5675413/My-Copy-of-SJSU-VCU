@@ -30,6 +30,9 @@ typedef struct _Efficiency
     float lapEnergy_kWh;      // Total energy used this lap
     float lapDistance_km;     // Accumulated distance this lap
     bool finishedLap;         // Flag indicating lap completion
+    float eventEnergy_kWh;     // Total energy used in the event so far (for dash)
+    float energyPercentage;   // Percentage of energy budget used (for dash)
+
 
     float latitude;           // Latitude at start of lap
     float longitude;          // Longitude at start of lap
