@@ -39,7 +39,7 @@ struct _BatteryManagementSystem
     bool relayState;
 };
 
-BatteryManagementSystem *BMS_new(SerialManager *serialMan, ubyte2 canMessageBaseID)
+BatteryManagementSystem *BMS_new(SerialManager *serialMan)
 {
     BatteryManagementSystem *me = (BatteryManagementSystem *)malloc(sizeof(struct _BatteryManagementSystem));
 
@@ -135,102 +135,57 @@ IO_ErrorType BMS_relayControl(BatteryManagementSystem *bms)
     return err;
 }
 
-/*
-sbyte1 BMS_getAvgTemp(BatteryManagementSystem *me)
+ubyte1 BMS_getFaultFlags(BatteryManagementSystem *me)
 {
-    char buffer[32];
-    sprintf(buffer, "AvgPackTemp: %i\n", me->avgTemp);
-    return (me->avgTemp);
-}
-*/
-
-ubyte4 BMS_getHighestCellVoltage_mV(BatteryManagementSystem *me)
-{
-    return (me->highestCellVoltage_V);
+    return me->faultFlags;
 }
 
-ubyte2 BMS_getLowestCellVoltage_mV(BatteryManagementSystem *me)
+ubyte1 BMS_getWarningFlags(BatteryManagementSystem *me)
 {
-    return (me->lowestCellVoltage_V);
+    return me->warningFlags;
 }
 
-ubyte4 BMS_getPackVoltage(BatteryManagementSystem *me)
+ubyte2 BMS_getHvSensePackVoltage_cV(BatteryManagementSystem *me)
 {
-    return (me->hvsensePackVoltage_cV); 
-}
-//Split into
-sbyte2 BMS_getHighestCellTemp_d_degC(BatteryManagementSystem *me)
-{
-    char buffer[32];
-    sprintf(buffer, "highestCellTemp (degC*10): %i\n", (me->highestCellTemperature_C));
-
-    //Need to divide by BMS_TEMPERATURE_SCALE at usage to get deciCelsius value into Celsius
-    return (me->highestCellTemperature_C);
+    return me->hvsensePackVoltage_cV;
 }
 
-sbyte2 BMS_getHighestCellTemp_degC(BatteryManagementSystem *me)
+sbyte2 BMS_getTotalPackVoltage_V(BatteryManagementSystem *me)
 {
-    char buffer[32];
-    sprintf(buffer, "highestCellTemp (degC): %i\n", (me->highestCellTemperature_C/BMS_TEMPERATURE_SCALE));
-
-    //Need to divide by BMS_TEMPERATURE_SCALE at usage to get deciCelsius value into Celsius
-    return (me->highestCellTemperature_C/BMS_TEMPERATURE_SCALE);
+    return me->totalPackVoltage_V;
 }
 
-// ***NOTE: packCurrent and and packVoltage are SIGNED variables and the return type for BMS_getPower is signed
-// sbyte4 BMS_getPower_uW(BatteryManagementSystem *me)
-// {
-//     //char buffer[32];
-//     //sprintf(buffer, "power (uW): %f\n", (me->packCurrent * me->packVoltage));
+ubyte2 BMS_getStateOfCharge_mAh(BatteryManagementSystem *me)
+{
+    return me->stateOfCharge_mAh;
+}
 
-//     //Need to divide by BMS_POWER_SCALE at usage to get microWatt value into Watts
-//     return (me->packCurrent * me->packVoltage);
-// }
+sbyte2 BMS_getHighestCellVoltage_V(BatteryManagementSystem *me)
+{
+    return me->highestCellVoltage_V;
+}
 
-// // ***NOTE: packCurrent and and packVoltage are SIGNED variables and the return type for BMS_getPower is signed
-// sbyte4 BMS_getPower_W(BatteryManagementSystem *me)
-// {
-//     //char buffer[32];
-//     //sprintf(buffer, "power (W): %f\n", ((me->packCurrent * me->packVoltage)/BMS_POWER_SCALE));
+sbyte2 BMS_getLowestCellVoltage_V(BatteryManagementSystem *me)
+{
+    return me->lowestCellVoltage_V;
+}
 
-//     //Need to divide by BMS_POWER_SCALE at usage to get microWatt value into Watts
-//     return ((me->packCurrent * me->packVoltage)/BMS_POWER_SCALE);
-// }
+sbyte1 BMS_getHighestCellTemperature_C(BatteryManagementSystem *me)
+{
+    return me->highestCellTemperature_C;
+}
 
-// ubyte1 BMS_getFaultFlags0(BatteryManagementSystem *me) {
-//     //Flag 0x01: Isolation Leakage Fault
-//     //Flag 0x02: BMS Monitor Communication Fault
-//     //Flag 0x04: Pre-charge Fault
-//     //Flag 0x08: Pack Discharge Operating Envelope Exceeded
-//     //Flag 0x10: Pack Charge Operating Envelope Exceeded
-//     //Flag 0x20: Failed Thermistor Fault
-//     //Flag 0x40: HVIL Fault
-//     //Flag 0x80: Emergency Stop Fault
-//     return me->faultFlags0;
-// }
+sbyte1 BMS_getLowestCellTemperature_C(BatteryManagementSystem *me)
+{
+    return me->lowestCellTemperature_C;
+}
 
-// ubyte1 BMS_getFaultFlags1(BatteryManagementSystem *me) {
-//     //Flag 0x01: Cell Over-Voltage Fault
-//     //Flag 0x02: Cell Under-Voltage Fault
-//     //Flag 0x04: Cell Over-Temperature Fault
-//     //Flag 0x08: Cell Under-Temperature Fault
-//     //Flag 0x10: Pack Over-Voltage Fault
-//     //Flag 0x20: Pack Under-Voltage Fault
-//     //Flag 0x40: Over-Current Discharge Fault
-//     //Flag 0x80: Over-Current Charge Fault
-//     return me->faultFlags1;
-// }
+ubyte2 BMS_getHeartbeatCount(BatteryManagementSystem *me)
+{
+    return me->heartbeatCount;
+}
 
-bool BMS_getRelayState(BatteryManagementSystem *me) {
-    //Return state of shutdown board relay
+bool BMS_getRelayState(BatteryManagementSystem *me)
+{
     return me->relayState;
 }
-
-/*
-ubyte2 BMS_getPackTemp(BatteryManagementSystem *me)
-{
-    char buffer[32];
-    sprintf(buffer, "PackTemp: %i\n", me->packTemp);
-    return (me->packTemp);
-}
-*/
