@@ -372,6 +372,10 @@ void SafetyChecker_update(SafetyChecker *me, MotorController *mcm, BatteryManage
         me->faults &= ~(F_bmsCellMismatchFault);
     }
 
+    if(BMS_getPackImbalance_mV >= 5){
+        SerialManager_send(me->serialMan, "BMS pack imbalance detected.\n");
+    }
+
     // // If any sort of BMS fault detected (assuming 8.3.4 fulfilled by BMS)
     // if (BMS_getFaultFlags(bms))
     // {
