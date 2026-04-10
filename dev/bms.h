@@ -29,6 +29,11 @@
 #define BMS_CHARGER_COMMAND                 0x008   //4 bytes, Control BMS charging behavior
 
 // BMS Transmitted Messages (BMS --> VCU)
+
+#define BMS_PACK_SUMMARY_1                  0x622   //8 bytes
+#define BMS_PACK_SUMMARY_2                  0x623   //8 bytes
+#define BMS_HEARTBEAT_MESSAGE               0x6B1   //1 byte
+
 #define BMS_MASTER_FAULTS                   0x002   //4 bytes
 #define BMS_MASTER_WARNINGS                 0x004   //4 bytes 
 #define BMS_MASTER_SYSTEM_STATUS            0x010   //8 bytes

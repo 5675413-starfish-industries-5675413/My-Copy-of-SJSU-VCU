@@ -22,24 +22,18 @@ struct _BatteryManagementSystem
 {
     SerialManager *sm;
 
-    // BMS_MASTER_FAULTS //
-     ubyte1 faultFlags;
-     
-     // BMS_MASTER_WARNINGS //
-     ubyte1 warningFlags;
+    ubyte1 faultFlags;
+    ubyte1 warningFlags;
 
-    // BMS_PACK_LEVEL_MEASUREMENTS //
-    ubyte4 packVoltage;                         // V*1000
-    sbyte4 sumCellVoltages;                     // V*1000,
-    ubyte2 stateOfCharge;                       // %*10
+    ubyte4 hvsensePackVoltage_cV;
+    ubyte2 stateOfCharge_mAh;
+    
+    sbyte2 highestCellVoltage_V;
+    sbyte2 lowestCellVoltage_V;
+    sbyte4 totalPackVoltage_V;
 
-    // BMS_CELL_VOLTAGE_SUMMARY //
-    ubyte4 highestCellVoltage;                  // V*1000
-    ubyte2 lowestCellVoltage;                   // V*1000
-
-    // BMS_CELL_TEMPERATURE_SUMMARY //
-    sbyte2 highestCellTemperature;              // degC*10
-    sbyte2 lowestCellTemperature;               // degC*10
+    sbyte1 highestCellTemperature_C;
+    sbyte1 lowestCellTemperature_C;
 
     bool relayState;
 };
@@ -53,23 +47,55 @@ BatteryManagementSystem *BMS_new(SerialManager *serialMan, ubyte2 canMessageBase
     me->faultFlags = 0;
     me->warningFlags = 0;
 
-    me->packVoltage = 0;
-    me->sumCellVoltages = 0;
-    me->stateOfCharge = 0;
+    me->hvsensePackVoltage_cV = 0;
+    me->totalPackVoltage_V = 0;
+    me->stateOfCharge_mAh = 0;
 
-    me->highestCellVoltage = 0;
-    me->lowestCellVoltage = 0;
+    me->highestCellVoltage_V = 0;
+    me->lowestCellVoltage_V = 0;
 
-    me->highestCellTemperature = 0;
-    me->lowestCellTemperature = 0;
+    me->highestCellTemperature_C = 0;
+    me->lowestCellTemperature_C = 0;
 
     me->relayState = FALSE;
 
     return me;
 }
 
+static ubyte1 parseUbyte1(const ubyte1* data){
+    return data[0];
+}
+static sbyte1 parseSbyte1(const ubyte1* data){
+    return (sbyte1)parseUbyte1(data);
+}
+static ubyte2 parseUbyte2LE(const ubyte1* data){
+    return ((ubyte2)data[1] << 8) | ((ubyte2)data[0]);
+}
+static sbyte2 parseSbyte2LE(const ubyte1* data){
+    return (sbyte2)parseUbyte2LE(data);
+}
+
 void BMS_parseCanMessage(BatteryManagementSystem *bms, IO_CAN_DATA_FRAME *bmsCanMessage)
 {
+    ubyte1* data = bmsCanMessage->data;
+    switch(bmsCanMessage->id){
+        case BMS_PACK_SUMMARY_1:
+            bms->highestCellVoltage_V = parseSbyte2LE(&data[0]);
+            bms->lowestCellVoltage_V = parseSbyte2LE(&data[2]);
+            bms->highestCellTemperature_C = parseSbyte1(&data[4]);
+            bms->lowestCellTemperature_C = parseSbyte1(&data[5]);
+            bms->totalPackVoltage_V = parseUbyte2LE(&data[6]);
+            break;
+        case BMS_PACK_SUMMARY_2:
+            bms->faultFlags = parseUbyte1(&data[0]);
+            bms->warningFlags = parseUbyte1(&data[1]);
+            bms->hvsensePackVoltage_cV = parseUbyte2LE(&data[4]);
+            bms->stateOfCharge_mAh = parseUbyte2LE(&data[6]);
+            break;
+        case BMS_HEARTBEAT_MESSAGE:
+            break;
+
+    }
    return;
 }
 
@@ -106,35 +132,35 @@ sbyte1 BMS_getAvgTemp(BatteryManagementSystem *me)
 
 ubyte4 BMS_getHighestCellVoltage_mV(BatteryManagementSystem *me)
 {
-    return (me->highestCellVoltage);
+    return (me->highestCellVoltage_V);
 }
 
 ubyte2 BMS_getLowestCellVoltage_mV(BatteryManagementSystem *me)
 {
-    return (me->lowestCellVoltage);
+    return (me->lowestCellVoltage_V);
 }
 
 ubyte4 BMS_getPackVoltage(BatteryManagementSystem *me)
 {
-    return (me->packVoltage); 
+    return (me->hvsensePackVoltage_cV); 
 }
 //Split into
 sbyte2 BMS_getHighestCellTemp_d_degC(BatteryManagementSystem *me)
 {
     char buffer[32];
-    sprintf(buffer, "highestCellTemp (degC*10): %i\n", (me->highestCellTemperature));
+    sprintf(buffer, "highestCellTemp (degC*10): %i\n", (me->highestCellTemperature_C));
 
     //Need to divide by BMS_TEMPERATURE_SCALE at usage to get deciCelsius value into Celsius
-    return (me->highestCellTemperature);
+    return (me->highestCellTemperature_C);
 }
 
 sbyte2 BMS_getHighestCellTemp_degC(BatteryManagementSystem *me)
 {
     char buffer[32];
-    sprintf(buffer, "highestCellTemp (degC): %i\n", (me->highestCellTemperature/BMS_TEMPERATURE_SCALE));
+    sprintf(buffer, "highestCellTemp (degC): %i\n", (me->highestCellTemperature_C/BMS_TEMPERATURE_SCALE));
 
     //Need to divide by BMS_TEMPERATURE_SCALE at usage to get deciCelsius value into Celsius
-    return (me->highestCellTemperature/BMS_TEMPERATURE_SCALE);
+    return (me->highestCellTemperature_C/BMS_TEMPERATURE_SCALE);
 }
 
 // ***NOTE: packCurrent and and packVoltage are SIGNED variables and the return type for BMS_getPower is signed
