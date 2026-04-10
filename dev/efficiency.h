@@ -65,5 +65,6 @@ sbyte4 Efficiency_getLapLatitude(Efficiency *me);      // deg x1000000
 sbyte4 Efficiency_getLapLongitude(Efficiency *me);
 sbyte4 Efficiency_getCurrentLatitude(Efficiency *me);
 sbyte4 Efficiency_getCurrentLongitude(Efficiency *me);
+sbyte2 Efficiency_getEnergyPercentage(Efficiency *me); // percentage x100 (e.g. 0.06 → 6)
 
 #endif // _EFFICIENCY_H

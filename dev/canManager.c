@@ -729,8 +729,8 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     canMessages[canMessageCount - 1].data[byteNum++] = Sensor_LVBattery.sensorValue >> 8;
     canMessages[canMessageCount - 1].data[byteNum++] =  (sbyte2)(Regen_get_torqueCommand(regen));
     canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(Regen_get_torqueCommand(regen))) >> 8;
-    canMessages[canMessageCount - 1].data[byteNum++] = 
-    canMessages[canMessageCount - 1].data[byteNum++] = 
+    canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)Efficiency_getEnergyPercentage(eff);
+    canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(Efficiency_getEnergyPercentage(eff))) >> 8;
     canMessages[canMessageCount - 1].data[byteNum++] = 0;
     canMessages[canMessageCount - 1].data[byteNum++] = 0;
     canMessages[canMessageCount - 1].length = byteNum;
