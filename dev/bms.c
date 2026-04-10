@@ -35,7 +35,9 @@ struct _BatteryManagementSystem
 
     sbyte1 highestCellTemperature_C;
     sbyte1 lowestCellTemperature_C;
+
     ubyte2 heartbeatCount;
+    
     bool relayState;
 };
 
@@ -48,12 +50,13 @@ BatteryManagementSystem *BMS_new(SerialManager *serialMan)
     me->faultFlags = 0;
     me->warningFlags = 0;
 
+    me->packImbalance_mV = 0;
     me->hvsensePackVoltage_cV = 0;
-    me->totalPackVoltage_V = 0;
     me->stateOfCharge_mAh = 0;
-
+    
     me->highestCellVoltage_V = 0;
     me->lowestCellVoltage_V = 0;
+    me->totalPackVoltage_V = 0;
 
     me->highestCellTemperature_C = 0;
     me->lowestCellTemperature_C = 0;
@@ -145,14 +148,13 @@ ubyte1 BMS_getWarningFlags(BatteryManagementSystem *me)
     return me->warningFlags;
 }
 
+ubyte2 BMS_getPackImbalance_mV(BatteryManagementSystem *me){
+    return me->packImbalance_mV;
+}
+
 ubyte2 BMS_getHvSensePackVoltage_cV(BatteryManagementSystem *me)
 {
     return me->hvsensePackVoltage_cV;
-}
-
-sbyte2 BMS_getTotalPackVoltage_V(BatteryManagementSystem *me)
-{
-    return me->totalPackVoltage_V;
 }
 
 ubyte2 BMS_getStateOfCharge_mAh(BatteryManagementSystem *me)
@@ -170,6 +172,11 @@ sbyte2 BMS_getLowestCellVoltage_V(BatteryManagementSystem *me)
     return me->lowestCellVoltage_V;
 }
 
+sbyte2 BMS_getTotalPackVoltage_V(BatteryManagementSystem *me)
+{
+    return me->totalPackVoltage_V;
+}
+
 sbyte1 BMS_getHighestCellTemperature_C(BatteryManagementSystem *me)
 {
     return me->highestCellTemperature_C;
@@ -178,11 +185,6 @@ sbyte1 BMS_getHighestCellTemperature_C(BatteryManagementSystem *me)
 sbyte1 BMS_getLowestCellTemperature_C(BatteryManagementSystem *me)
 {
     return me->lowestCellTemperature_C;
-}
-
-ubyte2 BMS_getHeartbeatCount(BatteryManagementSystem *me)
-{
-    return me->heartbeatCount;
 }
 
 bool BMS_getRelayState(BatteryManagementSystem *me)

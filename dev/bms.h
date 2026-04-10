@@ -24,14 +24,14 @@ void BMS_parseCanMessage(BatteryManagementSystem* bms, IO_CAN_DATA_FRAME* bmsCan
 IO_ErrorType BMS_relayControl(BatteryManagementSystem *me);
 ubyte1 BMS_getFaultFlags(BatteryManagementSystem *me);
 ubyte1 BMS_getWarningFlags(BatteryManagementSystem *me);
+ubyte2 BMS_getPackImbalance_mV(BatteryManagementSystem *me);
 ubyte2 BMS_getHvSensePackVoltage_cV(BatteryManagementSystem *me);
-sbyte2 BMS_getTotalPackVoltage_V(BatteryManagementSystem *me);
 ubyte2 BMS_getStateOfCharge_mAh(BatteryManagementSystem *me);
 sbyte2 BMS_getHighestCellVoltage_V(BatteryManagementSystem *me);
 sbyte2 BMS_getLowestCellVoltage_V(BatteryManagementSystem *me);
+sbyte2 BMS_getTotalPackVoltage_V(BatteryManagementSystem *me);
 sbyte1 BMS_getHighestCellTemperature_C(BatteryManagementSystem *me);
 sbyte1 BMS_getLowestCellTemperature_C(BatteryManagementSystem *me);
-ubyte2 BMS_getHeartbeatCount(BatteryManagementSystem *me);
 bool BMS_getRelayState(BatteryManagementSystem *me);
 
 typedef enum{
