@@ -74,7 +74,16 @@ class HILParamReader:
         if not self.send_read_request(identifier, param_number):
             return None
         return self.receive_read_response(identifier, param_number)
+None
+        return self.receive_read_response(identifier, param_number)
+None
+        return self.receive_read_response(identifier, param_number)
+None
+        return self.receive_read_response(identifier, param_number)
+None
+        return self.receive_read_response(identifier, param_number)
     def read_by_name(self, struct_name: str, param_name: str) -> Optional[dict]:
         """Resolve struct/param via struct_members_output.json, then read."""
-        identifier, param_number = _lookup_param(struct_name, param_name)
+        identifier, param_number = _lookup_param(st
+uct_name, param_name)
         return self.read(identifier, param_number)
