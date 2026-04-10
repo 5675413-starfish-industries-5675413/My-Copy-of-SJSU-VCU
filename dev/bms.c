@@ -35,7 +35,7 @@ struct _BatteryManagementSystem
 
     sbyte1 highestCellTemperature_C;
     sbyte1 lowestCellTemperature_C;
-
+    ubyte2 heartbeatCount;
     bool relayState;
 };
 
@@ -57,6 +57,8 @@ BatteryManagementSystem *BMS_new(SerialManager *serialMan, ubyte2 canMessageBase
 
     me->highestCellTemperature_C = 0;
     me->lowestCellTemperature_C = 0;
+
+    me->heartbeatCount = 0;
 
     me->relayState = FALSE;
 
@@ -95,31 +97,41 @@ void BMS_parseCanMessage(BatteryManagementSystem *bms, IO_CAN_DATA_FRAME *bmsCan
             bms->stateOfCharge_mAh = parseUbyte2LE(&data[6]);
             break;
         case BMS_HEARTBEAT_MESSAGE:
+            if(parseUbyte1(&data[0]) == 1)
+                bms->heartbeatCount++;
             break;
-
     }
    return;
 }
 
-IO_ErrorType BMS_relayControl(BatteryManagementSystem *me)
+IO_ErrorType BMS_relayControl(BatteryManagementSystem *bms)
 {
     //////////////////////////////////////////////////////////////
     // Digital output to drive a signal to the Shutdown signal  //
     // based on AMS fault detection                             //
     //////////////////////////////////////////////////////////////
     IO_ErrorType err;
-    //There is a fault
-    // if (BMS_getFaultFlags0(me) || BMS_getFaultFlags1(me))
-    // {
-    //     me->relayState = TRUE;
-    //     err = IO_DO_Set(IO_DO_01, TRUE); //Drive BMS relay true (HIGH)
-    // }
-    // //There is no fault
-    // else
-    // {
-    //     me->relayState = FALSE;
-    //     err = IO_DO_Set(IO_DO_01, FALSE); //Drive BMS relay false (LOW)
-    // }
+
+    static ubyte4 lastBeatTimeStamp;
+    static bool initialized = FALSE;
+    static ubyte2 previousHeartbeatCount = 0;
+
+    if(!initialized){
+        IO_RTC_StartTime(&lastBeatTimeStamp);
+        previousHeartbeatCount = bms->heartbeatCount;
+        initialized = TRUE;
+    }
+
+    if(previousHeartbeatCount == bms->heartbeatCount && IO_RTC_GetTimeUS(lastBeatTimeStamp) >= 5000000u){
+        bms->relayState = TRUE;
+        err = IO_DO_Set(IO_DO_01, TRUE); //Drive BMS relay true (HIGH)
+    }
+    else if(previousHeartbeatCount != bms->heartbeatCount){
+        previousHeartbeatCount = bms->heartbeatCount;
+        IO_RTC_StartTime(&lastBeatTimeStamp);
+        bms->relayState = FALSE;
+        err = IO_DO_Set(IO_DO_01, FALSE); //Drive BMS relay false (LOW)
+    }
     return err;
 }
 
