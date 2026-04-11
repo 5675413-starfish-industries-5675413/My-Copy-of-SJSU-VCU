@@ -226,7 +226,6 @@ void HIL_buildDiagnostics(void)
         return;
     }
     static int diagIndex = 0;
-    ubyte1 total = (ubyte1)hilParamTable.counts_length;     // total number of structs on VCU
 
     int count = (diagIndex == 0) ? hilParamTable.sum[0] 
                                  : hilParamTable.sum[diagIndex] - hilParamTable.sum[diagIndex - 1];
@@ -234,7 +233,7 @@ void HIL_buildDiagnostics(void)
     hilResponseFrame.data[0] = 0x01;                // HIL_RESP_DIAG
     hilResponseFrame.data[1] = (ubyte1)diagIndex;   // struct identifier
     hilResponseFrame.data[2] = (ubyte1)count;       // number of params in this struct
-    hilResponseFrame.data[3] = total;               // total number of structs
+    hilResponseFrame.data[3] = 0x00;
     hilResponseFrame.data[4] = 0x00;
     hilResponseFrame.data[5] = 0x00;
     hilResponseFrame.data[6] = 0x00;
