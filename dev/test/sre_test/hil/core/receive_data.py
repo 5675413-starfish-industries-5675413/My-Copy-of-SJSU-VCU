@@ -8,11 +8,9 @@ from .hil_state_machine import HILState, HILStateMachine
 
 HIL_CAN_ID_RESPONSE = 0x514
 
-HIL_MUX_DIAG = 0x01
-HIL_MUX_ACK = 0x02
-HIL_MUX_VALUE = 0x03
-
-_DIAG_END_IDENTIFIER = 0xFF
+HIL_RESP_DIAG = 0x01
+HIL_RESP_ACK = 0x02
+HIL_RESP_VALUE = 0x03
 
 STRUCT_MEMBERS_JSON = (
     Path(__file__).resolve().parents[4]
@@ -46,13 +44,13 @@ class HILReceiveHandler:
             raw = bytes(msg.data).ljust(8, b"\x00")[:8]
             mux = raw[0]
 
-            if mux == HIL_MUX_DIAG:
+            if mux == HIL_RESP_DIAG:
                 self._on_diag(raw)
                 continue
-            if mux == HIL_MUX_ACK:
+            if mux == HIL_RESP_ACK:
                 self._on_ack(raw)
                 continue
-            if mux == HIL_MUX_VALUE:
+            if mux == HIL_RESP_VALUE:
                 return self._on_value(raw)
 
         return None
