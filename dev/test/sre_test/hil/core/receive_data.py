@@ -12,16 +12,7 @@ HIL_RESP_DIAG = 0x01
 HIL_RESP_ACK = 0x02
 HIL_RESP_VALUE = 0x03
 
-STRUCT_MEMBERS_JSON = (
-    Path(__file__).resolve().parents[4]
-    / "dev"
-    / "test"
-    / "sre_test"
-    / "sil"
-    / "config"
-    / "struct_members_output.json"
-)
-
+STRUCT_MEMBERS_JSON = Path(__file__).resolve().parents[2] / "config" / "vcu_structs_map.json"
 
 class HILReceiveHandler:
     def __init__(self, can_interface: CANInterface, state_machine: HILStateMachine):
@@ -37,7 +28,7 @@ class HILReceiveHandler:
                 self.state_machine.transition(HILState.ERROR)
                 return None
 
-            msg = self.can.receive(timeout=0.01)
+            msg = self.can.receive(timeout=0.01)    # follows VCU cycle time of 10ms
             if msg is None or msg.arbitration_id != HIL_CAN_ID_RESPONSE:
                 continue
 

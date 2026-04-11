@@ -50,6 +50,8 @@ class HILStateMachine:
         self._state = HILState.DISCONNECTED
         self._pending_since = None
 
+    # Timeout value for the state machine should be the delay expected from the longest task.
+    # Currently, it's the DIAG sequence which expects ~18 struct parameter counts from VCU
     def is_timed_out(self, timeout_s: float) -> bool:
         if self._pending_since is None:
             return False
