@@ -473,7 +473,7 @@ void CanManager_read(CanManager* me, CanChannel channel, MotorController* mcm, I
             
 
         //-------------------------------------------------------------------------
-        // HIL Parameter Command
+        // HIL Command
         //-------------------------------------------------------------------------
         #ifndef SIL_BUILD
         case 0x5FE:
@@ -908,6 +908,23 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     canMessages[canMessageCount - 1].data[byteNum++] = ((sbyte2)(PID_getOutput(lc->pid))) >> 8;
     canMessages[canMessageCount - 1].length = byteNum;
 
+    #ifndef SIL_BUILD
+    // 514 : HIL Response
+    IO_CAN_DATA_FRAME *hilFrame = HIL_getResponseFrame();
+    canMessageCount++;
+    byteNum = 0;
+    canMessages[canMessageCount - 1].id_format = IO_CAN_STD_FRAME;
+    canMessages[canMessageCount - 1].id = canMessageID + canMessageCount - 1;
+    canMessages[canMessageCount - 1].data[byteNum++] = hilFrame->data[0];
+    canMessages[canMessageCount - 1].data[byteNum++] = hilFrame->data[1];
+    canMessages[canMessageCount - 1].data[byteNum++] = hilFrame->data[2];
+    canMessages[canMessageCount - 1].data[byteNum++] = hilFrame->data[3];
+    canMessages[canMessageCount - 1].data[byteNum++] = hilFrame->data[4];
+    canMessages[canMessageCount - 1].data[byteNum++] = hilFrame->data[5];
+    canMessages[canMessageCount - 1].data[byteNum++] = hilFrame->data[6];
+    canMessages[canMessageCount - 1].data[byteNum++] = hilFrame->data[7];
+    canMessages[canMessageCount - 1].length = byteNum;
+    #endif
 
     CanManager_send(me, CAN0_HIPRI, canMessages, canMessageCount);
 
