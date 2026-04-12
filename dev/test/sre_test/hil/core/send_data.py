@@ -52,7 +52,7 @@ class HILSendHandler:
 
     def __init__(self, can_interface: CANInterface, state_machine: HILStateMachine):
         self.can = can_interface
-        self.sm = state_machine
+        self.state_machine = state_machine
 
     def _send_frame(self, data: bytearray, target_state: HILState, rollback_state: HILState) -> bool:
         """ 
@@ -61,7 +61,7 @@ class HILSendHandler:
         The state machine's own transition table enforces which source states
         are legal, so callers don't need a separate guard.
         """
-        self.sm.transition(target_state)
+        self.state_machine.transition(target_state)
 
         msg = can.Message(
             arbitration_id=HIL_CAN_ID_SEND,
@@ -70,31 +70,31 @@ class HILSendHandler:
         )
 
         if not self.can.send(msg):
-            self.sm.transition(rollback_state)
+            self.state_machine.transition(rollback_state)
             return False
         return True
 
-    # ── send_init ────────────────────────────────────────────────────────
     def send_init(self) -> bool:
         """
         Build HIL_CMD_INIT frame and send on 0x5FE.
-        Byte 0 = 0x01 (mux), bytes 1-7 = 0x00.
+        Layout:
+            Byte 0:      0x01 (HIL_CMD_INIT)
+            Byte 1-7:    reserved
         Transitions: DISCONNECTED → INIT_PENDING (rolls back on send failure).
         """
         data = bytearray(8)
         data[0] = 0x01  # HIL_CMD_INIT
         return self._send_frame(data, HILState.INIT_PENDING, HILState.DISCONNECTED)
 
-    # ── send_inject ──────────────────────────────────────────────────────
     def send_inject(self, identifier: int, param_number: int, value: int | float) -> bool:
         """
         Build HIL_CMD_INJECT frame and send on 0x5FE.
         Layout:
-          byte 0 = 0x02 (mux)
-          byte 1 = identifier
-          byte 2 = param_number
-          byte 3 = 0x00 (reserved)
-          bytes 4-7 = value (little-endian)
+            Byte 0:      0x02 (HIL_CMD_INJECT)
+            Byte 1:      struct identifier  (ubyte1)
+            Byte 2:      param number       (ubyte1)
+            Byte 3:      reserved
+            Bytes 4-7:   value              (32-bit, little-endian)
         Transitions: READY → INJECT_PENDING (rolls back on send failure).
         """
         data = bytearray(8)
@@ -116,15 +116,15 @@ class HILSendHandler:
 
         return self._send_frame(data, HILState.INJECT_PENDING, HILState.READY)
 
-    # ── send_request ─────────────────────────────────────────────────────
+
     def send_request(self, identifier: int, param_number: int) -> bool:
         """
         Build HIL_CMD_REQUEST frame and send on 0x5FE.
         Layout:
-          byte 0 = 0x03 (mux)
-          byte 1 = identifier
-          byte 2 = param_number
-          bytes 3-7 = 0x00
+            Byte 0:      0x03 (HIL_CMD_REQUEST)
+            Byte 1:      struct identifier  (ubyte1)
+            Byte 2:      param number       (ubyte1)
+            Bytes 3-7:   reserved
         Transitions: READY → REQUEST_PENDING (rolls back on send failure).
         """
         data = bytearray(8)
