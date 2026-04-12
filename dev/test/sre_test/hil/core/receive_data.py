@@ -6,7 +6,7 @@ from typing import Optional
 from .can_interface import CANInterface
 from .hil_state_machine import HILState, HILStateMachine
 
-HIL_CAN_ID_RESPONSE = 0x514
+HIL_CAN_ID_RECEIVE = 0x514
 
 HIL_RESP_DIAG = 0x01
 HIL_RESP_ACK = 0x02
@@ -29,7 +29,7 @@ class HILReceiveHandler:
                 return None
 
             msg = self.can.receive(timeout=0.01)    # follows VCU cycle time of 10ms
-            if msg is None or msg.arbitration_id != HIL_CAN_ID_RESPONSE:
+            if msg is None or msg.arbitration_id != HIL_CAN_ID_RECEIVE:
                 continue
 
             raw = bytes(msg.data).ljust(8, b"\x00")[:8]

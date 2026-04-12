@@ -22,29 +22,17 @@ import can
 from .can_interface import CANInterface
 from .hil_state_machine import HILStateMachine, HILState
 
-HIL_CAN_ID = 0x5FE
+HIL_CAN_ID_SEND = 0x5FE
 
-STRUCT_MEMBERS_JSON = (
-    Path(__file__).resolve().parents[4]
-    / "dev"
-    / "test"
-    / "sre_test"
-    / "sil"
-    / "config"
-    / "struct_members_output.json"
-)
+STRUCT_MEMBERS_JSON = Path(__file__).resolve().parents[2] / "config" / "vcu_structs_map.json"
 
 
 def _lookup_param(struct_name: str, param_name: str) -> tuple[int, int]:
     """
-    Look up (identifier, param_number) for a parameter from struct_members_output.json.
+    Look up (struct_id, param_id) for a parameter from vcu_structs_map.json.
 
-    NOTE: This is a stub. It will be fully implemented once SIL generates
-    identifier and param_number fields in struct_members_output.json.
-    At that point, this function should:
-      1. Load the JSON file.
-      2. Find the entry matching struct_name.
-      3. Return (entry["identifier"], entry["parameters"][param_name]["param_number"]).
+    Returns a tuple of (entry["id"], parameters[param_name]["id"]), which map
+    directly to the identifier and param_number bytes in the CAN frame.
     """
     with STRUCT_MEMBERS_JSON.open("r", encoding="utf-8") as f:
         data = json.load(f)
@@ -56,7 +44,7 @@ def _lookup_param(struct_name: str, param_name: str) -> tuple[int, int]:
     if param_name not in entry.get("parameters", {}):
         raise KeyError(f"Parameter '{param_name}' not found under struct '{struct_name}'")
 
-    return (entry["identifier"], entry["parameters"][param_name]["param_number"])
+    return (entry["id"], entry["parameters"][param_name]["id"])
 
 
 class HILSendHandler:
@@ -76,7 +64,7 @@ class HILSendHandler:
         self.sm.transition(target_state)
 
         msg = can.Message(
-            arbitration_id=HIL_CAN_ID,
+            arbitration_id=HIL_CAN_ID_SEND,
             data=bytes(data),
             is_extended_id=False,
         )
