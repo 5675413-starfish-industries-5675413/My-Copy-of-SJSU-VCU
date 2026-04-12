@@ -17,8 +17,6 @@ import struct
 import json
 from pathlib import Path
 
-import can
-
 from .can_interface import CANInterface
 from .hil_state_machine import HILStateMachine, HILState
 
@@ -63,13 +61,9 @@ class HILSendHandler:
         """
         self.state_machine.transition(target_state)
 
-        msg = can.Message(
-            arbitration_id=HIL_CAN_ID_SEND,
-            data=bytes(data),
-            is_extended_id=False,
-        )
-
-        if not self.can.send(msg):
+        # Note only an "if not condition" is evaluated for true or false,
+        # but can.send() still executes the transmission anyway
+        if not self.can.send(HIL_CAN_ID_SEND, bytes(data)):
             self.state_machine.transition(rollback_state)
             return False
         return True

@@ -1,23 +1,30 @@
 """
 CAN bus interface wrapper for SRE HIL platform.
 
-This module provides a clean interface to python-can, using the
-configuration from config/can.ini.
+This module provides a clean interface to python-can.
+Configuration is resolved via python-can's native load_config(), which checks
+(in order): can.rc, CAN_INTERFACE/CAN_CHANNEL/CAN_BITRATE env vars, and
+~/can.conf (valid on all platforms). On first use, ~/can.conf is created
+automatically from the project template if it does not already exist.
 """
 
-import os
-import configparser
+import shutil
 from pathlib import Path
 from typing import Optional
 
 import can
+import can.util
+
+_CONFIG_TEMPLATE = Path(__file__).resolve().parents[2] / "config" / "can.ini"
+_CONFIG_TARGET   = Path.home() / "can.conf"
 
 
 class CANInterface:
     """
     Wrapper for python-can Bus interface.
 
-    Reads configuration from config/can.ini automatically.
+    On first use, creates ~/can.conf from the project template if it does not
+    exist. Configuration is then resolved via python-can's native config chain.
     Provides graceful error handling for missing hardware.
     """
 
@@ -26,10 +33,12 @@ class CANInterface:
         Initialize CAN bus interface.
 
         Raises:
-            Exception: If CAN hardware is not available
+            Exception: If CAN hardware is not available or config is missing.
         """
         self.bus = None
         self.channel_info = "Unknown"
+
+        self._ensure_config()
 
         try:
             bus_kwargs = self._resolve_bus_kwargs()
@@ -39,67 +48,24 @@ class CANInterface:
             raise Exception(f"Failed to initialize CAN interface: {e}")
 
     @staticmethod
-    def _default_config_path() -> Path:
-        return Path(__file__).parent.parent / "config" / "can.ini"
+    def _ensure_config():
+        if _CONFIG_TARGET.exists():
+            return
+        if _CONFIG_TEMPLATE.exists():
+            shutil.copy(_CONFIG_TEMPLATE, _CONFIG_TARGET)
+            print(
+                f"[CANInterface] Created {_CONFIG_TARGET} from project template. "
+                "Edit this file if your hardware uses a different interface or channel."
+            )
 
     def _resolve_bus_kwargs(self) -> dict:
-        interface: Optional[str] = None
-        channel: Optional[str] = None
-        bitrate: Optional[int] = None
-
-        env_interface = os.environ.get("SRE_HIL_CAN_INTERFACE")
-        env_channel = os.environ.get("SRE_HIL_CAN_CHANNEL")
-        env_bitrate = os.environ.get("SRE_HIL_CAN_BITRATE")
-
-        if interface is None and env_interface:
-            interface = env_interface
-        if channel is None and env_channel:
-            channel = env_channel
-        if bitrate is None and env_bitrate:
-            try:
-                bitrate = int(env_bitrate)
-            except ValueError:
-                pass
-
-        if interface is None or channel is None or bitrate is None:
-            cfg_path = self._default_config_path()
-            if cfg_path.exists():
-                parser = configparser.ConfigParser()
-                parser.read(cfg_path)
-                section = parser["default"] if parser.has_section("default") else {}
-
-                if interface is None:
-                    interface = section.get("interface")
-                if channel is None:
-                    channel = section.get("channel")
-                if bitrate is None:
-                    try:
-                        bitrate = int(section.get("bitrate", ""))
-                    except (TypeError, ValueError):
-                        bitrate = None
-
-        bus_kwargs: dict = {}
-        if interface is not None:
-            bus_kwargs["interface"] = interface
-        if channel is not None:
-            bus_kwargs["channel"] = channel
-        if bitrate is not None:
-            # Virtual backend doesn't take bitrate.
-            if interface is None or str(interface).lower() != "virtual":
-                bus_kwargs["bitrate"] = bitrate
-
-        if not bus_kwargs:
-            bus_kwargs = {}
-
-        return bus_kwargs
+        config = dict(can.util.load_config())
+        # virtual backend does not accept bitrate
+        if str(config.get("interface", "")).lower() == "virtual":
+            config.pop("bitrate", None)
+        return config
 
     def _get_channel_info(self) -> str:
-        """
-        Get human-readable channel information.
-
-        Returns:
-            String describing the CAN channel (e.g., "PCAN_USBBUS1 @ 500kbps")
-        """
         try:
             if hasattr(self.bus, 'channel_info'):
                 return self.bus.channel_info
@@ -128,12 +94,14 @@ class CANInterface:
         except Exception:
             return None
 
-    def send(self, msg: can.Message) -> bool:
+    def send(self, arbitration_id: int, data: bytes, is_extended_id: bool = False) -> bool:
         """
         Send a CAN message.
 
         Args:
-            msg: can.Message object to send
+            arbitration_id: CAN frame ID
+            data: Frame payload bytes
+            is_extended_id: Whether to use 29-bit extended ID
 
         Returns:
             True if successful, False otherwise
@@ -142,15 +110,18 @@ class CANInterface:
             return False
 
         try:
+            msg = can.Message(
+                arbitration_id=arbitration_id,
+                data=data,
+                is_extended_id=is_extended_id,
+            )
             self.bus.send(msg)
             return True
         except Exception:
             return False
 
     def shutdown(self):
-        """
-        Shutdown the CAN interface gracefully.
-        """
+        """Shutdown the CAN interface gracefully."""
         if self.bus is not None:
             try:
                 self.bus.shutdown()
@@ -159,13 +130,10 @@ class CANInterface:
             self.bus = None
 
     def __del__(self):
-        """Cleanup on object destruction."""
         self.shutdown()
 
     def __enter__(self):
-        """Context manager entry."""
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        """Context manager exit."""
         self.shutdown()
