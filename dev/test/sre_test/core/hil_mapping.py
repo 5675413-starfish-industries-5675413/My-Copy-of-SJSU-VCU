@@ -1,46 +1,23 @@
 """
-Mapping from DynamicConfig (struct_name, param_name) to HIL transport actions.
+Mapping from DynamicConfig (struct_name, param_name) to HIL restbus transport actions.
 
-Each entry maps:
-    (struct_name, param_name) -> (transport, action)
+Only parameters that must be delivered via CAN restbus simulation belong here.
+Parameters injectable via HIL_CMD_INJECT are handled automatically by _lookup_param()
+in send_data.py — no entry needed here for those.
 
-  transport: "mcm"      — calls getattr(mcm, action)(value), then mcm.send_all()
-             "injector" — calls injector.inject(action, value)
-  action:    MCM method name, or 6-char injector parameter name
-
-To add a new parameter:
-  1. Add the C struct member (sre sil extract to refresh vcu_structs_map.json)
-  2. (HIL) Add HIL_ADD_PARAM() entry in dev/hilParameter.c
-  3. Append one row here — no other code changes needed.
+To add a new restbus-simulated subsystem:
+  1. Add its CAN handler class (like MCM) in the hil/core/ directory
+  2. Add entries here mapping (struct_name, param_name) -> (handler_attr, method_name)
+  3. Instantiate and wire up the handler in HILEnvironment.setup()
 """
 
-HIL_PARAM_MAP: dict[tuple[str, str], tuple[str, str]] = {
+HIL_RESTBUS_MAP: dict[tuple[str, str], tuple[str, str]] = {
     # -------------------------------------------------------------------------
     # MotorController — restbus simulation via DBC-encoded CAN frames
     # -------------------------------------------------------------------------
-    ("MotorController", "motorRPM"):        ("mcm", "set_rpm"),
-    ("MotorController", "DC_Voltage"):      ("mcm", "set_voltage"),
-    ("MotorController", "DC_Current"):      ("mcm", "set_current"),
-    ("MotorController", "commandedTorque"): ("mcm", "set_commanded_torque"),
-    ("MotorController", "feedbackTorque"):  ("mcm", "set_torque_feedback"),
-
-    # -------------------------------------------------------------------------
-    # PowerLimit — parameter injection via CAN 0x5FE
-    # -------------------------------------------------------------------------
-    ("PowerLimit", "plToggle"):                  ("injector", "pltog"),
-    ("PowerLimit", "plStatus"):                  ("injector", "plstat"),
-    ("PowerLimit", "plMode"):                    ("injector", "plmode"),
-    ("PowerLimit", "plTargetPower"):             ("injector", "pltarg"),
-    ("PowerLimit", "plKwLimit"):                 ("injector", "plkwlm"),
-    ("PowerLimit", "plInitializationThreshold"): ("injector", "plinit"),
-    ("PowerLimit", "plTorqueCommand"):           ("injector", "pltqcm"),
-    ("PowerLimit", "clampingMethod"):            ("injector", "plclmp"),
-
-    # -------------------------------------------------------------------------
-    # Efficiency — parameter injection via CAN 0x5FE
-    # -------------------------------------------------------------------------
-    ("Efficiency", "efficiencyToggle"):    ("injector", "eftog"),
-    ("Efficiency", "energyBudget_kWh"):    ("injector", "efbudg"),
-    ("Efficiency", "finishedLap"):         ("injector", "effin"),
-    ("Efficiency", "totalLapDistance_km"): ("injector", "efdist"),
+    ("MotorController", "motorRPM"):        ("_mcm", "set_rpm"),
+    ("MotorController", "DC_Voltage"):      ("_mcm", "set_voltage"),
+    ("MotorController", "DC_Current"):      ("_mcm", "set_current"),
+    ("MotorController", "commandedTorque"): ("_mcm", "set_commanded_torque"),
+    ("MotorController", "feedbackTorque"):  ("_mcm", "set_torque_feedback"),
 }

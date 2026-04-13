@@ -12,6 +12,11 @@ HIL_RESP_DIAG = 0x01
 HIL_RESP_ACK = 0x02
 HIL_RESP_VALUE = 0x03
 
+VCU_CYCLE_S     = 0.010
+DIAG_TIMEOUT_S  = VCU_CYCLE_S * 50   # 0.5s — covers many structs streamed one per cycle
+ACK_TIMEOUT_S   = VCU_CYCLE_S * 10   # 0.1s — one VCU cycle + margin
+VALUE_TIMEOUT_S = VCU_CYCLE_S * 10   # 0.1s — one VCU cycle + margin
+
 STRUCT_MEMBERS_JSON = Path(__file__).resolve().parents[2] / "config" / "vcu_structs_map.json"
 
 class HILReceiveHandler:
@@ -28,7 +33,7 @@ class HILReceiveHandler:
                 self.state_machine.transition(HILState.ERROR)
                 return None
 
-            msg = self.can.receive(timeout=0.01)    # follows VCU cycle time of 10ms
+            msg = self.can.receive(timeout=0.01)    # polls at VCU cycle time of 10ms
             if msg is None or msg.arbitration_id != HIL_CAN_ID_RECEIVE:
                 continue
 
@@ -37,10 +42,12 @@ class HILReceiveHandler:
 
             if mux == HIL_RESP_DIAG:
                 self._on_diag(raw)
+                if self.state_machine.state in (HILState.READY, HILState.ERROR):
+                    break
                 continue
             if mux == HIL_RESP_ACK:
                 self._on_ack(raw)
-                continue
+                break   # always done after ACK — either READY or ERROR
             if mux == HIL_RESP_VALUE:
                 return self._on_value(raw)
 
