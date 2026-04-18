@@ -33,7 +33,9 @@ typedef struct _TorqueEncoder
     float4 outputCurveExponent;
 
     bool calibrated;
-    float4 travelPercent;
+    float4 travelPercent;        /* EMA-filtered pedal travel percent [0..1] */
+    float4 travelPercent_raw;    /* Unfiltered pedal travel for debug/safety */
+    float4 emaAlpha;             /* EMA smoothing factor (0 < alpha <= 1) */
     bool implausibility;
 } TorqueEncoder;
 

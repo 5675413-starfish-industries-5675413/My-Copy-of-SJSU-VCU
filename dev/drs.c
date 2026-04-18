@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include "IO_Driver.h"
 #include "IO_DIO.h"
+#include "IO_RTC.h"
 
 #include "drs.h"
 #include "sensors.h"
@@ -13,15 +14,18 @@
 extern Sensor Sensor_DRSButton; 
 extern Sensor Sensor_DRSKnob;
 
-DRS *DRS_new() 
+DRS *DRS_new(void)
 {
     DRS *me = (DRS *)malloc(sizeof(struct _DRS));
+    if (me == NULL) { return NULL; } /* MISRA null guard */
 
-    //flags
-    me->AutoDRSActive = FALSE;
-    me->currentDRSMode = MANUAL; 
-    me->drsFlapOpen = FALSE;
-    me->drsSafteyTimer = NULL;
+    me->AutoDRSActive          = FALSE;
+    me->currentDRSMode         = MANUAL;
+    me->buttonPressed          = FALSE;
+    me->drsFlapOpen            = FALSE;
+    me->drsSafteyTimer         = 0;
+    me->drsOpenConditionTimer  = 0;
+    me->drsCloseConditionTimer = 0;
 
     return me;
 }
@@ -93,12 +97,12 @@ void DRS_update(DRS *me, MotorController *mcm, TorqueEncoder *tps, BrakePressure
                 5. EXIT CONDITONS: (Brake pressure is > 20% or steering angle is +/- 15° ) */
 
                 // conditions are listed in prioritised order, check flap state first (put ourselves in the relevant if statement), then button press, then timer
-                if(!me->drsFlapOpen && me->buttonPressed && IO_RTC_GetTimeUS(&me->drsSafteyTimer) >= 45000 ){ //check if button press && drs flap is closed && drsSafety Timer Passed > 0.05s, using 0.45s in case the vcu cycle time is somehow off by a microsecond or two (0.00001! lol)
+                if(!me->drsFlapOpen && me->buttonPressed && IO_RTC_GetTimeUS(me->drsSafteyTimer) >= 45000 ){ //check if button press && drs flap is closed && drsSafety Timer Passed > 0.05s, using 0.45s in case the vcu cycle time is somehow off by a microsecond or two (0.00001! lol)
                     IO_RTC_StartTime(&me->drsSafteyTimer); //restart timer
                     DRS_open(me);
                 }
                 // conditions are listed in prioritised order
-                else if(me->drsFlapOpen && me->buttonPressed && IO_RTC_GetTimeUS(&me->drsSafteyTimer) >= 10000 ){ //check if button press && drs flap is open && drsSafety Timer Passed > 0.01s, sohrter interval bc prioritising close over open
+                else if(me->drsFlapOpen && me->buttonPressed && IO_RTC_GetTimeUS(me->drsSafteyTimer) >= 10000 ){ //check if button press && drs flap is open && drsSafety Timer Passed > 0.01s, sohrter interval bc prioritising close over open
                     IO_RTC_StartTime(&me->drsSafteyTimer); //restart timer
                     DRS_close(me);
                 }
@@ -110,22 +114,59 @@ void DRS_update(DRS *me, MotorController *mcm, TorqueEncoder *tps, BrakePressure
                 break;
 
             case AUTO:
+                /* ------------------------------------------------------------------
+                 * F1-style DRS with aerodynamic hysteresis
+                 * ------------------------------------------------------------------
+                 * OPEN conditions (must ALL hold for >= 250 ms):
+                 *      groundspeed > 25 mph
+                 *      throttle    > 85%
+                 *      |steering|  < 10 deg
+                 *      brake       <= 0 (pedal essentially untouched)
+                 *
+                 * CLOSE (immediate): driver touches brakes OR lifts off throttle
+                 * (lift <= 5% or brake > 5%). This prevents the flap from fluttering
+                 * on small steering / throttle dips mid-corner-exit.
+                 * Once open it stays open until a genuine brake/lift event.
+                 * ------------------------------------------------------------------ */
+                {
+                    bool openConditions =
+                           (groundspeedMPH > 25)
+                        && (appsPercent    > 0.85f)
+                        && (steeringAngle >  -10)
+                        && (steeringAngle <   10)
+                        && (bpsPercent    <= 0.05f);
 
-                // Unknown for now if physical components can be damaged when requesting flap open  when already opened, hence the nested if
-                if (groundspeedMPH > 5 && appsPercent > .75 && steeringAngle > -15 && steeringAngle < 15 && bpsPercent < .10) {
-                    me->AutoDRSActive = TRUE;
-                    if(!me->drsFlapOpen){ DRS_open(me); }
+                    /* Instant close when driver clearly wants to slow / turn. */
+                    bool closeCommand =
+                           (bpsPercent > 0.05f)     /* driver on brakes */
+                        || (appsPercent < 0.05f);   /* driver lifted off throttle */
+
+                    if (me->drsFlapOpen == FALSE) {
+                        /* Flap is currently CLOSED: debounce open conditions.
+                         * Require openConditions to hold sustained for 250ms. */
+                        if (openConditions) {
+                            if (me->drsOpenConditionTimer == 0) {
+                                IO_RTC_StartTime(&me->drsOpenConditionTimer);
+                            } else if (IO_RTC_GetTimeUS(me->drsOpenConditionTimer) >= 250000) {
+                                me->AutoDRSActive = TRUE;
+                                DRS_open(me);
+                                me->drsOpenConditionTimer  = 0;
+                                me->drsCloseConditionTimer = 0;
+                            }
+                        } else {
+                            me->drsOpenConditionTimer = 0; /* reset if any condition fails */
+                        }
+                    } else {
+                        /* Flap is currently OPEN. Stay open until a close command
+                         * arrives -- ignore transient steering/throttle dips. */
+                        if (closeCommand) {
+                            me->AutoDRSActive = FALSE;
+                            DRS_close(me);
+                            me->drsOpenConditionTimer  = 0;
+                            me->drsCloseConditionTimer = 0;
+                        }
+                    }
                 }
-                // Unknown for now if physical components can be damaged when requesting flap close  when already closed, hence the nested if
-                else {
-                    me->AutoDRSActive = FALSE;
-                    if(me->drsFlapOpen) { DRS_close(me); }
-                }
-                // Use & uncomment instead if no harm to components
-                /*
-                else {
-                    DRS_close(me);
-                } */
                 break;
             default:
                 break;

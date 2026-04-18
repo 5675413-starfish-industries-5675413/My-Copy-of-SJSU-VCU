@@ -130,7 +130,9 @@ struct _MotorController
     //_commands commands;
     //};
 
-    sbyte2 LaunchControl_TorqueLimit;
+    /* Torque REDUCTION (DNm) commanded by LaunchControl; subtracted from
+     * the driver's requested torque while LCState is TRUE. */
+    sbyte2 LaunchControl_TorqueReductionDNm;
     bool LCState;
 
 };
@@ -171,7 +173,7 @@ MotorController *MotorController_new(SerialManager *sm, ubyte2 canMessageBaseID,
 
     me->motor_temp = 99;
 
-    me->LaunchControl_TorqueLimit = 0;
+    me->LaunchControl_TorqueReductionDNm = 0;
     me->HVILOverride = FALSE;
     me->LCState = FALSE;
     /*
@@ -268,34 +270,78 @@ void MCM_calculateCommands(MotorController *me, TorqueEncoder *tps, BrakePressur
 {
     //----------------------------------------------------------------------------
     // Control commands
-    //Note: Safety checks (torque command limiting) are done EXTERNALLY.  This is a preliminary calculation
-    //which should return the intended torque based on pedals
-    //Note: All stored torque values should be positive / unsigned
+    // Note: Safety checks (power/torque command limiting) are done EXTERNALLY.
+    // This is a preliminary calculation which returns the intended torque
+    // based on driver pedal inputs, Launch Control, and regen blending.
     //----------------------------------------------------------------------------
+    if (me == NULL || tps == NULL || bps == NULL) { return; } /* MISRA null guard */
+
     MCM_commands_setDischarge(me, DISABLED);
-    MCM_commands_setDirection(me, FORWARD); //1 = forwards for our car, 0 = reverse
+    MCM_commands_setDirection(me, FORWARD); /* 1 = forwards for our car, 0 = reverse */
 
-    sbyte2 torqueOutput = 0;
-    // sbyte2 appsTorque = 0;
-    // sbyte2 bpsTorque = 0;
-
-    float4 appsOutputPercent;
-
+    float4 appsOutputPercent = 0.0f;
     TorqueEncoder_getOutputPercent(tps, &appsOutputPercent);
-    
 
-    // appsTorque = me->torqueMaximumDNm * getPercent(appsOutputPercent, me->regen_percentAPPSForCoasting, 1, TRUE) - me->regen_torqueAtZeroPedalDNm * getPercent(appsOutputPercent, me->regen_percentAPPSForCoasting, 0, TRUE);
-    // bpsTorque = 0 - (me->regen_torqueLimitDNm - me->regen_torqueAtZeroPedalDNm) * getPercent(bps->percent, 0, me->regen_percentBPSForMaxRegen, TRUE);
+    /* ------------------------------------------------------------------
+     * Step 1: Driver-requested acceleration torque (DNm)
+     * ------------------------------------------------------------------
+     * Positive acceleration torque proportional to APPS travel. Never
+     * negative in this branch (regen is computed separately below).
+     */
+    sbyte2 driverRequestedAccelDNm = (sbyte2)((float4)me->torqueMaximumDNm * appsOutputPercent);
+    if (driverRequestedAccelDNm < 0) { driverRequestedAccelDNm = 0; }
 
-    if(me->LCState == TRUE){
-        torqueOutput = me->LaunchControl_TorqueLimit;
-    } else if (me->LaunchControl_TorqueLimit == 0){
-        torqueOutput = me->LaunchControl_TorqueLimit;
-    } else {
-        // torqueOutput = appsTorque + bpsTorque;
-        torqueOutput = me->torqueMaximumDNm * appsOutputPercent;  //REMOVE THIS LINE TO ENABLE REGEN
+    /* ------------------------------------------------------------------
+     * Step 2: Launch Control - SUBTRACT reduction from driver request.
+     * Rule 7: PID outputs a torque reduction, never an absolute torque.
+     * Rule 9: final accel torque must never be negative during accel.
+     * ------------------------------------------------------------------ */
+    sbyte2 accelTorqueDNm = driverRequestedAccelDNm;
+    if (me->LCState == TRUE) {
+        accelTorqueDNm = driverRequestedAccelDNm - me->LaunchControl_TorqueReductionDNm;
+        if (accelTorqueDNm < 0) { accelTorqueDNm = 0; }
     }
-    
+
+    /* ------------------------------------------------------------------
+     * Step 3: Brake-by-wire regen blending (0 -> ~20% brake pedal travel).
+     * The first 5% of pedal travel is brake-light / light bite deadzone;
+     * from 5% -> 20% pedal travel the Emrax regen ramps linearly up to
+     * me->regen_torqueLimitDNm (negative torque = regen).
+     * Beyond 20% the hydraulic brakes dominate (regen stays at max).
+     *
+     * This only applies when:
+     *   - Regen is enabled (regen_mode != OFF and torque limit > 0)
+     *   - Driver is OFF throttle (APPS below coasting threshold)
+     *   - Launch control is NOT active
+     * During active acceleration we leave accelTorqueDNm untouched per rule 9.
+     * ------------------------------------------------------------------ */
+    sbyte2 regenTorqueDNm = 0; /* negative value for regen */
+    bool regenEnabled = (me->regen_mode != REGENMODE_OFF) && (me->regen_torqueLimitDNm > 0);
+    bool driverOffThrottle = (appsOutputPercent <= me->regen_percentAPPSForCoasting);
+
+    if (regenEnabled && driverOffThrottle && (me->LCState == FALSE)) {
+        /* Map 5% -> 20% BPS travel to 0 -> regen_torqueLimitDNm */
+        float4 regenRampStart = 0.05f;
+        float4 regenRampEnd   = 0.20f;
+        float4 regenFraction  = getPercent(bps->percent, regenRampStart, regenRampEnd, TRUE);
+        /* regenFraction is clamped [0,1]; apply as NEGATIVE torque */
+        regenTorqueDNm = -(sbyte2)(regenFraction * (float4)me->regen_torqueLimitDNm);
+    }
+
+    /* ------------------------------------------------------------------
+     * Step 4: Final torque command.
+     * - If driver is on throttle (and not launch-controlled into zero), the
+     *   accel torque is used -- rule 9: never negative during accel.
+     * - Otherwise the regen torque (<= 0) is used, which is the only case
+     *   where a negative command is permitted (regenerative braking).
+     * ------------------------------------------------------------------ */
+    sbyte2 torqueOutput;
+    if (accelTorqueDNm > 0) {
+        torqueOutput = accelTorqueDNm;
+    } else {
+        torqueOutput = regenTorqueDNm; /* <= 0, regen only when off throttle */
+    }
+
     MCM_commands_setTorqueDNm(me, torqueOutput);
 
     //Causes MCM relay to be driven after 30 seconds with TTC60?
@@ -683,10 +729,16 @@ void MCM_updateInverterStatus(MotorController *me, Status newState)
     me->inverterStatus = newState;
 }
 
-void MCM_update_LaunchControl_TorqueLimit(MotorController *me, sbyte2 lcTorqueLimit){
+void MCM_update_LaunchControl_TorqueReductionDNm(MotorController *me, sbyte2 lcTorqueReductionDNm)
+{
+    if (me == NULL) { return; }
+    if (lcTorqueReductionDNm < 0) { lcTorqueReductionDNm = 0; }
+    me->LaunchControl_TorqueReductionDNm = lcTorqueReductionDNm;
+}
 
-     me->LaunchControl_TorqueLimit = lcTorqueLimit;
-
+sbyte2 MCM_get_LaunchControl_TorqueReductionDNm(MotorController *me)
+{
+    return (me == NULL) ? 0 : me->LaunchControl_TorqueReductionDNm;
 }
 
 void MCM_update_LaunchControl_State(MotorController *me, bool newLCState){
@@ -766,20 +818,35 @@ sbyte2 MCM_getMotorTemp(MotorController *me)
     return me->motor_temp;
 }
 
-sbyte4 MCM_getGroundSpeedKPH(MotorController *me)
-{   
-    sbyte4 FD_Ratio = 3.55; //divide # of rear teeth by number of front teeth
-    sbyte4 Revolutions = 60; //this converts the rpm to rotations per hour
-    //tireCirc does PI * Diameter_Tire because otherwise it doesn't work
-    //for 16s set tireCirc to 1.295 for 18s set tireCirc to 1.395 
-    //sbyte4 PI = 3.141592653589; 
-    //sbyte4 Diameter_Tire = 0.4;
-    sbyte4 tireCirc = 1.395; //the actual average tire circumference in meters
-    sbyte4 KPH_Unit_Conversion = 1000.0;
-    sbyte4 groundKPH = ((me->motorRPM/FD_Ratio) * Revolutions * tireCirc) / KPH_Unit_Conversion; 
+sbyte4 MCM_getMotorRPM(MotorController *me)
+{
+    return (me == NULL) ? 0 : me->motorRPM;
+}
 
-    return groundKPH;
-    
+sbyte4 MCM_getGroundSpeedKPH(MotorController *me)
+{
+    if (me == NULL) { return 0; }
+
+    /* ---- Speed telemetry math ----
+     * CRITICAL: these MUST be float4. Declaring 3.55 or 1.395 as an integer
+     * (sbyte4) truncates them to 3 and 1 respectively, which made every
+     * downstream speed/slip/regen calculation wrong.
+     *
+     * groundSpeed[kph] = (motorRPM / FinalDriveRatio) * 60 min/hr
+     *                    * tireCircumference[m] / 1000 m/km
+     */
+    const float4 FD_Ratio            = 3.55f;   /* rear teeth / front teeth */
+    const float4 Revolutions_PerHour = 60.0f;   /* RPM -> rot/hour */
+    const float4 tireCirc_m          = 1.395f;  /* 18" tire average circumference [m] */
+    const float4 KPH_UnitConversion  = 1000.0f; /* m -> km */
+
+    /* Guard against a zero/invalid gear ratio (defensive) */
+    if (FD_Ratio < 0.0001f) { return 0; }
+
+    float4 wheelRPM  = (float4)me->motorRPM / FD_Ratio;
+    float4 groundKPH = (wheelRPM * Revolutions_PerHour * tireCirc_m) / KPH_UnitConversion;
+
+    return (sbyte4)groundKPH;
 }
 
 ubyte1 MCM_getRegenMode(MotorController *me)

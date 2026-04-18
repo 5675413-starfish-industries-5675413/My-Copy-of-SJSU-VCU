@@ -1,39 +1,17 @@
-#include "IO_Driver.h"
-#include "IO_RTC.h"
 #include "watchdog.h"
 
-/// @brief Generates a watchdog timer, timeout is in microseconds
-/// @param wd 
-/// @param timeout 
-void WatchDog_new(WatchDog* wd, ubyte4 timeout)
-{
-    wd->timeout = timeout;
-    wd->running = FALSE;
-}
-
-void WatchDog_reset(WatchDog* wd)
-{
-    wd->running = TRUE;
-}
-
-void WatchDog_pet(WatchDog* wd)
-{
-    if (wd->running)
-    {
-        IO_RTC_StartTime(&wd->timestamp);
-    }
-}
-
-bool WatchDog_check(WatchDog* wd)
-{
-    if (wd->running)
-    {
-        if (IO_RTC_GetTimeUS(wd->timestamp) >= wd->timeout)
-        {
-            wd->running = TRUE;
-            return TRUE;
-        }
-    }
-    wd->running = FALSE;
-    return FALSE;
-}
+/*****************************************************************************
+ * Watchdog
+ *****************************************************************************
+ * Intentionally empty translation unit.
+ *
+ * All prior software-watchdog functions (WatchDog_new/_pet/_reset/_check)
+ * have been REMOVED. The HY-TTC 50 hardware watchdog is the sole watchdog
+ * mechanism for this VCU. It is automatically tickled by the
+ * IO_Driver_TaskBegin() / IO_Driver_TaskEnd() pair wrapping the main loop
+ * in main.c. If that pair ever fails to run within its window (main loop
+ * hung), the hardware will reset the MCU and drop safe-state outputs,
+ * physically opening the tractive-system shutdown circuit.
+ *
+ * See watchdog.h for the rationale.
+ ****************************************************************************/

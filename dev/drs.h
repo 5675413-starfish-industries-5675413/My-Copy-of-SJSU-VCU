@@ -2,7 +2,7 @@
 #define _DRS_H
 
 #include "IO_Driver.h"
-#include "WheelSpeeds.h"
+#include "wheelSpeeds.h"
 #include "brakePressureSensor.h"
 #include "torqueEncoder.h"
 #include "motorController.h"
@@ -27,12 +27,18 @@ typedef struct _DRS
     ubyte1 drsFlapOpen;
     ubyte4 drsSafteyTimer;
 
+    /* Hysteresis timers for AUTO mode (F1-style).
+     * Conditions to open/close must be sustained for a minimum time to
+     * avoid flap fluttering on noisy sensors or transient dips. */
+    ubyte4 drsOpenConditionTimer;   /* timing how long open conditions have been met */
+    ubyte4 drsCloseConditionTimer;  /* timing how long close conditions have been met */
+
 } DRS;
 //DRS is an instance of the _DRS struct
 //what is the purpose of this initialized struct?
 
 //initialize new DRS objects
-DRS *DRS_new();
+DRS *DRS_new(void);
 
 //DRS control logic
 void DRS_update(DRS *me, MotorController *mcm, TorqueEncoder *tps, BrakePressureSensor *bps);

@@ -741,7 +741,7 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     canMessages[canMessageCount - 1].data[byteNum++] = getCalculatedTorque() >> 8;
     canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)lc->slipRatio;
     canMessages[canMessageCount - 1].data[byteNum++] = (sbyte2)lc->slipRatio >> 8;
-    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte2)lc->lcTorque;
+    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)lc->lcTorqueReductionDNm;
     canMessages[canMessageCount - 1].data[byteNum++] = Sensor_LCButton.sensorValue;
     canMessages[canMessageCount - 1].length = byteNum;
 
@@ -819,35 +819,50 @@ void canOutput_sendDebugMessage(CanManager* me, TorqueEncoder* tps, BrakePressur
     // canMessages[canMessageCount - 1].data[byteNum++] = mcm->kwRequestEstimate >> 8;
     // canMessages[canMessageCount - 1].length = byteNum;
 
-    //Motor controller command message
-    canMessageCount++;
-    byteNum = 0;
-    canMessages[canMessageCount - 1].id_format = IO_CAN_STD_FRAME;
-    canMessages[canMessageCount - 1].id = 0xC0;
-    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)MCM_commands_getTorque(mcm);
-    canMessages[canMessageCount - 1].data[byteNum++] =  MCM_commands_getTorque(mcm) >> 8;
-    canMessages[canMessageCount - 1].data[byteNum++] = 0;  //Speed (RPM?) - not needed - mcu should be in torque mode
-    canMessages[canMessageCount - 1].data[byteNum++] = 0;  //Speed (RPM?) - not needed - mcu should be in torque mode
-    canMessages[canMessageCount - 1].data[byteNum++] = MCM_commands_getDirection(mcm);  //Motor direction (For SR-16: 0 = Forward, 1 = Reverse)
-    canMessages[canMessageCount - 1].data[byteNum++] = (MCM_commands_getInverter(mcm) == ENABLED) ? 1 : 0; //unused/unused/unused/unused unused/unused/Discharge/Inverter Enable
-    canMessages[canMessageCount - 1].data[byteNum++] = (ubyte1)MCM_commands_getTorqueLimit(mcm);
-    canMessages[canMessageCount - 1].data[byteNum++] = MCM_commands_getTorqueLimit(mcm) >> 8;
-    canMessages[canMessageCount - 1].length = byteNum;
-    
-    CanManager_send(me, CAN0_HIPRI, canMessages, canMessageCount); 
+    /* NOTE: The critical 0xC0 MCM torque-command frame is INTENTIONALLY
+     * NOT included in this debug bundle. It is transmitted every 10ms by
+     * canOutput_sendMCMCommand() so the inverter never starves for data
+     * while the bus is saturated with telemetry. */
 
-    
-    
-    //----------------------------------------------------------------------------
-    //Additional sensors
-    //----------------------------------------------------------------------------
+    CanManager_send(me, CAN0_HIPRI, canMessages, canMessageCount);
+}
 
-    //Place the can messsages into the FIFO queue ---------------------------------------------------
-    //IO_CAN_WriteFIFO
-      //Important: Only transmit one message (the MCU message)
+/*****************************************************************************
+ * canOutput_sendMCMCommand
+ *****************************************************************************
+ * Transmits ONLY the 0xC0 MCM (Cascadia) motor command frame. Called
+ * unconditionally every 10ms loop so the inverter's internal timeout is
+ * always fed with a fresh command.
+ *
+ * The previous design bundled 0xC0 at the tail of a 13+ message debug blast
+ * which could cause the CAN hardware FIFO to overflow and drop 0xC0,
+ * knocking the inverter offline mid-event. Decoupling this frame ensures
+ * the drive-critical path has its own independent send path.
+ ****************************************************************************/
+void canOutput_sendMCMCommand(CanManager *me, MotorController *mcm)
+{
+    if (me == NULL || mcm == NULL) { return; } /* MISRA null guard */
 
-    //IO_CAN_WriteFIFO(canFifoHandle_LoPri_Write, canMessages, canMessageCount);  
+    IO_CAN_DATA_FRAME mcmCmd;
+    ubyte1 byteNum = 0;
 
+    mcmCmd.id_format = IO_CAN_STD_FRAME;
+    mcmCmd.id        = 0xC0;
+
+    sbyte2 torque      = MCM_commands_getTorque(mcm);
+    sbyte2 torqueLimit = MCM_commands_getTorqueLimit(mcm);
+
+    mcmCmd.data[byteNum++] = (ubyte1)torque;
+    mcmCmd.data[byteNum++] = (ubyte1)(torque >> 8);
+    mcmCmd.data[byteNum++] = 0; /* Speed (RPM) - unused in torque mode */
+    mcmCmd.data[byteNum++] = 0; /* Speed (RPM) - unused in torque mode */
+    mcmCmd.data[byteNum++] = MCM_commands_getDirection(mcm);
+    mcmCmd.data[byteNum++] = (MCM_commands_getInverter(mcm) == ENABLED) ? 1 : 0;
+    mcmCmd.data[byteNum++] = (ubyte1)torqueLimit;
+    mcmCmd.data[byteNum++] = (ubyte1)(torqueLimit >> 8);
+    mcmCmd.length = byteNum;
+
+    CanManager_send(me, CAN0_HIPRI, &mcmCmd, 1);
 }
 
 void canOutput_sendDebugMessage1(CanManager* me, MotorController* mcm, TorqueEncoder* tps)

@@ -39,6 +39,13 @@ void can1utput_sendSensorMessages(CanManager *me);
 void canOutput_sendDebugMessage(CanManager *me, TorqueEncoder *tps, BrakePressureSensor *bps, MotorController *mcm, InstrumentCluster *ic, BatteryManagementSystem *bms, WheelSpeeds *wss, SafetyChecker *sc, LaunchControl *lc, DRS *drs);
 void canOutput_sendDebugMessage1(CanManager *me, MotorController *mcm, TorqueEncoder *tps);
 
+/*
+ * Transmit ONLY the 0xC0 MCM torque-command frame. Must be called every
+ * 10ms main-loop tick to keep the Cascadia inverter's watchdog fed and
+ * prevent it from dropping offline when debug traffic saturates the bus.
+ */
+void canOutput_sendMCMCommand(CanManager *me, MotorController *mcm);
+
 ubyte1 CanManager_getReadStatus(CanManager *me, CanChannel channel);
 
 #endif // _CANMANAGER_H is defined

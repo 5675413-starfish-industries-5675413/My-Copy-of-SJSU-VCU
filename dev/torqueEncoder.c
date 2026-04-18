@@ -35,6 +35,15 @@ TorqueEncoder* TorqueEncoder_new(bool benchMode)
     me->outputCurveExponent = 1.0;
 
     me->travelPercent = 0;
+    me->travelPercent_raw = 0;
+    /* EMA filter (exponential moving average / 1st-order low-pass):
+     *   y[n] = alpha * x[n] + (1 - alpha) * y[n-1]
+     * alpha = dt / (tau + dt). With dt = 0.01s and tau ~= 0.03s (30ms),
+     * alpha ~= 0.25. This cuts foot-bounce and ADC noise while adding only
+     * ~30ms of lag -- imperceptible to the driver, but enough to stop the
+     * traction-control PID from stuttering on raw signal jitter.
+     */
+    me->emaAlpha = 0.25f;
     me->runCalibration = FALSE;  //Do not run the calibration at the next main loop cycle
 
     //me->calibrated = FALSE;
@@ -67,41 +76,51 @@ TorqueEncoder* TorqueEncoder_new(bool benchMode)
 //Updates all values based on sensor readings, safety checks, etc
 void TorqueEncoder_update(TorqueEncoder* me)
 {
+    if (me == NULL || me->tps0 == NULL || me->tps1 == NULL) { return; } /* MISRA null guard */
+
     me->tps0_value = me->tps0->sensorValue;
     me->tps1_value = me->tps1->sensorValue;
 
-    me->travelPercent = 0;
     ubyte2 errorCount = 0;
-    
-    //This function runs before the calibration cycle function.  If calibration is currently
-    //running, then set the percentage to zero for safety purposes.
+
+    /* If calibration is running, force 0% travel for safety */
     if (me->runCalibration == TRUE)
     {
-        errorCount++;  //DO SOMETHING WITH THIS
+        errorCount++;
+        me->travelPercent_raw = 0;
+        me->travelPercent     = 0;
+        me->tps0_percent      = 0;
+        me->tps1_percent      = 0;
+    }
+    else if (me->calibrated == FALSE)
+    {
+        me->tps0_percent      = 0;
+        me->tps1_percent      = 0;
+        me->travelPercent_raw = 0;
+        me->travelPercent     = 0;
+        (errorCount)++;
     }
     else
     {
-        //getPedalTravel = 0;
+        /* Per-sensor percentages: linear between calibMin and calibMax */
+        me->tps0_percent = getPercent(me->tps0_value, me->tps0_calibMin, me->tps0_calibMax, TRUE);
+        me->tps1_percent = getPercent(me->tps1_value, me->tps1_calibMin, me->tps1_calibMax, TRUE);
 
-        //-------------------------------------------------------------------
-        // Make sure the sensors have been calibrated
-        //-------------------------------------------------------------------
-        //if ((Sensor_TPS0.isCalibrated == FALSE) || (Sensor_TPS1.isCalibrated == FALSE))
-        if (me->calibrated == FALSE)
-        {
-            me->tps0_percent = 0;
-            me->tps1_percent = 0;
-            (errorCount)++;  //DO SOMETHING WITH THIS
-        }
-        else
-        {
-            //Calculate individual throttle percentages
-            //Percent = (Voltage - CalibMin) / (CalibMax - CalibMin)
-            me->tps0_percent = getPercent(me->tps0_value, me->tps0_calibMin, me->tps0_calibMax, TRUE);
-            me->tps1_percent = getPercent(me->tps1_value, me->tps1_calibMin, me->tps1_calibMax, TRUE);
+        /* Average of the two redundant APPS sensors (raw pedal travel) */
+        float4 rawTravel = (me->tps0_percent + me->tps1_percent) / 2.0f;
+        me->travelPercent_raw = rawTravel;
 
-            me->travelPercent = (me->tps0_percent + me->tps1_percent) / 2;
-        }
+        /* -----------------------------------------------------------------
+         * Exponential Moving Average (1st-order IIR low-pass) filter
+         *   y[n] = alpha * x[n] + (1 - alpha) * y[n-1]
+         * This smooths mechanical foot-bounce and ADC electrical noise
+         * before the value feeds the Traction Control PID, preventing
+         * stutter on the torque command while adding only ~30ms lag.
+         * -----------------------------------------------------------------
+         */
+        float4 alpha = me->emaAlpha;
+        if (alpha <= 0.0f || alpha > 1.0f) { alpha = 1.0f; } /* safety */
+        me->travelPercent = (alpha * rawTravel) + ((1.0f - alpha) * me->travelPercent);
     }
 }
 

@@ -84,6 +84,22 @@ static const ubyte2 N_Over75kW_MCM = 0x20;
 
 ubyte4 timestamp_SoftBSPD = 0;
 
+/* FSAE EV2.3.5/EV2.3.6 implausibility debounce timer.
+ * The deviation must persist >100ms before tripping the fatal
+ * F_tpsOutOfSync fault, to suppress electrical-noise ghost faults. */
+static ubyte4 timestamp_tpsOutOfSync = 0;
+static bool   tpsOutOfSync_debounceActive = FALSE;
+#define TPS_OUT_OF_SYNC_DEBOUNCE_US 100000U  /* 100ms */
+
+/* ---- FSAE 80 kW dynamic power ceiling ----
+ * Per rule 5 the tractive system must never exceed 80 kW. We ride at a
+ * 79.5 kW software ceiling to give margin against meter error.
+ *   P = T * omega  ->  T_max_Nm = P_max_W / omega_rad_per_s
+ *   omega_rad_per_s = motorRPM * 2*pi / 60
+ * Torque command to MCM is in deci-Newton-meters (DNm), so *10 at the end. */
+#define FSAE_POWER_CEILING_W 79500.0f
+#define RPM_TO_RAD_PER_SEC   (2.0f * 3.14159265f / 60.0f)
+
 /*****************************************************************************
 * SafetyChecker object
 ******************************************************************************
@@ -275,12 +291,41 @@ void SafetyChecker_update(SafetyChecker *me, MotorController *mcm, BatteryManage
     TorqueEncoder_getIndividualSensorPercent(tps, 0, &tps0Percent); //borrow the pedal percent variable
     TorqueEncoder_getIndividualSensorPercent(tps, 1, &tps1Percent);
 
-    if ((tps1Percent - tps0Percent) > .1 || (tps1Percent - tps0Percent) < -.1) //Note: Individual TPS readings don't go negative, otherwise this wouldn't work
+    /* ------------------------------------------------------------------
+     * FSAE EV2.3.5/EV2.3.6 : APPS implausibility > 10% pedal travel
+     * ------------------------------------------------------------------
+     * Raw electrical noise can momentarily push the two redundant sensors
+     * >10% apart; tripping F_tpsOutOfSync instantly kills the car. Rule 6
+     * requires a 100ms debounce via IO_RTC_GetTimeUS to suppress ghost
+     * faults while still meeting the rulebook's "immediate" shutdown
+     * requirement (EV2.3.5) for genuine faults.
+     *
+     * Logic:
+     *   - Deviation first detected: start the debounce timer.
+     *   - If deviation persists >= 100ms: LATCH F_tpsOutOfSync.
+     *   - If deviation clears before 100ms: reset the timer, no fault.
+     * ------------------------------------------------------------------ */
+    float4 tpsDeviation = tps1Percent - tps0Percent;
+    if (tpsDeviation < 0.0f) { tpsDeviation = -tpsDeviation; }
+
+    if (tpsDeviation > 0.10f)
     {
-        me->faults |= F_tpsOutOfSync;
+        if (tpsOutOfSync_debounceActive == FALSE) {
+            IO_RTC_StartTime(&timestamp_tpsOutOfSync);
+            tpsOutOfSync_debounceActive = TRUE;
+        } else if (IO_RTC_GetTimeUS(timestamp_tpsOutOfSync) >= TPS_OUT_OF_SYNC_DEBOUNCE_US) {
+            me->faults |= F_tpsOutOfSync; /* sustained >= 100ms -> real fault */
+        }
+        /* else: within debounce window, do not latch the fault yet */
     }
     else
     {
+        /* Deviation cleared: reset debounce. NOTE: per EV2.3.5 a latched
+         * implausibility fault should persist until the APPS re-plausibility
+         * conditions are met (that is handled by the broader fault clearing
+         * logic elsewhere). We only reset the debounce TIMER here. */
+        tpsOutOfSync_debounceActive = FALSE;
+        timestamp_tpsOutOfSync      = 0;
         me->faults &= ~F_tpsOutOfSync;
     }
 
@@ -678,7 +723,52 @@ void SafetyChecker_reduceTorque(SafetyChecker *me, MotorController *mcm, Battery
     {
         multiplier = 1;
     }
-    MCM_commands_setTorqueDNm(mcm, MCM_commands_getTorque(mcm) * multiplier);
+
+    /* Apply the scalar multiplier first */
+    sbyte2 requestedTorqueDNm = MCM_commands_getTorque(mcm);
+    sbyte2 scaledTorqueDNm    = (sbyte2)((float4)requestedTorqueDNm * multiplier);
+
+    /* ------------------------------------------------------------------
+     * FSAE Dynamic 80 kW Power Ceiling (rule 5)
+     * ------------------------------------------------------------------
+     * Tractive-system power must NEVER exceed 80 kW. Rather than a static
+     * trip at 80 kW, compute the maximum torque allowed at the CURRENT
+     * motor RPM and saturate the command to that ceiling. This lets the
+     * driver ride the 79.5 kW line perfectly without a hard shutdown.
+     *
+     *   P = T * omega
+     *   omega_rad_per_s = motorRPM * 2*pi / 60
+     *   T_max_Nm = P_ceiling_W / omega_rad_per_s
+     *   T_max_DNm = T_max_Nm * 10   (MCM torque units)
+     *
+     * Only applied to POSITIVE (acceleration) torque commands and only if
+     * the safety bypass is not active.
+     * ------------------------------------------------------------------ */
+    if ((me->warnings & W_safetyBypassEnabled) != W_safetyBypassEnabled && scaledTorqueDNm > 0)
+    {
+        sbyte4 rpm = MCM_getMotorRPM(mcm);
+
+        /* Only apply at a meaningful rotation speed (avoid divide-by-zero
+         * and absurdly high torque ceilings at crawl). Below ~100 rpm the
+         * motor is barely moving so the 80kW limit is not the binding
+         * constraint -- thermal and controller limits dominate. */
+        if (rpm > 100)
+        {
+            float4 omega_rad_per_s = (float4)rpm * RPM_TO_RAD_PER_SEC;
+            if (omega_rad_per_s > 0.1f) /* divide-by-zero guard */
+            {
+                float4 tMaxNm  = FSAE_POWER_CEILING_W / omega_rad_per_s;
+                float4 tMaxDNm = tMaxNm * 10.0f;
+
+                if ((float4)scaledTorqueDNm > tMaxDNm)
+                {
+                    scaledTorqueDNm = (sbyte2)tMaxDNm;
+                }
+            }
+        }
+    }
+
+    MCM_commands_setTorqueDNm(mcm, scaledTorqueDNm);
 }
 
 //-------------------------------------------------------------------

@@ -11,114 +11,212 @@
 #include "brakePressureSensor.h"
 #include "motorController.h"
 #include "sensorCalculations.h"
+
 extern Sensor Sensor_LCButton;
 extern Sensor Sensor_DRSKnob;
-float Calctorque;
-/* Start of PID Controller */
 
-void initPIDController(PIDController* controller, float p, float i, float d, float initialTorque) {
-    controller->kp = p;
-    controller->ki = i;
-    controller->kd = d;
-    controller->errorSum = initialTorque; //Will be initial torque command close to 240 (need tuning for initial torque)
-    controller->lastError = 0;
+/*
+ * Calctorque holds the last PID-calculated torque REDUCTION (DNm), surfaced
+ * on CAN for telemetry via getCalculatedTorque().
+ */
+static float4 Calctorque = 0;
+
+/* ------------------------------------------------------------------
+ * PID Controller
+ * ------------------------------------------------------------------
+ * The controller acts on slip ratio error (target - current). When actual
+ * slip exceeds the target, error is negative, so the output must be inverted
+ * to give a POSITIVE torque reduction. That inversion is done in the caller.
+ *
+ * Physics intuition:
+ *   error = targetSlip - measuredSlip   [unitless slip ratio]
+ *   P-term ~ how aggressively we cut torque for slip overshoot now
+ *   I-term ~ removes steady-state offset (persistent slip)
+ *   D-term ~ damps fast slip spikes from wheel hop / bumps
+ * ------------------------------------------------------------------ */
+void initPIDController(PIDController *controller, float4 p, float4 i, float4 d) {
+    controller->kp        = p;
+    controller->ki        = i;
+    controller->kd        = d;
+    controller->errorSum  = 0.0f;
+    controller->lastError = 0.0f;
 }
-float calculatePIDController(PIDController* controller, float target, float current, float dt, sbyte2 maxTorque) {
-    // Calculate the error between the target and current values
-    float error = target - current;
-    float propError = controller->kp * error;
-    // Add the current error to the running sum of errors for the integral term
-    // Time constant variance w/ System response (dt)
-    controller->errorSum += controller->ki * error * dt;
-    // Calculate the derivative of the error
-    float dError = ((error * controller->kd) - controller->lastError) / dt;
-    controller->lastError = error * controller->kd;
-    // Calculate the output of the PID controller using the three terms (proportional, integral, and derivative)
-    float output = propError + controller->errorSum + dError;
-    //Anti-Windup Calculation (needs to be done on integral controllers)
-    if (error > 0) {
-        controller->errorSum -= controller->ki * error * dt;
+
+/*
+ * Returns a POSITIVE torque reduction (DNm) to subtract from driver request.
+ * 'target' is the slip ratio setpoint (e.g. 0.15), 'current' is measured slip,
+ * dt is loop period in seconds (0.01 for 10ms loop).
+ */
+float4 calculatePIDReduction(PIDController *controller, float4 target, float4 current, float4 dt, sbyte2 maxReductionDNm) {
+    /* Positive slipError => we are slipping too much and must REDUCE torque */
+    float4 slipError = current - target;
+
+    /* Proportional term */
+    float4 pTerm = controller->kp * slipError;
+
+    /* Integral term with trapezoidal-equivalent accumulation (dt = 0.01s) */
+    controller->errorSum += slipError * dt;
+
+    /* Clamp integrator to prevent windup (bounded by maxReduction / ki) */
+    if (controller->ki > 0.0001f) {
+        float4 integLimit = (float4)maxReductionDNm / controller->ki;
+        if (controller->errorSum >  integLimit) { controller->errorSum =  integLimit; }
+        if (controller->errorSum < -integLimit) { controller->errorSum = -integLimit; }
     }
-    if (output > (float)maxTorque){
-        output = (float)maxTorque;
+    float4 iTerm = controller->ki * controller->errorSum;
+
+    /* Derivative of slip error. MISRA-C: guard divide-by-zero on dt. */
+    float4 dTerm = 0.0f;
+    if (dt > 0.0001f) {
+        dTerm = controller->kd * (slipError - controller->lastError) / dt;
     }
-    if (output < 0){ //Torque can't go negative in Launch Control (only reduced from Torque Max)
-        output = 0;
-        //controller->errorSum = controller->errorSum - error * dt; Is this needed?
+    controller->lastError = slipError;
+
+    float4 reduction = pTerm + iTerm + dTerm;
+
+    /* Output is a REDUCTION; only positive values mean "cut torque" */
+    if (reduction < 0.0f) {
+        reduction = 0.0f;
     }
-    return output;
+    if (reduction > (float4)maxReductionDNm) {
+        reduction = (float4)maxReductionDNm;
+    }
+    return reduction;
 }
-/* The PID controller works by using three terms to calculate an output value that is used to control a system. The three terms are:
-Proportional: This term is proportional to the error between the target and current values. It is multiplied by a constant gain value (kp) that determines how much the controller responds to changes in the error.
-Integral: This term is proportional to the running sum of errors over time. It is multiplied by a constant gain value (ki) that determines how much the controller responds to steady-state errors.
-Derivative: This term is proportional to the rate of change of the error. It is multiplied by a constant gain value (kd) that determines how much the controller responds to changes in the rate of change of the error.
-By adjusting the values of the three gain constants (kp, ki, and kd), the controller can be tuned to respond differently to changes in the error, steady-state errors, and changes in the rate of change of the error.
-Generally, higher values of kp will lead to faster response to changes in the error, while higher values of ki will lead to faster response to steady-state errors, and higher values of kd will lead to faster response to changes in the rate of change of the error.
-Conversion between SlipR and Torque -> kp
-Proportional test first with other output 0, get midway with target and then tune other items. There are many factors of noise.
-Kp will give you the difference between 0.1 current vs 0.2 target -> if you want to apply 50nm if your error is 0.1 then you need 500 for kp to get target
-*/
-/* Start of Launch Control */
-LaunchControl *LaunchControl_new(){
-    LaunchControl* me = (LaunchControl*)malloc(sizeof(struct _LaunchControl));
-    me->slipRatio = 0;
-    me->lcTorque = -1;
-    me->LCReady = FALSE;
-    me->LCStatus = FALSE;
-    me->pidController = (PIDController*)malloc(sizeof(struct _PIDController));
+
+/* ------------------------------------------------------------------
+ * Launch Control lifecycle
+ * ------------------------------------------------------------------ */
+LaunchControl *LaunchControl_new(void)
+{
+    LaunchControl *me = (LaunchControl *)malloc(sizeof(struct _LaunchControl));
+    if (me == NULL) { return NULL; } /* MISRA null-pointer guard */
+
+    me->slipRatio             = 0.0f;
+    me->targetSlip            = 0.15f;   /* 15% target slip for max forward bite */
+    me->lcTorqueReductionDNm  = 0;
+    me->LCReady               = FALSE;
+    me->LCStatus              = FALSE;
+    me->pidController         = (PIDController *)malloc(sizeof(struct _PIDController));
+    if (me->pidController == NULL) {
+        free(me);
+        return NULL;
+    }
+    initPIDController(me->pidController, 0.0f, 0.0f, 0.0f);
     me->buttonDebug = 0;
     return me;
 }
-void slipRatioCalculation(WheelSpeeds *wss, LaunchControl *me){
-    float unfilt_speed = (WheelSpeeds_getSlowestFront(wss) / (WheelSpeeds_getFastestRear(wss))) - 1;
-    float filt_speed = unfilt_speed;
-    if (unfilt_speed > 1.0) {
-        filt_speed = 1.0;
+
+/* ------------------------------------------------------------------
+ * Slip Ratio Calculation
+ * ------------------------------------------------------------------
+ * slipRatio = (Driven - Undriven) / Undriven
+ *   Driven   = rear wheels (fastest rear, RWD car)
+ *   Undriven = front wheels (slowest front, ground-truth speed)
+ *
+ * If the car is at a standstill the undriven speed is ~0, so we MUST guard
+ * against divide-by-zero (MISRA 21.1 / rule 4). Below a minimum undriven
+ * speed, slip is treated as 0 (no traction control action).
+ * ------------------------------------------------------------------ */
+void slipRatioCalculation(WheelSpeeds *wss, LaunchControl *me)
+{
+    if (wss == NULL || me == NULL) { return; }
+
+    float4 undriven = WheelSpeeds_getSlowestFront(wss); /* front (m/s) */
+    float4 driven   = WheelSpeeds_getFastestRear(wss);  /* rear  (m/s) */
+
+    /* Guard: below ~1 m/s (3.6 kph) wheel speed is too noisy AND we avoid
+     * divide-by-zero at a standstill (launch control init condition). */
+    float4 slip = 0.0f;
+    if (undriven > 1.0f) {
+        slip = (driven - undriven) / undriven;
     }
-    if (unfilt_speed < -1.0) {
-        filt_speed = -1.0;
-    }
-    me->slipRatio = filt_speed;
-    //me->slipRatio = (WheelSpeeds_getWheelSpeedRPM(wss, FL, TRUE) / WheelSpeeds_getWheelSpeedRPM(wss, RR, TRUE)) - 1; //Delete if doesn't work
-}
-void launchControlTorqueCalculation(LaunchControl *me, TorqueEncoder *tps, BrakePressureSensor *bps, MotorController *mcm){
-    sbyte2 speedKph = MCM_getGroundSpeedKPH(mcm);
-    sbyte2 steeringAngle = steering_degrees();
-    sbyte2 mcm_Torque_max = (MCM_commands_getTorqueLimit(mcm) / 10.0); //Do we need to divide by 10? Or does that automatically happen elsewhere?
-    
-    
-    // SENSOR_LCBUTTON values are reversed: FALSE = TRUE and TRUE = FALSE, due to the VCU internal Pull-Up for the button and the button's Pull-Down on Vehicle
-     if(Sensor_LCButton.sensorValue == TRUE && speedKph < 5 && bps->percent < .35) {
-        me->LCReady = TRUE;
-     }
-     if(me->LCReady == TRUE && Sensor_LCButton.sensorValue == TRUE){
-        me->lcTorque = 0; // On the motorcontroller side, this torque should stay this way regardless of the values by the pedals while LC is ready
-        initPIDController(me->pidController, 20, 0, 0, 170); // Set your PID values here to change various setpoints /* Setting to 0 for off */ Kp, Ki, Kd // Set your delta time long enough for system response to previous change
-     }
-     if(me->LCReady == TRUE && Sensor_LCButton.sensorValue == FALSE && tps->travelPercent > .90){
-        me->LCStatus = TRUE;
-        me->lcTorque = me->pidController->errorSum; // Set to the initial torque
-        if(speedKph > 3){
-            Calctorque = calculatePIDController(me->pidController, 0.2, me->slipRatio, 0.01, mcm_Torque_max); // Set your target, current, dt
-            me->lcTorque = Calctorque; // Test PID Controller before uncommenting
-        }
-    }
-    if(bps->percent > .05 || steeringAngle > 35 || steeringAngle < -35 || (tps->travelPercent < 0.90 && me->LCStatus == TRUE)){
-        me->LCStatus = FALSE;
-        me->LCReady = FALSE;
-        me->lcTorque = -1;
-    }
-    // Update launch control state and torque limit
-    MCM_update_LaunchControl_State(mcm, me->LCStatus);
-    MCM_update_LaunchControl_TorqueLimit(mcm, me->lcTorque * 10);
-}
-bool getLaunchControlStatus(LaunchControl *me){
-    return me->LCStatus;
-}
-sbyte2 getCalculatedTorque(){
-    return Calctorque;
+
+    /* Saturate to physically sane bounds [-1, 1] */
+    if (slip >  1.0f) { slip =  1.0f; }
+    if (slip < -1.0f) { slip = -1.0f; }
+
+    me->slipRatio = slip;
 }
 
-ubyte1 getButtonDebug(LaunchControl *me) {
-    return me->buttonDebug;
+/* ------------------------------------------------------------------
+ * Launch Control torque reduction calculation
+ * ------------------------------------------------------------------
+ * Flow:
+ *   1. Arm (LCReady) when driver holds LC button at standstill with brakes.
+ *   2. When driver releases LC button and pins throttle, LCStatus goes TRUE.
+ *   3. While LCStatus, the PID computes a REDUCTION (DNm) that is subtracted
+ *      from the driver's torque request inside MCM_calculateCommands.
+ *   4. Any brake / significant steering / throttle-lift exits launch.
+ *
+ * NOTE: In MCM_calculateCommands, final torque never goes negative during
+ *       active acceleration (see rule 9).
+ * ------------------------------------------------------------------ */
+void launchControlTorqueCalculation(LaunchControl *me, TorqueEncoder *tps, BrakePressureSensor *bps, MotorController *mcm)
+{
+    if (me == NULL || tps == NULL || bps == NULL || mcm == NULL) { return; }
+
+    sbyte2 speedKph       = MCM_getGroundSpeedKPH(mcm);
+    sbyte2 steeringAngle  = steering_degrees();
+    sbyte2 mcm_TorqueMaxDNm = MCM_commands_getTorqueLimit(mcm);
+
+    /* Arm launch control while stationary, brakes applied, button held */
+    if (Sensor_LCButton.sensorValue == TRUE && speedKph < 5 && bps->percent < 0.35f) {
+        me->LCReady = TRUE;
+    }
+
+    /* While armed & holding the button, force zero reduction and (re)tune PID */
+    if (me->LCReady == TRUE && Sensor_LCButton.sensorValue == TRUE) {
+        me->lcTorqueReductionDNm = 0;
+        /* Tuning for torque-REDUCTION PID (DNm / slip-unit).
+         * At 100% slip overshoot (error = 0.85 past the 0.15 target, saturated
+         * to 1.0) with kp=2000 we'd command ~1700 DNm reduction -> saturated
+         * by mcm_TorqueMaxDNm. Start conservative; tune on track. */
+        initPIDController(me->pidController, 2000.0f, 500.0f, 50.0f);
+    }
+
+    /* Launch active: button released, throttle pinned, rolling */
+    if (me->LCReady == TRUE && Sensor_LCButton.sensorValue == FALSE && tps->travelPercent > 0.90f) {
+        me->LCStatus = TRUE;
+        if (speedKph > 3) {
+            /* dt = 10ms loop = 0.01s (hard real-time cadence) */
+            Calctorque = calculatePIDReduction(me->pidController, me->targetSlip,
+                                               me->slipRatio, 0.01f, mcm_TorqueMaxDNm);
+            me->lcTorqueReductionDNm = (sbyte2)Calctorque;
+        } else {
+            /* Below 3 kph the slip signal is unreliable -> no reduction */
+            me->lcTorqueReductionDNm = 0;
+        }
+    }
+
+    /* Exit conditions: brake, steering angle > 35 deg, or throttle lift */
+    if (bps->percent > 0.05f
+        || steeringAngle >  35
+        || steeringAngle < -35
+        || (tps->travelPercent < 0.90f && me->LCStatus == TRUE))
+    {
+        me->LCStatus            = FALSE;
+        me->LCReady             = FALSE;
+        me->lcTorqueReductionDNm = 0;
+    }
+
+    /* Push the state & reduction to the motor controller. Reduction is in
+     * DNm (MCM torque units: 100 = 10.0 Nm). */
+    MCM_update_LaunchControl_State(mcm, me->LCStatus);
+    MCM_update_LaunchControl_TorqueReductionDNm(mcm, me->lcTorqueReductionDNm);
+}
+
+bool getLaunchControlStatus(LaunchControl *me)
+{
+    return (me == NULL) ? FALSE : me->LCStatus;
+}
+
+sbyte2 getCalculatedTorque(void)
+{
+    return (sbyte2)Calctorque;
+}
+
+ubyte1 getButtonDebug(LaunchControl *me)
+{
+    return (me == NULL) ? 0 : me->buttonDebug;
 }

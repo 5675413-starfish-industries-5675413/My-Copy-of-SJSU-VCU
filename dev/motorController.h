@@ -78,8 +78,10 @@ void MCM_updateInverterStatus(MotorController* me, Status newState);
 Status MCM_getLockoutStatus(MotorController* me);
 Status MCM_getInverterStatus(MotorController* me);
 
-void MCM_update_LaunchControl_TorqueLimit(MotorController *me, sbyte2 lcTorqueLimit);
+/* Launch Control torque REDUCTION (DNm) to subtract from driver request */
+void MCM_update_LaunchControl_TorqueReductionDNm(MotorController *me, sbyte2 lcTorqueReductionDNm);
 void MCM_update_LaunchControl_State(MotorController *me, bool newLCState);
+sbyte2 MCM_get_LaunchControl_TorqueReductionDNm(MotorController *me);
 
 sbyte4 MCM_getPower(MotorController* me);
 ubyte2 MCM_getCommandedTorque(MotorController* me);
@@ -99,6 +101,7 @@ sbyte2 MCM_getTemp(MotorController* me);
 sbyte2 MCM_getMotorTemp(MotorController* me);
 
 sbyte4 MCM_getGroundSpeedKPH(MotorController* me);
+sbyte4 MCM_getMotorRPM(MotorController* me);
 sbyte1 MCM_getRegenMinSpeed(MotorController* me);
 sbyte1 MCM_getRegenRampdownStartSpeed(MotorController* me);
 

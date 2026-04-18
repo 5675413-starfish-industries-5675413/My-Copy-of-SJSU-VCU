@@ -50,6 +50,7 @@
 #include "bms.h"
 #include "LaunchControl.h"
 #include "drs.h"
+#include "derating.h"
 
 //Application Database, needed for TTC-Downloader
 APDB appl_db =
@@ -221,6 +222,8 @@ void main(void)
     CoolingSystem *cs = CoolingSystem_new(serialMan);
     LaunchControl *lc = LaunchControl_new();
     DRS *drs = DRS_new();
+    /* Baseline torque ceiling = same 231 Nm the MCM was constructed with (2310 DNm) */
+    ThermalDerating *derating = ThermalDerating_new(2310);
 
     //----------------------------------------------------------------------------
     // TODO: Additional Initial Power-up functions
@@ -245,6 +248,11 @@ void main(void)
     ubyte4 coolingOnTimer = 0;
     ubyte1 coolingOn = 0;
     ubyte4 time = 0;
+    /* Debug telemetry is throttled to every 50ms (5 main loops at 10ms) so
+     * that the drive-critical 0xC0 MCM command never starves for bus time.
+     * The 0xC0 message itself is sent unconditionally every 10ms below. */
+    ubyte4 timestamp_lastDebugSend = 0;
+    IO_RTC_StartTime(&timestamp_lastDebugSend);
         //IO_RTC_StartTime(&timestamp_calibStart);
     SerialManager_send(serialMan, "VCU initializations complete.  Entering main loop.\n");
     while (1)
@@ -389,12 +397,27 @@ void main(void)
 
         //TractionControl_update(tps, mcm0, wss, daq);
 
-        //Update WheelSpeed and interpolate
+        //Update WheelSpeed and interpolate (needed before slip ratio / derating)
         WheelSpeeds_update(wss, TRUE);
-        slipRatioCalculation(wss, lc);
 
-        //Cool DRS things
+        /* ------------------------------------------------------------------
+         * Execution order (rule 5 / rule 7): DRS -> Thermal Derating ->
+         * Traction Control -> Motor Commands.
+         *
+         * 1) DRS first: aero state is independent and should react immediately
+         *    to the latest driver/sensor inputs for this loop.
+         * 2) Thermal Derating second: lowers MCM torqueMaximumDNm BEFORE the
+         *    traction control PID and motor command calc reference it, so the
+         *    thermal ceiling propagates cleanly into the 80kW power limit,
+         *    LC torque scaling, and MCM command on the SAME 10ms tick.
+         * 3) Traction Control (slip ratio + LC) uses the (possibly) derated
+         *    torque ceiling when computing the torque reduction.
+         * 4) MCM_calculateCommands applies driver torque - LC reduction with
+         *    regen blending to produce the final torque command.
+         * ------------------------------------------------------------------ */
         DRS_update(drs, mcm0, tps, bps);
+        ThermalDerating_update(derating, mcm0);
+        slipRatioCalculation(wss, lc);
 
         //DataAquisition_update(); //includes accelerometer
         //TireModel_update()
@@ -468,16 +491,21 @@ void main(void)
         //Comment out to disable shutdown board control
         err = BMS_relayControl(bms);
 
-        //CanManager_sendMCMCommandMessage(mcm0, canMan, FALSE);
+        /* ------------------------------------------------------------------
+         * CAN output policy (rule 10 / decoupled 0xC0):
+         *   - 0xC0 MCM command: EVERY 10ms loop, unconditionally.
+         *   - All debug/telemetry frames: every 50ms (every 5th loop).
+         * This prevents inverter dropout from FIFO saturation caused by
+         * the heavy debug blast on a shared CAN0 HiPri bus.
+         * ------------------------------------------------------------------ */
+        canOutput_sendMCMCommand(canMan, mcm0);
 
-        //Drop the sensor readings into CAN (just raw data, not calculated stuff)
-        //canOutput_sendMCUControl(mcm0, FALSE);
-
-        //Send debug data
-        canOutput_sendDebugMessage(canMan, tps, bps, mcm0, ic0, bms, wss, sc, lc, drs);
-        canOutput_sendDebugMessage1(canMan, mcm0, tps);
-        //canOutput_sendSensorMessages();
-        //canOutput_sendStatusMessages(mcm0);
+        if (IO_RTC_GetTimeUS(timestamp_lastDebugSend) >= 50000)
+        {
+            canOutput_sendDebugMessage(canMan, tps, bps, mcm0, ic0, bms, wss, sc, lc, drs);
+            canOutput_sendDebugMessage1(canMan, mcm0, tps);
+            IO_RTC_StartTime(&timestamp_lastDebugSend);
+        }
 
         //----------------------------------------------------------------------------
         // Task management stuff (end)
