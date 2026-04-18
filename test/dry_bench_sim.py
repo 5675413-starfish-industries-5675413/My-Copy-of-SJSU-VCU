@@ -120,6 +120,16 @@ ID_MCM_CMD_TORQUE_FB   = 0x0AC   # byte 0,1 = commanded torque (feedback)
 ID_WSS_MMPS            = 0x503   # FL,FR,RL,RR mm/s (u16 LE, 2B each)
 ID_WSS_RPM_NONINTERP   = 0x504   # FL,FR,RL,RR RPM   (u16 LE, 2B each)
 
+# --- Virtual HIL sensor override (VCU <- sim, only honored if bench mode) ---
+# Paired with dev/virtualSensors.c :: VS_parseOverrideCanMessage()
+# Byte layout (8B, STD):
+#   0        APPS percent     u8  0..100         -> /100 float
+#   1        BPS  percent     u8  0..100         -> /100 float
+#   2,3      front wheels     u16 LE, kph*10     -> 0.1 kph res
+#   4,5      rear  wheels     u16 LE, kph*10
+#   6,7      steering angle   s16 LE, degrees
+ID_BENCH_OVERRIDE      = 0x5FE
+
 # --- VCU output we LISTEN for ----------------------------------------------
 ID_MCM_TORQUE_CMD      = 0x0C0   # VCU -> MCM torque command (the money shot)
 
@@ -129,9 +139,16 @@ ID_MCM_TORQUE_CMD      = 0x0C0   # VCU -> MCM torque command (the money shot)
 # =============================================================================
 @dataclass
 class Scenario:
-    # Traction-control scenario (broadcast-only on CAN -- see limitations)
-    front_wheel_kph: float = 10.0
-    rear_wheel_kph:  float = 20.0
+    # Traction-control scenario -- ALSO fed directly into the VCU via the
+    # 0x5FE Virtual HIL override (as long as the VCU booted with IO_DI_06
+    # pulled low for bench mode).
+    front_wheel_kph: float = 10.0       # front axle ground speed
+    rear_wheel_kph:  float = 20.0       # rear  axle ground speed (slip!)
+
+    # Pedal / steering commanded via Virtual HIL (0x5FE)
+    apps_percent:    int   = 100        # 0..100 integer %
+    bps_percent:     int   = 0          # 0..100 integer %
+    steering_deg:    int   = 0          # -32768..32767
 
     # 80 kW-ceiling scenario
     motor_rpm:       int   = 6000       # triggers power ceiling calc
@@ -144,8 +161,9 @@ class Scenario:
 
     # Broadcast periods (seconds). The MCM really broadcasts ~3 ms
     # for the hot IDs; 20 ms is plenty for bench-testing.
-    period_mcm_hot_s: float = 0.020
-    period_wss_s:     float = 0.010     # match the VCU's 10 ms loop cadence
+    period_mcm_hot_s:  float = 0.020
+    period_wss_s:      float = 0.010    # match the VCU's 10 ms loop cadence
+    period_bench_s:    float = 0.010    # 100 Hz override stream
 
 
 SCEN = Scenario()
@@ -237,6 +255,34 @@ def build_frame_wss_rpm(front_kph: float, rear_kph: float) -> can.Message:
                        data=data, is_extended_id=False)
 
 
+def build_frame_bench_override(apps_pct: int,
+                               bps_pct: int,
+                               front_kph: float,
+                               rear_kph: float,
+                               steering_deg: int) -> can.Message:
+    """0x5FE: Virtual HIL sensor override. Must match byte-for-byte with
+    dev/virtualSensors.c :: VS_parseOverrideCanMessage().
+
+        byte 0   APPS percent     u8, 0..100
+        byte 1   BPS percent      u8, 0..100
+        byte 2,3 front wheels     u16 LE, kph * 10
+        byte 4,5 rear  wheels     u16 LE, kph * 10
+        byte 6,7 steering deg     s16 LE
+    """
+    apps_b = max(0, min(100, int(apps_pct)))
+    bps_b  = max(0, min(100, int(bps_pct)))
+    front_raw = max(0, min(65535, int(round(front_kph * 10.0))))
+    rear_raw  = max(0, min(65535, int(round(rear_kph  * 10.0))))
+    steer_s16 = max(-32768, min(32767, int(steering_deg)))
+
+    data = struct.pack('<BBHHh',
+                       apps_b, bps_b,
+                       front_raw, rear_raw,
+                       steer_s16)
+    return can.Message(arbitration_id=ID_BENCH_OVERRIDE,
+                       data=data, is_extended_id=False)
+
+
 # =============================================================================
 # Simulator
 # =============================================================================
@@ -281,8 +327,31 @@ class DryBenchSim:
             task = self._bus.send_periodic(frame, self._scen.period_wss_s)
             self._tasks.append(task)
 
+        # --- Virtual HIL sensor override (0x5FE) ---------------------------
+        # This is the important one. If the VCU booted in bench mode
+        # (IO_DI_06 pulled low), these values drive APPS, BPS, WSS, SAS
+        # directly -- bypassing the ADC / PWD pins -- so traction control,
+        # regen blending, DRS hysteresis, and the 80 kW ceiling can all
+        # be exercised from a PC + CAN dongle alone.
+        bench_frame = build_frame_bench_override(
+            apps_pct    = self._scen.apps_percent,
+            bps_pct     = self._scen.bps_percent,
+            front_kph   = self._scen.front_wheel_kph,
+            rear_kph    = self._scen.rear_wheel_kph,
+            steering_deg= self._scen.steering_deg,
+        )
+        self._tasks.append(
+            self._bus.send_periodic(bench_frame, self._scen.period_bench_s))
+
         logging.info("Spoof TX armed: %d periodic tasks running",
                      len(self._tasks))
+        logging.info(
+            "Bench override (0x%03X): APPS=%d%%  BPS=%d%%  "
+            "WSS F/R=%.1f/%.1f kph  SAS=%d deg",
+            ID_BENCH_OVERRIDE,
+            self._scen.apps_percent, self._scen.bps_percent,
+            self._scen.front_wheel_kph, self._scen.rear_wheel_kph,
+            self._scen.steering_deg)
 
     # ---------- RX (listen for 0xC0) ---------------------------------------
     def start_listener(self) -> None:

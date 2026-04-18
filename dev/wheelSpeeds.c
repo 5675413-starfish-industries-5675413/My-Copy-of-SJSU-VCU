@@ -7,6 +7,7 @@
 #include "mathFunctions.h"
 
 #include "sensors.h"
+#include "virtualSensors.h"
 //extern Sensor Sensor_BPS0;
 //extern Sensor Sensor_BenchTPS1;
 
@@ -57,6 +58,25 @@ WheelSpeeds *WheelSpeeds_new(float4 tireDiameterInches_F, float4 tireDiameterInc
 
 void WheelSpeeds_update(WheelSpeeds *me, bool interpolate)
 {
+    /* -----------------------------------------------------------------
+     * Virtual HIL override. In bench mode (IO_DI_06 latched at boot),
+     * the PWD-derived Sensor_WSS_* values still get populated in
+     * sensors.c but are ignored here -- we plant m/s directly from
+     * the bench rig's VS_wss_*_mps globals (fed by 0x5FE CAN frames).
+     * Left/right on the same axle are given identical speeds so the
+     * traction-control slip math sees a clean front/rear delta with
+     * no cross-axle noise. That is the F1-style bench test the slip
+     * PID was designed against.
+     * ----------------------------------------------------------------- */
+    if (VS_benchMode == TRUE)
+    {
+        me->speed_FL = VS_wss_front_mps;
+        me->speed_FR = VS_wss_front_mps;
+        me->speed_RL = VS_wss_rear_mps;
+        me->speed_RR = VS_wss_rear_mps;
+        return;
+    }
+
     //speed (m/s) = m * pulses/sec / pulses
     if (interpolate)
     {

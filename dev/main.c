@@ -51,6 +51,7 @@
 #include "LaunchControl.h"
 #include "drs.h"
 #include "derating.h"
+#include "virtualSensors.h"
 
 //Application Database, needed for TTC-Downloader
 APDB appl_db =
@@ -176,6 +177,12 @@ void main(void)
     }
     IO_DI_DeInit(IO_DI_06);
     SerialManager_send(serialMan, bench == TRUE ? "VCU is in bench mode.\n" : "VCU is NOT in bench mode.\n");
+
+    /* Latch the bench flag into the Virtual HIL module so the APPS / BPS /
+     * WSS / SAS override paths wake up. See virtualSensors.h for full
+     * theory-of-operation. On the real car IO_DI_06 is pulled high, bench
+     * is FALSE, and every override becomes a no-op. */
+    VS_setBenchMode(bench);
 
     //----------------------------------------------------------------------------
     // VCU Subsystem Initializations

@@ -6,6 +6,7 @@
 #include "mathFunctions.h"
 
 #include "sensors.h"
+#include "virtualSensors.h"
 extern Sensor Sensor_BenchTPS0;
 extern Sensor Sensor_BenchTPS1;
 
@@ -80,6 +81,31 @@ void TorqueEncoder_update(TorqueEncoder* me)
 
     me->tps0_value = me->tps0->sensorValue;
     me->tps1_value = me->tps1->sensorValue;
+
+    /* -----------------------------------------------------------------
+     * Virtual HIL override. When bench mode is latched (IO_DI_06 read at
+     * boot by main.c), the ADC-derived tps*_value readings above are
+     * IGNORED and we drive the pedal from the bench rig's last 0x5FE
+     * CAN frame. The EMA filter still runs so downstream timing
+     * matches real-vehicle behavior -- the only thing that changes is
+     * the source of rawTravel.
+     * ----------------------------------------------------------------- */
+    if (VS_benchMode == TRUE)
+    {
+        float4 vapps = VS_apps_percent;
+        if (vapps < 0.0f) { vapps = 0.0f; }
+        if (vapps > 1.0f) { vapps = 1.0f; }
+
+        me->tps0_percent      = vapps;
+        me->tps1_percent      = vapps;
+        me->travelPercent_raw = vapps;
+
+        float4 alpha = me->emaAlpha;
+        if (alpha <= 0.0f || alpha > 1.0f) { alpha = 1.0f; }
+        me->travelPercent = (alpha * vapps)
+                          + ((1.0f - alpha) * me->travelPercent);
+        return;
+    }
 
     ubyte2 errorCount = 0;
 

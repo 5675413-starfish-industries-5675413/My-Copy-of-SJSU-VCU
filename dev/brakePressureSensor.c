@@ -6,6 +6,7 @@
 #include "mathFunctions.h"
 
 #include "sensors.h"
+#include "virtualSensors.h"
 //extern Sensor Sensor_BPS0;
 //extern Sensor Sensor_BenchTPS1;
 
@@ -61,6 +62,32 @@ BrakePressureSensor *BrakePressureSensor_new(void)
 {
     me->bps0_value = me->bps0->sensorValue;
     me->bps1_value = me->bps1->sensorValue;
+
+    /* -----------------------------------------------------------------
+     * Virtual HIL override. When bench mode is active (either the
+     * legacy 'bench' arg, OR the globally latched VS_benchMode), the
+     * BPS ADC values are ignored and we drive the brake pedal from
+     * VS_bps_percent (last 0x5FE CAN frame). brakesAreOn latches on
+     * the normal BRAKES_ON_PERCENT threshold so regen-blending /
+     * brake-light logic stays exercised.
+     * ----------------------------------------------------------------- */
+    if (VS_benchMode == TRUE)
+    {
+        float4 vbps = VS_bps_percent;
+        if (vbps < 0.0f) { vbps = 0.0f; }
+        if (vbps > 1.0f) { vbps = 1.0f; }
+
+        me->bps0_percent = vbps;
+        me->bps1_percent = vbps;
+        me->percent      = vbps;
+        me->brakesAreOn  = (vbps > BRAKES_ON_PERCENT) ? TRUE : FALSE;
+
+        /* Still drive the brake-light on the bench so the lamp-harness
+         * check can be verified end-to-end. */
+        if (me->brakesAreOn) { Light_set(Light_brake, 1); }
+        else                  { Light_set(Light_brake, 0); }
+        return;
+    }
 
     //This function runs before the calibration cycle function.  If calibration is currently
     //running, then set the percentage to zero for safety purposes.

@@ -31,6 +31,7 @@
 #include "sensorCalculations.h"
 #include "sensors.h"
 #include "mathFunctions.h"
+#include "virtualSensors.h"
 
 extern Sensor Sensor_TPS0;
 extern Sensor Sensor_TPS1;
@@ -326,6 +327,14 @@ Input: Voltage
 Output: Degrees
 ****************************************************************************/
 sbyte4 steering_degrees(){
+    /* Virtual HIL override: on the bench the SAS ADC pin is either open or
+     * fed a dummy voltage, so we short-circuit straight to the bench rig's
+     * commanded steering angle (last 0x5FE CAN frame). See virtualSensors.h
+     * for frame layout. */
+    if (VS_benchMode == TRUE) {
+        return (sbyte4)VS_steering_deg;
+    }
+
     sbyte4 min_voltage = 960;    // Adjusted minimum voltage to 0 mV
     sbyte4 max_voltage = 2560; // Adjusted maximum voltage to 5000 mV
     sbyte4 min_angle = -90;

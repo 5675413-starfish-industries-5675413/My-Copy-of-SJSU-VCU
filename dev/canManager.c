@@ -17,6 +17,7 @@
 #include "sensorCalculations.h"
 #include "LaunchControl.h"
 #include "drs.h"
+#include "virtualSensors.h"
 
 
 struct _CanManager {
@@ -442,6 +443,15 @@ void CanManager_read(CanManager* me, CanChannel channel, MotorController* mcm, I
         //-------------------------------------------------------------------------
         //VCU Debug Control
         //-------------------------------------------------------------------------
+        case 0x5FE:
+            /* Virtual HIL sensor override. Only takes effect when the
+             * VCU booted in bench mode (IO_DI_06 pulled low). On the
+             * real car this frame is still safely parsed into the
+             * VS_* globals but the sensor modules ignore those globals
+             * because VS_benchMode == FALSE. See virtualSensors.h. */
+            VS_parseOverrideCanMessage(&canMessages[currMessage]);
+            break;
+
         case 0x5FF:
             SafetyChecker_parseCanMessage(sc, &canMessages[currMessage]);
             MCM_parseCanMessage(mcm, &canMessages[currMessage]);
